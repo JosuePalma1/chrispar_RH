@@ -1,18 +1,18 @@
+---
 Activar backend
 terminal: 
-    1. venv\Scripts\activate
-    2. cd backend
-    3. python app.py
-
-
-
-
+```bash
+venv\Scripts\activate
+cd backend
+python app.py
+```
 Activar frontend
 terminal: 
-    1. cd frontend
-    2. npm start
-
-
+```bash
+cd frontend
+npm start
+```
+---
 # Plataforma Web de Gestión de Recursos Humanos - Chrispar Market
 
 Este proyecto es un prototipo académico desarrollado en **Aplicaciones Web II**, cuyo objetivo es crear una plataforma web para la gestión de recursos humanos de Chrispar Market.  
@@ -51,12 +51,12 @@ npm install
 npm start
 ```
 ---
-Equipo
--Yimmi Leonel Barberan Moreira
--James Malony Molina Bravo
--Marcelo Matias Nieto Medina
--Josue Fernando Palma Zambrano
--Alex Sahid Triviño Hidalgo
+## Equipo
+- Yimmi Leonel Barberan Moreira
+- James Malony Molina Bravo
+- Marcelo Matias Nieto Medina
+- Josue Fernando Palma Zambrano
+- Alex Sahid Triviño Hidalgo
 
 ---
 ## Notas
