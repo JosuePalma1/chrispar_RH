@@ -1,4 +1,3 @@
----
 Activar backend
 terminal: 
 ```bash
