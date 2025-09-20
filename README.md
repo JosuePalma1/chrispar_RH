@@ -36,7 +36,7 @@ Nueva terminal en Visual Studio Code
 git clone https://github.com/TU-USUARIO/chrispar-hr-system.git
 cd chrispar-hr-system
 ```
-#### 2️⃣ Backend (Flask)
+### 2️⃣ Backend (Flask)
 ```bash
 python -m venv venv
 venv\Scripts\activate   # En Windows
@@ -44,21 +44,22 @@ pip install -r backend/requirements.txt
 cd backend
 python app.py
 ```
-##### 3️⃣ Frontend (React)
+### 3️⃣ Frontend (React)
 ```bash
 cd frontend
 npm install
 npm start
 ```
-
+---
 Equipo
-•Yimmi Leonel Barberan Moreira
-•James Malony Molina Bravo
-•Marcelo Matias Nieto Medina
-•Josue Fernando Palma Zambrano
-•Alex Sahid Triviño Hidalgo
+-Yimmi Leonel Barberan Moreira
+-James Malony Molina Bravo
+-Marcelo Matias Nieto Medina
+-Josue Fernando Palma Zambrano
+-Alex Sahid Triviño Hidalgo
 
-Notas
+---
+## Notas
 
 No se deben subir las carpetas venv/ ni node_modules/ al repositorio.
 Cada integrante debe crear su propio entorno virtual e instalar dependencias con pip install -r requirements.txt y npm install.
