@@ -128,10 +128,6 @@ def actualizar_usuario(id):
                 return jsonify({"error": f"Rol inválido. Debe ser uno de: {', '.join(roles_validos)}"}), 400
             usuario.rol = data['rol']
         
-        # Actualizar id_empleado si se proporciona
-        if 'id_empleado' in data:
-            usuario.id_empleado = data['id_empleado']
-        
         # Actualizar fecha de modificación
         usuario.fecha_actualizacion = datetime.utcnow()
         
@@ -143,7 +139,6 @@ def actualizar_usuario(id):
                 "id": usuario.id,
                 "username": usuario.username,
                 "rol": usuario.rol,
-                "id_empleado": usuario.id_empleado,
                 "fecha_actualizacion": usuario.fecha_actualizacion.isoformat() if usuario.fecha_actualizacion else None
             }
         }), 200
@@ -195,8 +190,7 @@ def login():
             "usuario": {
                 "id": usuario.id,
                 "username": usuario.username,
-                "rol": usuario.rol,
-                "id_empleado": usuario.id_empleado
+                "rol": usuario.rol
             }
         }), 200
         
@@ -216,7 +210,6 @@ def obtener_usuarios_por_rol(rol):
                 "id": usuario.id,
                 "username": usuario.username,
                 "rol": usuario.rol,
-                "id_empleado": usuario.id_empleado,
                 "fecha_creacion": usuario.fecha_creacion.isoformat() if usuario.fecha_creacion else None
             })
         
