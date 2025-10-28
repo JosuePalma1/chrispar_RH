@@ -1,8 +1,10 @@
 from flask import Blueprint, request, jsonify
 from extensions import db
 from models.usuario import Usuario
+from models.log_transaccional import LogTransaccional
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+import json
 
 usuario_bp = Blueprint('usuario', __name__, url_prefix='/api/usuarios')
 
@@ -38,6 +40,24 @@ def crear_usuario():
         
         db.session.add(nuevo_usuario)
         db.session.commit()
+        
+        # REGISTRAR LOG
+        try:
+            log = LogTransaccional(
+                tabla_afectada='usuarios',
+                operacion='INSERT',
+                id_registro=nuevo_usuario.id,
+                usuario=data.get('username', 'sistema'),
+                datos_nuevos=json.dumps({
+                    'username': nuevo_usuario.username,
+                    'rol': nuevo_usuario.rol
+                    # NO incluir password por seguridad
+                })
+            )
+            db.session.add(log)
+            db.session.commit()
+        except Exception as log_error:
+            print(f"⚠️ Error al registrar log: {log_error}")
         
         return jsonify({
             "mensaje": "Usuario creado exitosamente",
@@ -108,6 +128,12 @@ def actualizar_usuario(id):
         
         data = request.get_json()
         
+        # Guardar datos anteriores para el log
+        datos_anteriores = {
+            'username': usuario.username,
+            'rol': usuario.rol
+        }
+        
         # Actualizar username si se proporciona
         if 'username' in data:
             # Verificar que el nuevo username no esté en uso
@@ -133,6 +159,26 @@ def actualizar_usuario(id):
         
         db.session.commit()
         
+        # REGISTRAR LOG
+        try:
+            datos_nuevos = {
+                'username': usuario.username,
+                'rol': usuario.rol
+            }
+            
+            log = LogTransaccional(
+                tabla_afectada='usuarios',
+                operacion='UPDATE',
+                id_registro=usuario.id,
+                usuario=data.get('usuario_modificador', usuario.username),
+                datos_anteriores=json.dumps(datos_anteriores),
+                datos_nuevos=json.dumps(datos_nuevos)
+            )
+            db.session.add(log)
+            db.session.commit()
+        except Exception as log_error:
+            print(f"⚠️ Error al registrar log: {log_error}")
+        
         return jsonify({
             "mensaje": "Usuario actualizado exitosamente",
             "usuario": {
@@ -157,8 +203,29 @@ def eliminar_usuario(id):
         if not usuario:
             return jsonify({"error": "Usuario no encontrado"}), 404
         
+        # Guardar datos antes de eliminar
+        datos_anteriores = {
+            'username': usuario.username,
+            'rol': usuario.rol
+        }
+        usuario_id = usuario.id
+        
         db.session.delete(usuario)
         db.session.commit()
+        
+        # REGISTRAR LOG
+        try:
+            log = LogTransaccional(
+                tabla_afectada='usuarios',
+                operacion='DELETE',
+                id_registro=usuario_id,
+                usuario='sistema',
+                datos_anteriores=json.dumps(datos_anteriores)
+            )
+            db.session.add(log)
+            db.session.commit()
+        except Exception as log_error:
+            print(f"⚠️ Error al registrar log: {log_error}")
         
         return jsonify({"mensaje": "Usuario eliminado exitosamente"}), 200
         
@@ -184,6 +251,23 @@ def login():
         # Verificar contraseña
         if not check_password_hash(usuario.password, data['password']):
             return jsonify({"error": "Credenciales inválidas"}), 401
+        
+        # REGISTRAR LOG DE LOGIN
+        try:
+            log = LogTransaccional(
+                tabla_afectada='usuarios',
+                operacion='LOGIN',
+                id_registro=usuario.id,
+                usuario=usuario.username,
+                datos_nuevos=json.dumps({
+                    'evento': 'login_exitoso',
+                    'timestamp': datetime.utcnow().isoformat()
+                })
+            )
+            db.session.add(log)
+            db.session.commit()
+        except Exception as log_error:
+            print(f"⚠️ Error al registrar log: {log_error}")
         
         return jsonify({
             "mensaje": "Login exitoso",

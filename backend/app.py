@@ -5,29 +5,30 @@ from extensions import db, migrate
 def create_app():
     app = Flask(__name__)
     app.config.from_object("config.Config")
-
+    
+    # Inicializar extensiones
     db.init_app(app)
     migrate.init_app(app, db)
     CORS(app)
-
-    # Registrar blueprints DENTRO del contexto de la app
-    with app.app_context():
-        # Importar modelos
-        from models import Empleado, Cargo, Usuario
-        
-        # Registrar blueprints
-        from routes import all_blueprints
-        
-        for bp in all_blueprints:
-            app.register_blueprint(bp)
     
-    # Imprimir las rutas registradas
-    print("Rutas registradas:")
-    for rule in app.url_map.iter_rules():
-        print(rule)
-
+    # Importar modelos para que las migraciones los detecten
+    with app.app_context():
+        from models import Empleado, Cargo, Usuario, LogTransaccional
+    
+    # Registrar blueprints
+    from routes import all_blueprints
+    for blueprint, prefix in all_blueprints:
+        app.register_blueprint(blueprint, url_prefix=prefix)
+    
     return app
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app = create_app()
-    app.run(debug=True)
+    
+    # Imprimir rutas registradas para debug
+    print("\n=== RUTAS REGISTRADAS ===")
+    for rule in app.url_map.iter_rules():
+        print(f"{rule.methods} {rule.rule}")
+    print("========================\n")
+    
+    app.run(debug=True, host='0.0.0.0', port=5000)

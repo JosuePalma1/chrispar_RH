@@ -1,6 +1,9 @@
 from flask import Blueprint, request, jsonify
 from extensions import db
 from models.cargo import Cargo
+from models.log_transaccional import LogTransaccional
+import json
+from decimal import Decimal
 
 cargo_bp = Blueprint('cargo', __name__, url_prefix='/api/cargos')
 
@@ -23,6 +26,24 @@ def crear_cargo():
         
         db.session.add(nuevo_cargo)
         db.session.commit()
+        
+        # REGISTRAR LOG
+        try:
+            log = LogTransaccional(
+                tabla_afectada='cargos',  # CORREGIDO: ahora es plural
+                operacion='INSERT',
+                id_registro=nuevo_cargo.id,
+                usuario=str(data.get('creado_por', 'sistema')),  # Convertir a string
+                datos_nuevos=json.dumps({
+                    'nombre': nuevo_cargo.nombre,
+                    'sueldo_base': float(nuevo_cargo.sueldo_base) if nuevo_cargo.sueldo_base else 0.0
+                })
+            )
+            db.session.add(log)
+            db.session.commit()
+        except Exception as log_error:
+            print(f"⚠️ Error al registrar log: {log_error}")
+            # No hacer rollback aquí, el cargo ya se creó exitosamente
         
         return jsonify({
             "mensaje": "Cargo creado exitosamente",
@@ -89,7 +110,13 @@ def actualizar_cargo(id):
         
         data = request.get_json()
         
-        # Actualizar campos si se proporcionan
+        # Guardar datos anteriores
+        datos_anteriores = {
+            'nombre': cargo.nombre,
+            'sueldo_base': float(cargo.sueldo_base) if cargo.sueldo_base else 0.0
+        }
+        
+        # Actualizar campos
         if 'nombre' in data:
             cargo.nombre = data['nombre']
         
@@ -100,6 +127,26 @@ def actualizar_cargo(id):
             cargo.modificado_por = data['modificado_por']
         
         db.session.commit()
+        
+        # REGISTRAR LOG
+        try:
+            datos_nuevos = {
+                'nombre': cargo.nombre,
+                'sueldo_base': float(cargo.sueldo_base) if cargo.sueldo_base else 0.0
+            }
+            
+            log = LogTransaccional(
+                tabla_afectada='cargos',
+                operacion='UPDATE',
+                id_registro=cargo.id,
+                usuario=str(data.get('modificado_por', 'sistema')),
+                datos_anteriores=json.dumps(datos_anteriores),
+                datos_nuevos=json.dumps(datos_nuevos)
+            )
+            db.session.add(log)
+            db.session.commit()
+        except Exception as log_error:
+            print(f"⚠️ Error al registrar log: {log_error}")
         
         return jsonify({
             "mensaje": "Cargo actualizado exitosamente",
@@ -124,18 +171,38 @@ def eliminar_cargo(id):
         if not cargo:
             return jsonify({"error": "Cargo no encontrado"}), 404
         
-        # Verificar si hay empleados con este cargo
+        # Verificar empleados
         if cargo.empleados:
             return jsonify({
                 "error": "No se puede eliminar el cargo porque tiene empleados asociados"
             }), 400
         
+        # Guardar datos antes de eliminar
+        datos_anteriores = {
+            'nombre': cargo.nombre,
+            'sueldo_base': float(cargo.sueldo_base) if cargo.sueldo_base else 0.0
+        }
+        cargo_id = cargo.id
+        
         db.session.delete(cargo)
         db.session.commit()
+        
+        # REGISTRAR LOG
+        try:
+            log = LogTransaccional(
+                tabla_afectada='cargos',
+                operacion='DELETE',
+                id_registro=cargo_id,
+                usuario='sistema',
+                datos_anteriores=json.dumps(datos_anteriores)
+            )
+            db.session.add(log)
+            db.session.commit()
+        except Exception as log_error:
+            print(f"⚠️ Error al registrar log: {log_error}")
         
         return jsonify({"mensaje": "Cargo eliminado exitosamente"}), 200
         
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Error al eliminar cargo: {str(e)}"}), 500
-

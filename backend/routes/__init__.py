@@ -9,16 +9,16 @@ from .nomina_routes import nomina_bp
 from .rubro_routes import rubro_bp
 from .log_transaccional_routes import log_bp
 
-# Lista con todos los blueprints
+# Lista con todos los blueprints y sus prefijos
 all_blueprints = [
-    cargo_bp,
-    usuario_bp,
-    empleado_bp,
-    horario_bp,
-    hoja_vida_bp,
-    asistencia_bp,
-    permiso_bp,
-    nomina_bp,
-    rubro_bp,
-    log_bp
+    (cargo_bp, '/api/cargos'),
+    (usuario_bp, '/api/usuarios'),
+    (empleado_bp, '/api/empleados'),
+    (horario_bp, '/api/horarios'),
+    (hoja_vida_bp, '/api/hojas-vida'),
+    (asistencia_bp, '/api/asistencias'),
+    (permiso_bp, '/api/permisos'),
+    (nomina_bp, '/api/nominas'),
+    (rubro_bp, '/api/rubros'),
+    (log_bp, '/api/logs'),
 ]

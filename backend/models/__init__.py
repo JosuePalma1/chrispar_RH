@@ -8,7 +8,7 @@ from .usuario import Usuario
 # from .nomina import Nomina
 # from .rubro import Rubro
 # from .permiso import Permiso
-# from .log_transaccional import LogTransaccional
+from .log_transaccional import LogTransaccional
 
 # TODO: Descomentar las importaciones cuando los modelos estén implementados
 
