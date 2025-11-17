@@ -43,5 +43,5 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 
-# Migraciones (opcional, depende del equipo)
-# migrations/
+# Migraciones - Cada quien genera las suyas localmente
+backend/migrations/versions/

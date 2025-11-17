@@ -104,8 +104,11 @@ Esto permite que el frontend sepa dónde está el backend.
    ```bash
    cd backend
    $env:FLASK_APP = 'app:create_app'
+   python -m flask db migrate -m "Crear tablas iniciales"
    python -m flask db upgrade
    ```
+   
+   ⚠️ **Nota:** Cada integrante del equipo debe correr `flask db migrate` en su máquina local. Los archivos de migración NO se suben a Git para evitar conflictos.
 
 ---
 
@@ -256,12 +259,15 @@ El workspace incluye:
 - Importa tu Blueprint
 - Agrégalo a `all_blueprints`
 
-**Paso 5:** Crear y aplicar migración
+**Paso 5:** Crear y aplicar migración localmente
 ```bash
 cd backend
+$env:FLASK_APP = 'app:create_app'
 python -m flask db migrate -m "Descripción del cambio"
 python -m flask db upgrade
 ```
+
+⚠️ **Importante:** Solo crea migraciones en TU máquina. Se sube a GIT
 
 ### Frontend - Crear Nuevos Componentes
 
@@ -320,6 +326,7 @@ Estos archivos **NO se suben a Git** automáticamente:
 - `backend/__pycache__/` - Archivos compilados de Python
 - `backend/venv/` o `env/` - Entorno virtual
 - `frontend/node_modules/` - Dependencias de Node.js
+- `backend/migrations/versions/` - **Archivos de migración (cada quien genera los suyos)**
 
 **Nota:** Los archivos `.env` **SÍ están incluidos** en el repositorio para facilitar la configuración del equipo.
 
