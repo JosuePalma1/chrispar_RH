@@ -2,9 +2,9 @@
 from .empleado import Empleado
 from .cargo import Cargo
 from .usuario import Usuario
-# from .horario import Horario
+from .horario import Horario
 # from .asistencia import Asistencia
-# from .hoja_vida import HojaVida
+from .hoja_vida import Hoja_Vida
 # from .nomina import Nomina
 # from .rubro import Rubro
 # from .permiso import Permiso
