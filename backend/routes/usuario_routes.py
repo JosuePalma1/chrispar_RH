@@ -5,6 +5,7 @@ from models.log_transaccional import LogTransaccional
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import json
+from utils.auth import generate_token
 
 usuario_bp = Blueprint('usuario', __name__, url_prefix='/api/usuarios')
 
@@ -252,6 +253,9 @@ def login():
         if not check_password_hash(usuario.password, data['password']):
             return jsonify({"error": "Credenciales inválidas"}), 401
         
+        # GENERAR TOKEN JWT
+        token = generate_token(usuario.id, usuario.username, usuario.rol)
+        
         # REGISTRAR LOG DE LOGIN
         try:
             log = LogTransaccional(
@@ -271,6 +275,7 @@ def login():
         
         return jsonify({
             "mensaje": "Login exitoso",
+            "token": token,
             "usuario": {
                 "id": usuario.id,
                 "username": usuario.username,
