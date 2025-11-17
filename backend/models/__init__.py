@@ -4,8 +4,8 @@ from .cargo import Cargo
 from .usuario import Usuario
 from .asistencia import Asistencia
 from .permiso import Permiso
-# from .horario import Horario
-# from .hoja_vida import HojaVida
+from .horario import Horario
+from .hoja_vida import Hoja_Vida
 # from .nomina import Nomina
 # from .rubro import Rubro
 from .log_transaccional import LogTransaccional

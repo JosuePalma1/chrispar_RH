@@ -29,7 +29,6 @@ class Empleado(db.Model):
     cargo = db.relationship("Cargo", back_populates="empleados")
     asistencias = db.relationship("Asistencia", back_populates="empleado", cascade="all, delete-orphan")
     permisos = db.relationship("Permiso", back_populates="empleado", cascade="all, delete-orphan")
-    # Descomentar cuando se creen estos modelos:
-    # horarios = db.relationship("Horario", back_populates="empleado", cascade="all, delete-orphan")
-    # hoja_vidas = db.relationship("HojaVida", back_populates="empleado", cascade="all, delete-orphan")
+    horarios = db.relationship("Horario", back_populates="empleado", cascade="all, delete-orphan")
+    hojas_vida = db.relationship("Hoja_Vida", back_populates="empleado", cascade="all, delete-orphan")
     # nominas = db.relationship("Nomina", back_populates="empleado", cascade="all, delete-orphan")

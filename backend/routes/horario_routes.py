@@ -1,5 +1,112 @@
-from flask import Blueprint
+from flask import Blueprint, request, jsonify
+from app import db
+from models.horario import Horario
+from datetime import datetime, time, date
 
 horario_bp = Blueprint('horario', __name__, url_prefix='/api/horarios')
 
-# TODO: Implementar rutas CRUD para horarios
+# Es buena práctica manejar la conversión de strings a time/date
+def parse_time(time_input):
+    # 1. Si ya es un objeto 'time', simplemente devuélvelo.
+    if isinstance(time_input, time):
+        return time_input
+    # 2. Si es None o un string vacío, devuelve None.
+    if not time_input: 
+        return None
+    # 3. Si es un string, intenta procesarlo.
+    try: 
+        return datetime.strptime(time_input, '%H:%M:%S').time()
+    except (ValueError, TypeError): 
+        try: 
+            return datetime.strptime(time_input, '%H:%M').time()
+        except (ValueError, TypeError):
+            return None # Falla si no es un string de tiempo válido
+
+def parse_date(date_input):
+    # 1. Si ya es un objeto 'date', simplemente devuélvelo.
+    if isinstance(date_input, date):
+        return date_input
+    # 2. Si es None o un string vacío, devuelve None.
+    if not date_input: 
+        return None
+    # 3. Si es un string, intenta procesarlo.
+    try: 
+        return datetime.strptime(date_input, '%Y-%m-%d').date()
+    except (ValueError, TypeError): 
+        return None # Falla si no es un string de fecha válido
+
+# CREATE - Crear [cite: 37-49]
+@horario_bp.route("/", methods=["POST"])
+def crear_horario():
+    data = request.get_json()
+    
+    # Validación básica
+    if "id_empleado" not in data:
+        return jsonify({"error": "id_empleado es requerido"}), 400
+
+    nuevo_horario = Horario(
+        id_empleado=data["id_empleado"],
+        dia_laborables=data.get("dia_laborables"),
+        fecha_inicio=parse_date(data.get("fecha_inicio")),
+        hora_entrada=parse_time(data.get("hora_entrada")),
+        hora_salida=parse_time(data.get("hora_salida")),
+        descanso_minutos=data.get("descanso_minutos"),
+        turno=data.get("turno"),
+        inicio_vigencia=parse_date(data.get("inicio_vigencia")),
+        fin_vigencia=parse_date(data.get("fin_vigencia")),
+        creado_por=data.get("creado_por") # Asumir que el ID del usuario viene del frontend
+    )
+    
+    db.session.add(nuevo_horario)
+    db.session.commit()
+    
+    return jsonify({
+        "mensaje": "Horario creado exitosamente", 
+        "horario": nuevo_horario.to_dict()
+    }), 201
+
+# READ - Listar todos [cite: 50-61]
+@horario_bp.route("/", methods=["GET"])
+def listar_horarios():
+    horarios = Horario.query.all()
+    return jsonify([h.to_dict() for h in horarios])
+
+# READ - Obtener uno [cite: 62-70]
+@horario_bp.route("/<int:id_horario>", methods=["GET"])
+def obtener_horario(id_horario):
+    horario = Horario.query.get_or_404(id_horario)
+    return jsonify(horario.to_dict())
+
+# UPDATE - Actualizar [cite: 71-79]
+@horario_bp.route("/<int:id_horario>", methods=["PUT"])
+def actualizar_horario(id_horario):
+    horario = Horario.query.get_or_404(id_horario)
+    data = request.get_json()
+    
+    horario.dia_laborables = data.get("dia_laborables", horario.dia_laborables)
+    horario.fecha_inicio = parse_date(data.get("fecha_inicio", horario.fecha_inicio))
+    horario.hora_entrada = parse_time(data.get("hora_entrada", horario.hora_entrada))
+    horario.hora_salida = parse_time(data.get("hora_salida", horario.hora_salida))
+    horario.descanso_minutos = data.get("descanso_minutos", horario.descanso_minutos)
+    horario.turno = data.get("turno", horario.turno)
+    horario.inicio_vigencia = parse_date(data.get("inicio_vigencia", horario.inicio_vigencia))
+    horario.fin_vigencia = parse_date(data.get("fin_vigencia", horario.fin_vigencia))
+    horario.modificado_por = data.get("modificado_por") # Asumir ID de usuario
+    # 'id_empleado' no debería cambiarse en un update, se crea uno nuevo.
+
+    db.session.commit()
+    
+    return jsonify({
+        "mensaje": "Horario actualizado exitosamente",
+        "horario": horario.to_dict()
+    })
+
+# DELETE - Eliminar [cite: 80-86]
+@horario_bp.route("/<int:id_horario>", methods=["DELETE"])
+def eliminar_horario(id_horario):
+    horario = Horario.query.get_or_404(id_horario)
+    
+    db.session.delete(horario)
+    db.session.commit()
+    
+    return jsonify({"mensaje": "Horario eliminado exitosamente"})
