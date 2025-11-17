@@ -13,7 +13,7 @@ def create_app():
     
     # Importar modelos para que las migraciones los detecten
     with app.app_context():
-        from models import Empleado, Cargo, Usuario, LogTransaccional
+        from models import Empleado, Cargo, Usuario, LogTransaccional, Asistencia, Permiso
     
     # Registrar blueprints
     from routes import all_blueprints
