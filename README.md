@@ -47,43 +47,65 @@ cd backend
 pip install -r requirements.txt
 ```
 
+**¿Qué instala este comando?**
+El archivo `requirements.txt` contiene todas las dependencias de Python necesarias:
+- **Flask 2.2.5** - Framework web
+- **Flask-SQLAlchemy 3.0.3** - ORM para manejar la base de datos
+- **Flask-Migrate 4.1.0** - Migraciones de base de datos
+- **psycopg2-binary** - Conector para PostgreSQL
+- **PyJWT 2.10.1** - Autenticación con tokens JWT
+- **python-dotenv** - Para leer variables del archivo `.env`
+
 ### 3️⃣ Instalar Frontend
 ```bash
 cd frontend
 npm install
 ```
 
+**¿Qué instala este comando?**
+El archivo `package.json` contiene las dependencias de Node.js:
+- **React** - Librería para crear la interfaz de usuario
+- **axios** - Para hacer peticiones HTTP al backend
+- **react-router-dom** - Para manejar las rutas (Login → Dashboard)
+
+**Configuración del frontend:**
+El archivo `frontend/.env` ya está configurado con:
+```env
+REACT_APP_API_URL=http://127.0.0.1:5000
+```
+Esto permite que el frontend sepa dónde está el backend.
+
 ---
 
 ## 🗄️ Configuración de Base de Datos
 
-### Opción 1: PostgreSQL (Recomendado)
+### PostgreSQL - Configuración
 
-1. **Crear la base de datos en PostgreSQL:**
+1. **Instalar PostgreSQL:** [Descargar aquí](https://www.postgresql.org/download/)
+
+2. **Crear la base de datos:**
    ```sql
    CREATE DATABASE chrispar;
    ```
 
-2. **Configurar archivo `.env` en `backend/.env`:**
+3. **Configurar credenciales en `backend/.env`:**
+   
+   **Credenciales por defecto:**
+   - Usuario: `postgres`
+   - Contraseña: `123`
+   - Base de datos: `chrispar`
+   
+   **Si tu contraseña de PostgreSQL es diferente**, edita el archivo `backend/.env` y cambia:
    ```env
    DATABASE_URL=postgresql://postgres:TU_PASSWORD@localhost:5432/chrispar
-   SECRET_KEY=tu_clave_secreta
-   FLASK_APP=app.py
    ```
 
-3. **Ejecutar migraciones:**
+4. **Ejecutar migraciones:**
    ```bash
    cd backend
+   $env:FLASK_APP = 'app:create_app'
    python -m flask db upgrade
    ```
-
-### Opción 2: SQLite (Para pruebas rápidas)
-
-Si no quieres usar PostgreSQL, el sistema usa SQLite por defecto. Solo ejecuta:
-```bash
-cd backend
-python -m flask db upgrade
-```
 
 ---
 
@@ -105,6 +127,19 @@ npm start
 
 La interfaz estará disponible en: `http://localhost:3000`
 
+### 🔐 Estado Actual de la Aplicación
+
+**✅ Implementado:**
+- Login funcional con autenticación JWT
+- Conexión frontend-backend con axios
+- Navegación con React Router (Login → Dashboard)
+- Sesión persistente con localStorage
+- Estilos con colores corporativos (verde #9bcf15 y naranja #fa6e15)
+
+**🚧 En desarrollo:**
+- Dashboard principal (actualmente muestra "Hola" como placeholder)
+- Módulos de gestión (empleados, cargos, nóminas, etc.)
+
 ---
 
 ## 📁 Estructura del Proyecto
@@ -112,173 +147,159 @@ La interfaz estará disponible en: `http://localhost:3000`
 ```
 chrispar_HHRR/
 ├── backend/
-│   ├── models/               # Modelos de base de datos
+│   ├── models/               # Modelos de base de datos (SQLAlchemy)
 │   │   ├── __init__.py
-│   │   ├── cargo.py
-│   │   ├── empleado.py
-│   │   └── usuario.py
-│   ├── routes/               # Rutas de la API
+│   │   ├── cargo.py         # Modelo de cargos/puestos
+│   │   ├── empleado.py      # Modelo de empleados
+│   │   ├── usuario.py       # Modelo de usuarios (login)
+│   │   ├── asistencia.py    # Modelo de asistencias
+│   │   ├── horario.py       # Modelo de horarios
+│   │   ├── hoja_vida.py     # Modelo de hojas de vida
+│   │   ├── nomina.py        # Modelo de nóminas
+│   │   ├── permiso.py       # Modelo de permisos
+│   │   ├── rubro.py         # Modelo de rubros
+│   │   └── log_transaccional.py  # Auditoría de operaciones
+│   │
+│   ├── routes/               # Rutas de la API REST
 │   │   ├── __init__.py
 │   │   ├── cargo_routes.py
 │   │   ├── empleado_routes.py
-│   │   └── usuario_routes.py
-│   ├── migrations/           # Archivos de migración
-│   ├── app.py               # Punto de entrada
-│   ├── config.py            # Configuración
-│   ├── extensions.py        # Extensiones de Flask
-│   ├── requirements.txt     # Dependencias Python
-│   └── .env                 # Variables de entorno (NO SUBIR A GIT)
+│   │   ├── usuario_routes.py      # Incluye /login
+│   │   ├── asistencia_routes.py
+│   │   ├── horario_routes.py
+│   │   ├── hoja_vida_routes.py
+│   │   ├── nomina_routes.py
+│   │   ├── permiso_routes.py
+│   │   ├── rubro_routes.py
+│   │   └── log_transaccional_routes.py
+│   │
+│   ├── utils/                # Utilidades y helpers
+│   │   └── auth.py          # JWT - autenticación y decoradores
+│   │
+│   ├── migrations/           # Migraciones de base de datos (Alembic)
+│   │   └── versions/        # Historial de cambios en BD
+│   │
+│   ├── app.py               # Punto de entrada - crea la app Flask
+│   ├── config.py            # Configuración de la aplicación
+│   ├── extensions.py        # Instancias de extensiones (db, migrate)
+│   ├── requirements.txt     # Dependencias Python (Flask, SQLAlchemy, etc)
+│   └── .env                 # Variables de entorno (credenciales BD)
 │
 └── frontend/
-    ├── src/
-    ├── public/
-    └── package.json
+    ├── public/              # Archivos estáticos públicos
+    │   ├── index.html       # HTML base de la aplicación
+    │   ├── manifest.json    # Metadata de la app
+    │   └── robots.txt
+    │
+    ├── src/                 # Código fuente de React
+    │   ├── components/      # Componentes reutilizables
+    │   │   ├── Login.js     # Pantalla de inicio de sesión
+    │   │   ├── Login.css    # Estilos del login (verde/naranja)
+    │   │   ├── Dashboard.js # Pantalla principal después del login
+    │   │   └── Dashboard.css
+    │   │
+    │   ├── App.js           # Componente principal con rutas
+    │   ├── App.css          # Estilos globales
+    │   ├── index.js         # Punto de entrada de React
+    │   ├── index.css        # Estilos base
+    │   └── setupTests.js    # Configuración de pruebas
+    │
+    ├── .env                 # Variables de entorno (URL del backend)
+    ├── package.json         # Dependencias Node (React, axios, router)
+    └── README.md            # Documentación específica del frontend
 ```
 
 ---
 
 ## 🔌 Endpoints API Disponibles
 
-### **Cargos** (`/api/cargos/`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| POST | `/api/cargos/` | Crear cargo |
-| GET | `/api/cargos/` | Listar cargos |
-| GET | `/api/cargos/<id>` | Obtener cargo |
-| PUT | `/api/cargos/<id>` | Actualizar cargo |
-| DELETE | `/api/cargos/<id>` | Eliminar cargo |
+### 📬 Postman Workspace Compartido
 
-### **Usuarios** (`/api/usuarios/`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| POST | `/api/usuarios/` | Crear usuario |
-| GET | `/api/usuarios/` | Listar usuarios |
-| GET | `/api/usuarios/<id>` | Obtener usuario |
-| PUT | `/api/usuarios/<id>` | Actualizar usuario |
-| DELETE | `/api/usuarios/<id>` | Eliminar usuario |
-| POST | `/api/usuarios/login` | Login |
-| GET | `/api/usuarios/rol/<rol>` | Buscar por rol |
+Todos los endpoints están documentados y listos para probar en **Postman**.
 
-### **Empleados** (`/api/empleados/`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| POST | `/api/empleados/` | Crear empleado |
-| GET | `/api/empleados/` | Listar empleados |
-| GET | `/api/empleados/<id>` | Obtener empleado |
-| PUT | `/api/empleados/<id>` | Actualizar empleado |
-| DELETE | `/api/empleados/<id>` | Eliminar empleado |
+**👉 Revisa el link de invitación que te llegó al correo para acceder al workspace compartido.**
+
+El workspace incluye:
+- ✅ Todos los endpoints configurados (Cargos, Usuarios, Empleados, etc.)
+- ✅ Headers preconfigurados
+- ✅ Ejemplos de peticiones y respuestas
+- ✅ Variables de entorno para cambiar entre desarrollo/producción
+
+### Módulos principales disponibles:
+- `/api/cargos/` - Gestión de cargos
+- `/api/usuarios/` - Gestión de usuarios y login
+- `/api/empleados/` - Gestión de empleados
+- `/api/asistencias/` - Registro de asistencias
+- `/api/horarios/` - Gestión de horarios
+- `/api/nominas/` - Gestión de nóminas
+- `/api/permisos/` - Gestión de permisos
+- `/api/logs/` - Auditoría de operaciones
 
 ---
 
-## 📝 Cómo Crear Nuevos Modelos y Rutas
+## 📝 Pasos para Desarrollar Nuevas Funcionalidades
 
-### Paso 1: Crear el Modelo
+### Backend - Crear Nuevos Modelos y Rutas
 
-**Archivo:** `backend/models/tu_modelo.py`
+**Paso 1:** Crear archivo de modelo en `backend/models/tu_modelo.py`
+- Define la clase con SQLAlchemy
+- Especifica las columnas y tipos de datos
 
-```python
-from extensions import db
-from datetime import datetime
+**Paso 2:** Crear archivo de rutas en `backend/routes/tu_modelo_routes.py`
+- Crea el Blueprint
+- Define los endpoints (GET, POST, PUT, DELETE)
 
-class TuModelo(db.Model):
-    __tablename__ = "tu_tabla"
-    
-    id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(100), nullable=False)
-    # ... más campos
-    
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
-    fecha_actualizacion = db.Column(db.DateTime, onupdate=datetime.utcnow)
-```
+**Paso 3:** Registrar el modelo en `backend/models/__init__.py`
+- Importa tu nuevo modelo
 
-### Paso 2: Crear las Rutas
+**Paso 4:** Registrar las rutas en `backend/routes/__init__.py`
+- Importa tu Blueprint
+- Agrégalo a `all_blueprints`
 
-**Archivo:** `backend/routes/tu_modelo_routes.py`
-
-```python
-from flask import Blueprint, request, jsonify
-from extensions import db
-from models.tu_modelo import TuModelo
-
-tu_modelo_bp = Blueprint('tu_modelo', __name__, url_prefix='/api/tu-modelo')
-
-@tu_modelo_bp.route('/', methods=['POST'])
-def crear():
-    from extensions import db
-    data = request.get_json()
-    nuevo = TuModelo(nombre=data['nombre'])
-    db.session.add(nuevo)
-    db.session.commit()
-    return jsonify({"mensaje": "Creado", "id": nuevo.id}), 201
-
-@tu_modelo_bp.route('/', methods=['GET'])
-def listar():
-    items = TuModelo.query.all()
-    return jsonify([{"id": i.id, "nombre": i.nombre} for i in items])
-```
-
-### Paso 3: Registrar el Modelo
-
-En `backend/models/__init__.py`, descomenta o agrega:
-```python
-from .tu_modelo import TuModelo
-```
-
-### Paso 4: Registrar las Rutas
-
-En `backend/routes/__init__.py`, agrega:
-```python
-from .tu_modelo_routes import tu_modelo_bp
-
-all_blueprints = [
-    # ... otros blueprints
-    tu_modelo_bp,
-]
-```
-
-### Paso 5: Crear y Aplicar Migración
-
+**Paso 5:** Crear y aplicar migración
 ```bash
 cd backend
-python -m flask db migrate -m "Agregar tabla tu_modelo"
+python -m flask db migrate -m "Descripción del cambio"
 python -m flask db upgrade
 ```
+
+### Frontend - Crear Nuevos Componentes
+
+**Paso 1:** Crear componente en `frontend/src/components/TuComponente.js`
+- Usa React hooks (useState, useEffect)
+- Usa axios para conectar con el backend
+
+**Paso 2:** Crear estilos en `frontend/src/components/TuComponente.css`
+- Usa los colores corporativos: verde #9bcf15 y naranja #fa6e15
+
+**Paso 3:** Agregar ruta en `frontend/src/App.js`
+- Importa tu componente
+- Agrega `<Route>` en el Router
+
+**Paso actual:** Dashboard básico implementado, listo para agregar módulos de gestión
 
 ---
 
 ## 🧪 Pruebas con Postman
 
-### Configuración Inicial
-1. Abre Postman
-2. Crea una nueva colección llamada "Chrispar API"
-3. **Importante:** En cada petición que envíe datos (POST, PUT):
-   - Ve a **Headers**
-   - Agrega: `Content-Type: application/json`
+### Pasos para probar los endpoints:
 
-### Ejemplo: Crear un Cargo
+1. **Abrir Postman** y crear una colección "Chrispar API"
 
-**POST** `http://127.0.0.1:5000/api/cargos/`
+2. **Configurar Headers** en cada petición POST/PUT:
+   - Key: `Content-Type`
+   - Value: `application/json`
 
-Headers:
-```
-Content-Type: application/json
-```
+3. **Seleccionar el método HTTP** (GET, POST, PUT, DELETE)
 
-Body (raw JSON):
-```json
-{
-  "nombre": "Desarrollador Senior",
-  "sueldo_base": 1500.00
-}
-```
+4. **Ingresar la URL** del endpoint:
+   - Ejemplo: `http://127.0.0.1:5000/api/cargos/`
 
-Respuesta esperada:
-```json
-{
-  "mensaje": "Cargo creado exitosamente",
-  "id": 1
-}
-```
+5. **Agregar el Body** (en formato JSON) para POST/PUT
+
+6. **Click en Send** y revisar la respuesta
+
+💡 **Tip:** Revisa la sección "Endpoints API Disponibles" para ver todas las rutas disponibles
 
 ---
 
@@ -294,12 +315,13 @@ Respuesta esperada:
 
 ## ⚠️ Notas Importantes
 
-### ❌ NO subir a Git:
-- `backend/.env` (contiene contraseñas)
-- `backend/__pycache__/`
-- `backend/venv/`
-- `frontend/node_modules/`
-- `backend/database.db` (si usas SQLite)
+### 👁️ Archivos protegidos (`.gitignore`)
+Estos archivos **NO se suben a Git** automáticamente:
+- `backend/__pycache__/` - Archivos compilados de Python
+- `backend/venv/` o `env/` - Entorno virtual
+- `frontend/node_modules/` - Dependencias de Node.js
+
+**Nota:** Los archivos `.env` **SÍ están incluidos** en el repositorio para facilitar la configuración del equipo.
 
 ### ✅ Antes de hacer push:
 ```bash
@@ -309,18 +331,17 @@ git pull origin main
 git push origin main
 ```
 
-### 🐛 Problemas Comunes
+### 🐛 Problemas Comunes (Top 3)
 
-**Error: "database does not exist"**
-- Asegúrate de crear la base de datos en PostgreSQL
+**1. Error: "Can't connect to PostgreSQL"**
+   - Verifica que PostgreSQL esté corriendo
+   - Revisa tu contraseña en `backend/.env`
+   - Asegúrate de que la base de datos `chrispar` existe
 
-**Error: "The current Flask app is not registered"**
-- Reinicia el servidor Flask completamente
+**2. Error: "No module named 'flask'"**
+   - Instala las dependencias: `pip install -r requirements.txt`
 
-**Error: "No module named 'flask'"**
-- Instala las dependencias: `pip install -r requirements.txt`
-
-**Error en Postman: "415 Unsupported Media Type"**
-- Agrega el header `Content-Type: application/json`
+**3. Error en migraciones: "Target database is not up to date"**
+   - Ejecuta: `python -m flask db upgrade`
 
 ---
