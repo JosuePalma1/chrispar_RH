@@ -23,44 +23,57 @@ const Login = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  e.preventDefault();
+  setError('');
+  setLoading(true);
 
-    // Validación básica
-    if (!formData.username || !formData.password) {
-      setError('Por favor, completa todos los campos');
-      setLoading(false);
-      return;
+  console.log('🔵 1. Iniciando login...');
+  console.log('🔵 2. URL completa:', `${API_URL}/api/usuarios/login`);
+  console.log('🔵 3. Usuario:', formData.username);
+  console.log('🔵 3. Password:', formData.password);
+
+  // Validación básica
+  if (!formData.username || !formData.password) {
+    setError('Por favor, completa todos los campos');
+    setLoading(false);
+    return;
+  }
+
+  try {
+    console.log('🔵 4. Enviando petición al backend...');
+    
+    const response = await axios.post(`${API_URL}/api/usuarios/login`, {
+      username: formData.username,
+      password: formData.password
+    });
+
+    console.log('✅ 5. Respuesta recibida del backend:', response.data);
+
+    // Guardar token en localStorage
+    localStorage.setItem('token', response.data.token);
+    localStorage.setItem('user', JSON.stringify(response.data.usuario));
+
+    console.log('✅ 6. Token guardado en localStorage');
+    console.log('✅ 7. Navegando al dashboard...');
+    
+    navigate('/dashboard');
+
+  } catch (err) {
+    console.error('❌ ERROR COMPLETO:', err);
+    console.error('❌ Respuesta del servidor:', err.response);
+    console.error('❌ Datos de la respuesta:', err.response?.data);
+    
+    if (err.response) {
+      setError(err.response.data.error || 'Error al iniciar sesión');
+    } else if (err.request) {
+      setError('No se pudo conectar con el servidor');
+    } else {
+      setError('Error al procesar la solicitud');
     }
-
-    try {
-      const response = await axios.post(`${API_URL}/api/usuarios/login`, {
-        username: formData.username,
-        password: formData.password
-      });
-
-      // Guardar token en localStorage
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.usuario));
-
-      // Redireccionar al dashboard
-      console.log('Login exitoso:', response.data);
-      navigate('/dashboard');
-
-    } catch (err) {
-      if (err.response) {
-        setError(err.response.data.error || 'Error al iniciar sesión');
-      } else if (err.request) {
-        setError('No se pudo conectar con el servidor');
-      } else {
-        setError('Error al procesar la solicitud');
-      }
-      console.error('Error de login:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="login-container">
