@@ -38,7 +38,7 @@ Sistema web para la gestión de recursos humanos desarrollado para **Aplicacione
 ### 1️⃣ Clonar el repositorio
 ```bash
 git clone https://github.com/JosuePalma1/chrispar_RH.git
-cd chrispar_HHRR
+cd chrispar_RH
 ```
 
 ### 2️⃣ Instalar Backend
