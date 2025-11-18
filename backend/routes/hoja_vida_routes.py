@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify
 from app import db
 from models.hoja_vida import Hoja_Vida
 from datetime import datetime, date
+from models.log_transaccional import LogTransaccional
+import json
 
 hoja_vida_bp = Blueprint('hoja_vida', __name__, url_prefix='/api/hojas-vida')
 
@@ -41,6 +43,27 @@ def crear_hoja_vida():
     
     db.session.add(nueva_hoja_vida)
     db.session.commit()
+
+    # REGISTRAR LOG
+    try:
+        log = LogTransaccional(
+            tabla_afectada='hojas_vida',
+            operacion='INSERT',
+            id_registro=nueva_hoja_vida.id_hoja_vida,
+            usuario=str(data.get('creado_por', 'sistema')),
+            datos_nuevos=json.dumps({
+                'id_empleado': nueva_hoja_vida.id_empleado,
+                'tipo': nueva_hoja_vida.tipo,
+                'nombre_documento': nueva_hoja_vida.nombre_documento,
+                'institucion': nueva_hoja_vida.institucion,
+                'fecha_inicio': nueva_hoja_vida.fecha_inicio.isoformat() if nueva_hoja_vida.fecha_inicio else None,
+                'fecha_finalizacion': nueva_hoja_vida.fecha_finalizacion.isoformat() if nueva_hoja_vida.fecha_finalizacion else None
+            })
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception as log_error:
+        print(f"⚠️ Error al registrar log: {log_error}")
     
     return jsonify({
         "mensaje": "Registro de Hoja de Vida creado exitosamente",
@@ -70,6 +93,15 @@ def obtener_hoja_vida(id_hoja_vida):
 def actualizar_hoja_vida(id_hoja_vida):
     registro = Hoja_Vida.query.get_or_404(id_hoja_vida)
     data = request.get_json()
+
+    # Guardar datos anteriores para el log
+    datos_anteriores = {
+        'tipo': registro.tipo,
+        'nombre_documento': registro.nombre_documento,
+        'institucion': registro.institucion,
+        'fecha_inicio': registro.fecha_inicio.isoformat() if registro.fecha_inicio else None,
+        'fecha_finalizacion': registro.fecha_finalizacion.isoformat() if registro.fecha_finalizacion else None
+    }
     
     registro.tipo = data.get("tipo", registro.tipo)
     registro.nombre_documento = data.get("nombre_documento", registro.nombre_documento)
@@ -80,6 +112,29 @@ def actualizar_hoja_vida(id_hoja_vida):
     registro.modificado_por = data.get("modificado_por")
 
     db.session.commit()
+
+    # REGISTRAR LOG
+    try:
+        datos_nuevos = {
+            'tipo': registro.tipo,
+            'nombre_documento': registro.nombre_documento,
+            'institucion': registro.institucion,
+            'fecha_inicio': registro.fecha_inicio.isoformat() if registro.fecha_inicio else None,
+            'fecha_finalizacion': registro.fecha_finalizacion.isoformat() if registro.fecha_finalizacion else None
+        }
+        
+        log = LogTransaccional(
+            tabla_afectada='hojas_vida',
+            operacion='UPDATE',
+            id_registro=registro.id_hoja_vida,
+            usuario=str(data.get('modificado_por', 'sistema')),
+            datos_anteriores=json.dumps(datos_anteriores),
+            datos_nuevos=json.dumps(datos_nuevos)
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception as log_error:
+        print(f"⚠️ Error al registrar log: {log_error}")
     
     return jsonify({
         "mensaje": "Registro de Hoja de Vida actualizado exitosamente",
@@ -90,8 +145,33 @@ def actualizar_hoja_vida(id_hoja_vida):
 @hoja_vida_bp.route("/<int:id_hoja_vida>", methods=["DELETE"])
 def eliminar_hoja_vida(id_hoja_vida):
     registro = Hoja_Vida.query.get_or_404(id_hoja_vida)
+
+    # Guardar datos antes de eliminar
+    datos_anteriores = {
+        'id_empleado': registro.id_empleado,
+        'tipo': registro.tipo,
+        'nombre_documento': registro.nombre_documento,
+        'institucion': registro.institucion,
+        'fecha_inicio': registro.fecha_inicio.isoformat() if registro.fecha_inicio else None,
+        'fecha_finalizacion': registro.fecha_finalizacion.isoformat() if registro.fecha_finalizacion else None
+    }
+    hoja_vida_id = registro.id_hoja_vida
     
     db.session.delete(registro)
     db.session.commit()
+
+    # REGISTRAR LOG
+    try:
+        log = LogTransaccional(
+            tabla_afectada='hojas_vida',
+            operacion='DELETE',
+            id_registro=hoja_vida_id,
+            usuario='sistema',
+            datos_anteriores=json.dumps(datos_anteriores)
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception as log_error:
+        print(f"⚠️ Error al registrar log: {log_error}")
     
     return jsonify({"mensaje": "Registro de Hoja de Vida eliminado exitosamente"})

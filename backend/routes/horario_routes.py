@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify
 from app import db
 from models.horario import Horario
 from datetime import datetime, time, date
+from models.log_transaccional import LogTransaccional
+import json
 
 horario_bp = Blueprint('horario', __name__, url_prefix='/api/horarios')
 
@@ -59,6 +61,26 @@ def crear_horario():
     
     db.session.add(nuevo_horario)
     db.session.commit()
+
+    # REGISTRAR LOG
+    try:
+        log = LogTransaccional(
+            tabla_afectada='horarios',
+            operacion='INSERT',
+            id_registro=nuevo_horario.id_horario,
+            usuario=str(data.get('creado_por', 'sistema')),
+            datos_nuevos=json.dumps({
+                'id_empleado': nuevo_horario.id_empleado,
+                'dia_laborables': nuevo_horario.dia_laborables,
+                'turno': nuevo_horario.turno,
+                'hora_entrada': str(nuevo_horario.hora_entrada) if nuevo_horario.hora_entrada else None,
+                'hora_salida': str(nuevo_horario.hora_salida) if nuevo_horario.hora_salida else None
+            })
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception as log_error:
+        print(f"⚠️ Error al registrar log: {log_error}")
     
     return jsonify({
         "mensaje": "Horario creado exitosamente", 
@@ -82,7 +104,14 @@ def obtener_horario(id_horario):
 def actualizar_horario(id_horario):
     horario = Horario.query.get_or_404(id_horario)
     data = request.get_json()
-    
+
+    # Guardar datos anteriores para el log
+    datos_anteriores = {
+        'dia_laborables': horario.dia_laborables,
+        'turno': horario.turno,
+        'hora_entrada': str(horario.hora_entrada) if horario.hora_entrada else None,
+        'hora_salida': str(horario.hora_salida) if horario.hora_salida else None
+    }
     horario.dia_laborables = data.get("dia_laborables", horario.dia_laborables)
     horario.fecha_inicio = parse_date(data.get("fecha_inicio", horario.fecha_inicio))
     horario.hora_entrada = parse_time(data.get("hora_entrada", horario.hora_entrada))
@@ -95,6 +124,28 @@ def actualizar_horario(id_horario):
     # 'id_empleado' no debería cambiarse en un update, se crea uno nuevo.
 
     db.session.commit()
+
+    # REGISTRAR LOG
+    try:
+        datos_nuevos = {
+            'dia_laborables': horario.dia_laborables,
+            'turno': horario.turno,
+            'hora_entrada': str(horario.hora_entrada) if horario.hora_entrada else None,
+            'hora_salida': str(horario.hora_salida) if horario.hora_salida else None
+        }
+        
+        log = LogTransaccional(
+            tabla_afectada='horarios',
+            operacion='UPDATE',
+            id_registro=horario.id_horario,
+            usuario=str(data.get('modificado_por', 'sistema')),
+            datos_anteriores=json.dumps(datos_anteriores),
+            datos_nuevos=json.dumps(datos_nuevos)
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception as log_error:
+        print(f"⚠️ Error al registrar log: {log_error}")
     
     return jsonify({
         "mensaje": "Horario actualizado exitosamente",
@@ -105,8 +156,32 @@ def actualizar_horario(id_horario):
 @horario_bp.route("/<int:id_horario>", methods=["DELETE"])
 def eliminar_horario(id_horario):
     horario = Horario.query.get_or_404(id_horario)
+
+    # Guardar datos antes de eliminar
+    datos_anteriores = {
+        'id_empleado': horario.id_empleado,
+        'dia_laborables': horario.dia_laborables,
+        'turno': horario.turno,
+        'hora_entrada': str(horario.hora_entrada) if horario.hora_entrada else None,
+        'hora_salida': str(horario.hora_salida) if horario.hora_salida else None
+    }
+    horario_id = horario.id_horario
     
     db.session.delete(horario)
     db.session.commit()
+
+    # REGISTRAR LOG
+    try:
+        log = LogTransaccional(
+            tabla_afectada='horarios',
+            operacion='DELETE',
+            id_registro=horario_id,
+            usuario='sistema',
+            datos_anteriores=json.dumps(datos_anteriores)
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception as log_error:
+        print(f"⚠️ Error al registrar log: {log_error}")
     
     return jsonify({"mensaje": "Horario eliminado exitosamente"})
