@@ -80,7 +80,7 @@ def crear_horario():
         db.session.add(log)
         db.session.commit()
     except Exception as log_error:
-        print(f"⚠️ Error al registrar log: {log_error}")
+        print(f" Error al registrar log: {log_error}")
     
     return jsonify({
         "mensaje": "Horario creado exitosamente", 
@@ -145,7 +145,7 @@ def actualizar_horario(id_horario):
         db.session.add(log)
         db.session.commit()
     except Exception as log_error:
-        print(f"⚠️ Error al registrar log: {log_error}")
+        print(f" Error al registrar log: {log_error}")
     
     return jsonify({
         "mensaje": "Horario actualizado exitosamente",
@@ -182,6 +182,6 @@ def eliminar_horario(id_horario):
         db.session.add(log)
         db.session.commit()
     except Exception as log_error:
-        print(f"⚠️ Error al registrar log: {log_error}")
+        print(f" Error al registrar log: {log_error}")
     
     return jsonify({"mensaje": "Horario eliminado exitosamente"})

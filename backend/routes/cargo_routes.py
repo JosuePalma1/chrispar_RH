@@ -42,7 +42,7 @@ def crear_cargo():
             db.session.add(log)
             db.session.commit()
         except Exception as log_error:
-            print(f"⚠️ Error al registrar log: {log_error}")
+            print(f" Error al registrar log: {log_error}")
             # No hacer rollback aquí, el cargo ya se creó exitosamente
         
         return jsonify({
@@ -146,7 +146,7 @@ def actualizar_cargo(id):
             db.session.add(log)
             db.session.commit()
         except Exception as log_error:
-            print(f"⚠️ Error al registrar log: {log_error}")
+            print(f" Error al registrar log: {log_error}")
         
         return jsonify({
             "mensaje": "Cargo actualizado exitosamente",
@@ -199,7 +199,7 @@ def eliminar_cargo(id):
             db.session.add(log)
             db.session.commit()
         except Exception as log_error:
-            print(f"⚠️ Error al registrar log: {log_error}")
+            print(f" Error al registrar log: {log_error}")
         
         return jsonify({"mensaje": "Cargo eliminado exitosamente"}), 200
         
