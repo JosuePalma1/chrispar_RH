@@ -4,6 +4,8 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Horario from './components/Horario';
 import HojaDeVida from './components/HojaDeVida';
+import Nominas from './components/Nominas';
+import Rubros from './components/Rubros';
 import './App.css';
 
 function App() {
@@ -15,6 +17,8 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/horarios" element={<Horario />} />
           <Route path="/hojas-vida" element={<HojaDeVida />} />
+          <Route path="/nomina" element={<Nominas />} />
+          <Route path="/rubros" element={<Rubros />} />
         </Routes>
       </div>
     </Router>
