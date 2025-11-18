@@ -1,0 +1,145 @@
+/* Colores Corporativos:
+   Verde: #9bcf15
+   Naranja: #fa6e15
+*/
+
+.hv-container {
+    width: 90%;
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    font-family: Arial, sans-serif;
+}
+
+.hv-container h1 {
+    color: #333;
+    /* Verde corporativo */
+    border-bottom: 4px solid #9bcf15;
+    padding-bottom: 10px;
+    margin-bottom: 1.5rem;
+}
+
+/* --- Estilos de la Lista --- */
+.hv-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 1rem;
+}
+
+.hv-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.hv-list li:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.hv-nombre {
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.hv-open-btn {
+    /* Naranja corporativo */
+    background-color: #fa6e15;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.hv-open-btn:hover {
+    background-color: #e05a00; /* Naranja más oscuro */
+}
+
+
+/* --- Estilos del Modal --- */
+.modal-overlay {
+    position: fixed; /* Cubre toda la pantalla */
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6); /* Fondo oscuro semitransparente */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 500px;
+    z-index: 1001;
+}
+
+.modal-content h2 {
+    color: #333;
+    /* Verde corporativo */
+    border-bottom: 4px solid #9bcf15;
+    padding-bottom: 10px;
+    margin-top: 0;
+}
+
+.modal-body p {
+    font-size: 1rem;
+    line-height: 1.6;
+    border-bottom: 1px dashed #eee;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+}
+
+.modal-body p strong {
+    color: #333;
+    margin-right: 8px;
+}
+
+.modal-close-btn {
+    /* Naranja corporativo */
+    display: block;
+    width: 100%;
+    margin-top: 1.5rem;
+    background-color: #fa6e15;
+    color: white;
+    border: none;
+    padding: 12px;
+    font-size: 1.1rem;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.modal-close-btn:hover {
+    background-color: #e05a00;
+}
+
+/* Mensajes de estado */
+.hv-loading,
+.hv-error {
+    text-align: center;
+    font-size: 1.2rem;
+    padding: 2rem;
+    font-family: Arial, sans-serif;
+}
+
+.hv-error {
+    color: #D8000C;
+    background-color: #FFD2D2;
+    border: 1px solid #D8000C;
+    border-radius: 8px;
+}
