@@ -12,15 +12,25 @@ function Dashboard() {
 
     useEffect(() => {
         const token = localStorage.getItem('token');
-        const usuarioGuardado = localStorage.getItem('user'); // ✅ Cambié 'usuario' por 'user'
 
         if (!token) {
             navigate('/');
             return;
         }
 
-        if (usuarioGuardado) {
-            setUsuario(JSON.parse(usuarioGuardado));
+        // Decodificar el JWT para obtener la información del usuario
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            setUsuario({
+                username: payload.username,
+                rol: payload.rol,
+                id: payload.user_id
+            });
+        } catch (error) {
+            console.error('Error al decodificar token:', error);
+            localStorage.removeItem('token');
+            navigate('/');
+            return;
         }
 
         cargarEmpleados(token);
@@ -43,7 +53,6 @@ function Dashboard() {
                     const errorData = await respuesta.json();
                     alert(`Sesión expirada: ${errorData.error || 'Token inválido'}`);
                     localStorage.removeItem('token');
-                    localStorage.removeItem('user');
                     navigate('/');
                     return;
                 }
@@ -63,8 +72,7 @@ function Dashboard() {
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('token'); // ✅ Agregué 'token'
-        localStorage.removeItem('user');  // ✅ Agregué 'user'
+        localStorage.removeItem('token');
         navigate('/');
     };
 

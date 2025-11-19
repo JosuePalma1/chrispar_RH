@@ -15,13 +15,16 @@ def crear_cargo(current_user):
     try:
         data = request.get_json()
         
+        # Aceptar tanto 'nombre_cargo' como 'nombre' para mayor flexibilidad
+        nombre = data.get('nombre_cargo') or data.get('nombre')
+        
         # Validar campos requeridos
-        if not data.get('nombre_cargo'):
+        if not nombre:
             return jsonify({"error": "El nombre del cargo es requerido"}), 400
         
         # Crear nuevo cargo
         nuevo_cargo = Cargo(
-            nombre_cargo=data['nombre_cargo'],
+            nombre_cargo=nombre,
             sueldo_base=data.get('sueldo_base', 0.0),
             creado_por=data.get('creado_por')
         )

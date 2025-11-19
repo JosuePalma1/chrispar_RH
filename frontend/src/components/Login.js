@@ -49,9 +49,8 @@ const Login = () => {
 
     console.log('✅ 5. Respuesta recibida del backend:', response.data);
 
-    // Guardar token en localStorage
+    // Guardar SOLO el token en localStorage (el token ya contiene la info del usuario codificada)
     localStorage.setItem('token', response.data.token);
-    localStorage.setItem('user', JSON.stringify(response.data.usuario));
 
     console.log('✅ 6. Token guardado en localStorage');
     console.log('✅ 7. Navegando al dashboard...');

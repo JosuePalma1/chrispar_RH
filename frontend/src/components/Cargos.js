@@ -87,17 +87,23 @@ function Cargos() {
     if (window.confirm('¿Estás seguro de eliminar este cargo?')) {
       const token = localStorage.getItem('token');
       try {
-        const response = await fetch(`http://localhost:5000/api/cargos/${id}/`, {
+        const response = await fetch(`http://localhost:5000/api/cargos/${id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
+        
         if (response.ok) {
+          alert('Cargo eliminado exitosamente');
           cargarCargos();
+        } else {
+          const error = await response.json();
+          alert(`Error: ${error.error || 'No se pudo eliminar el cargo'}`);
         }
       } catch (error) {
         console.error('Error:', error);
+        alert('Error al eliminar el cargo');
       }
     }
   };
