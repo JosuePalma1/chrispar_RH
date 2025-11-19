@@ -40,8 +40,10 @@ function Dashboard() {
             
             if (!respuesta.ok) {
                 if (respuesta.status === 401) {
+                    const errorData = await respuesta.json();
+                    alert(`Sesión expirada: ${errorData.error || 'Token inválido'}`);
                     localStorage.removeItem('token');
-                    localStorage.removeItem('user'); // ✅ Cambié 'usuario' por 'user'
+                    localStorage.removeItem('user');
                     navigate('/');
                     return;
                 }

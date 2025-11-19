@@ -20,7 +20,7 @@ def generate_token(user_id, username, rol):
         'user_id': user_id,
         'username': username,
         'rol': rol,
-        'exp': datetime.utcnow() + timedelta(hours=24),  # Expira en 24 horas
+        'exp': datetime.utcnow() + timedelta(hours=10),  # Expira en 10 segundos
         'iat': datetime.utcnow()  # Fecha de emisión
     }
     

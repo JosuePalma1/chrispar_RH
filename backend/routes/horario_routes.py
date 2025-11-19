@@ -1,8 +1,9 @@
 from flask import Blueprint, request, jsonify
-from app import db
+from extensions import db
 from models.horario import Horario
 from datetime import datetime, time, date
 from models.log_transaccional import LogTransaccional
+from utils.auth import token_required
 import json
 
 horario_bp = Blueprint('horario', __name__, url_prefix='/api/horarios')
@@ -39,7 +40,8 @@ def parse_date(date_input):
 
 # CREATE - Crear [cite: 37-49]
 @horario_bp.route("/", methods=["POST"])
-def crear_horario():
+@token_required
+def crear_horario(current_user):
     data = request.get_json()
     
     # Validación básica
@@ -89,19 +91,22 @@ def crear_horario():
 
 # READ - Listar todos [cite: 50-61]
 @horario_bp.route("/", methods=["GET"])
-def listar_horarios():
+@token_required
+def listar_horarios(current_user):
     horarios = Horario.query.all()
     return jsonify([h.to_dict() for h in horarios])
 
 # READ - Obtener uno [cite: 62-70]
 @horario_bp.route("/<int:id_horario>", methods=["GET"])
-def obtener_horario(id_horario):
+@token_required
+def obtener_horario(current_user, id_horario):
     horario = Horario.query.get_or_404(id_horario)
     return jsonify(horario.to_dict())
 
 # UPDATE - Actualizar [cite: 71-79]
 @horario_bp.route("/<int:id_horario>", methods=["PUT"])
-def actualizar_horario(id_horario):
+@token_required
+def actualizar_horario(current_user, id_horario):
     horario = Horario.query.get_or_404(id_horario)
     data = request.get_json()
 
@@ -154,7 +159,8 @@ def actualizar_horario(id_horario):
 
 # DELETE - Eliminar [cite: 80-86]
 @horario_bp.route("/<int:id_horario>", methods=["DELETE"])
-def eliminar_horario(id_horario):
+@token_required
+def eliminar_horario(current_user, id_horario):
     horario = Horario.query.get_or_404(id_horario)
 
     # Guardar datos antes de eliminar

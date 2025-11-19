@@ -1,6 +1,5 @@
-from app import db
+from extensions import db
 from datetime import datetime
-# Importamos Time y Date para los tipos de datos específicos
 from sqlalchemy.types import Time, Date
 
 class Horario(db.Model):
@@ -8,7 +7,7 @@ class Horario(db.Model):
 
     # Campos de la tabla (según ERD)
     id_horario = db.Column(db.Integer, primary_key=True)
-    # Asumimos que la PK en Empleado es 'id_empleado'
+    # La PK en Empleado es 'id_empleado'
     id_empleado = db.Column(db.Integer, db.ForeignKey("empleados.id"), nullable=False)
     
     dia_laborables = db.Column(db.String(255))

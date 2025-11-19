@@ -1,12 +1,14 @@
 from flask import Blueprint, request, jsonify
 from extensions import db
 from models.log_transaccional import LogTransaccional
+from utils.auth import token_required
 
 log_bp = Blueprint('log_bp', __name__)
 
 # GET - Obtener todos los logs
 @log_bp.route('/', methods=['GET'])
-def get_logs():
+@token_required
+def get_logs(current_user):
     try:
         logs = LogTransaccional.query.all()
         return jsonify([log.to_dict() for log in logs]), 200
@@ -15,7 +17,8 @@ def get_logs():
 
 # GET - Obtener log por ID
 @log_bp.route('/<int:id>', methods=['GET'])
-def get_log(id):
+@token_required
+def get_log(current_user, id):
     try:
         log = LogTransaccional.query.get(id)
         if not log:
@@ -26,7 +29,8 @@ def get_log(id):
 
 # GET - Obtener logs por tabla
 @log_bp.route('/tabla/<string:tabla>', methods=['GET'])
-def get_logs_by_tabla(tabla):
+@token_required
+def get_logs_by_tabla(current_user, tabla):
     try:
         logs = LogTransaccional.query.filter_by(tabla_afectada=tabla).all()
         return jsonify([log.to_dict() for log in logs]), 200
@@ -35,7 +39,8 @@ def get_logs_by_tabla(tabla):
 
 # POST - Crear un nuevo log
 @log_bp.route('/', methods=['POST'])
-def create_log():
+@token_required
+def create_log(current_user):
     try:
         data = request.get_json()
         
@@ -73,7 +78,8 @@ def create_log():
 
 # PUT - Actualizar un log
 @log_bp.route('/<int:id>', methods=['PUT'])
-def update_log(id):
+@token_required
+def update_log(current_user, id):
     try:
         log = LogTransaccional.query.get(id)
         if not log:
@@ -105,7 +111,8 @@ def update_log(id):
 
 # DELETE - Eliminar un log
 @log_bp.route('/<int:id>', methods=['DELETE'])
-def delete_log(id):
+@token_required
+def delete_log(current_user, id):
     try:
         log = LogTransaccional.query.get(id)
         if not log:

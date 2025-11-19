@@ -1,4 +1,4 @@
-from app import db
+from extensions import db
 from datetime import datetime
 from sqlalchemy.types import Date
 
@@ -23,7 +23,7 @@ class Hoja_Vida(db.Model):
     modificado_por = db.Column(db.Integer)
     
     # Número_horas no estaba en el ERD para esta tabla, pero sí en Empleado.
-    # Si 'Numero_horas' pertenece aquí, deberías agregarlo:
+    # Si 'Numero_horas' pertenece aquí, se debería agregarlo:
     # numero_horas = db.Column(db.Integer)
 
     # Relación con Empleado (1 a N)

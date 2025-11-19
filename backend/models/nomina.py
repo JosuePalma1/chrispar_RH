@@ -18,8 +18,9 @@ class Nomina(db.Model):
     creado_por = db.Column(db.Integer, nullable=True)
     modificado_por = db.Column(db.Integer, nullable=True)
 
-    # Relación con Empleado
-    empleado = db.relationship("Empleado", backref="nominas")
+    # Relaciones
+    empleado = db.relationship("Empleado", back_populates="nominas")
+    rubros = db.relationship("Rubro", back_populates="nomina", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Nomina {self.id_nomina} - Empleado {self.id_empleado} - {self.fecha_inicio} to {self.fecha_fin}>"

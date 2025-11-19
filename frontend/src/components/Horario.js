@@ -19,16 +19,31 @@ function Horario() {
         // Definimos una función asíncrona para usar 'await'
         const fetchHorarios = async () => {
             try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    setError('No se encontró token de autenticación. Por favor inicie sesión.');
+                    setLoading(false);
+                    return;
+                }
+
                 // Usamos axios para hacer la petición GET a la API de Flask
                 // Esta es la misma URL que probamos en Postman
-                const response = await axios.get('http://127.0.0.1:5000/api/horarios/');
+                const response = await axios.get('http://127.0.0.1:5000/api/horarios/', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 
                 // Guardamos los datos recibidos en el estado 'horarios'
                 setHorarios(response.data);
 
             } catch (err) {
                 // Si la petición falla, guardamos el mensaje de error
-                setError('No se pudieron cargar los horarios. Intente más tarde.');
+                if (err.response && err.response.status === 401) {
+                    setError('Sesión expirada. Por favor inicie sesión nuevamente.');
+                } else {
+                    setError('No se pudieron cargar los horarios. Intente más tarde.');
+                }
                 console.error(err); // Mostramos el error detallado en la consola
             } finally {
                 // Se ejecuta siempre (éxito o error)

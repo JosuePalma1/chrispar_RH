@@ -17,11 +17,18 @@ function Nominas() {
   const fetchNominas = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_URL}/api/nominas/`);
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API_URL}/api/nominas/`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       setNominas(res.data);
       setError('');
     } catch (err) {
-      setError('Error al cargar nóminas');
+      if (err.response && err.response.status === 401) {
+        setError('Sesión expirada. Por favor inicie sesión nuevamente.');
+      } else {
+        setError('Error al cargar nóminas');
+      }
     } finally {
       setLoading(false);
     }
@@ -32,6 +39,7 @@ function Nominas() {
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
+      const token = localStorage.getItem('token');
       const payload = {
         id_empleado: parseInt(form.id_empleado, 10),
         fecha_inicio: form.fecha_inicio,
@@ -39,7 +47,9 @@ function Nominas() {
         total: parseFloat(form.total) || 0,
         creado_por: 1
       };
-      await axios.post(`${API_URL}/api/nominas/`, payload);
+      await axios.post(`${API_URL}/api/nominas/`, payload, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       setForm({ id_empleado: '', fecha_inicio: '', fecha_fin: '', total: '' });
       fetchNominas();
     } catch (err) {
@@ -50,7 +60,10 @@ function Nominas() {
   const handleDelete = async (id) => {
     if (!window.confirm('¿Eliminar esta nómina?')) return;
     try {
-      await axios.delete(`${API_URL}/api/nominas/${id}`);
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_URL}/api/nominas/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       fetchNominas();
     } catch (err) {
       setError('Error al eliminar nómina');

@@ -5,13 +5,14 @@ from models.log_transaccional import LogTransaccional
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import json
-from utils.auth import generate_token
+from utils.auth import generate_token, token_required
 
 usuario_bp = Blueprint('usuario', __name__, url_prefix='/api/usuarios')
 
 # CREATE - Crear un nuevo usuario
 @usuario_bp.route('/', methods=['POST'])
-def crear_usuario():
+@token_required
+def crear_usuario(current_user):
     try:
         data = request.get_json()
         
@@ -77,7 +78,8 @@ def crear_usuario():
 
 # READ - Obtener todos los usuarios
 @usuario_bp.route('/', methods=['GET'])
-def obtener_usuarios():
+@token_required
+def obtener_usuarios(current_user):
     try:
         usuarios = Usuario.query.all()
         
@@ -99,7 +101,8 @@ def obtener_usuarios():
 
 # READ - Obtener un usuario por ID
 @usuario_bp.route('/<int:id>', methods=['GET'])
-def obtener_usuario(id):
+@token_required
+def obtener_usuario(current_user, id):
     try:
         usuario = Usuario.query.get(id)
         
@@ -120,7 +123,8 @@ def obtener_usuario(id):
 
 # UPDATE - Actualizar un usuario
 @usuario_bp.route('/<int:id>', methods=['PUT'])
-def actualizar_usuario(id):
+@token_required
+def actualizar_usuario(current_user, id):
     try:
         usuario = Usuario.query.get(id)
         
@@ -197,7 +201,8 @@ def actualizar_usuario(id):
 
 # DELETE - Eliminar un usuario
 @usuario_bp.route('/<int:id>', methods=['DELETE'])
-def eliminar_usuario(id):
+@token_required
+def eliminar_usuario(current_user, id):
     try:
         usuario = Usuario.query.get(id)
         
@@ -289,7 +294,8 @@ def login():
 
 # Buscar usuarios por rol
 @usuario_bp.route('/rol/<string:rol>', methods=['GET'])
-def obtener_usuarios_por_rol(rol):
+@token_required
+def obtener_usuarios_por_rol(current_user, rol):
     try:
         usuarios = Usuario.query.filter_by(rol=rol).all()
         

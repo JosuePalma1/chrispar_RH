@@ -1,8 +1,9 @@
 from flask import Blueprint, request, jsonify
-from app import db
+from extensions import db
 from models.hoja_vida import Hoja_Vida
 from datetime import datetime, date
 from models.log_transaccional import LogTransaccional
+from utils.auth import token_required
 import json
 
 hoja_vida_bp = Blueprint('hoja_vida', __name__, url_prefix='/api/hojas-vida')
@@ -24,7 +25,8 @@ hoja_vida_bp = Blueprint("hoja_vida", __name__, url_prefix="/api/hojas_vida")
 
 # CREATE - Crear
 @hoja_vida_bp.route("/", methods=["POST"])
-def crear_hoja_vida():
+@token_required
+def crear_hoja_vida(current_user):
     data = request.get_json()
     
     if "id_empleado" not in data:
@@ -72,7 +74,8 @@ def crear_hoja_vida():
 
 # READ - Listar todos
 @hoja_vida_bp.route("/", methods=["GET"])
-def listar_hojas_vida():
+@token_required
+def listar_hojas_vida(current_user):
     # Opcional: filtrar por empleado
     id_empleado_query = request.args.get('id_empleado')
     if id_empleado_query:
@@ -84,13 +87,15 @@ def listar_hojas_vida():
 
 # READ - Obtener uno
 @hoja_vida_bp.route("/<int:id_hoja_vida>", methods=["GET"])
-def obtener_hoja_vida(id_hoja_vida):
+@token_required
+def obtener_hoja_vida(current_user, id_hoja_vida):
     registro = Hoja_Vida.query.get_or_404(id_hoja_vida)
     return jsonify(registro.to_dict())
 
 # UPDATE - Actualizar
 @hoja_vida_bp.route("/<int:id_hoja_vida>", methods=["PUT"])
-def actualizar_hoja_vida(id_hoja_vida):
+@token_required
+def actualizar_hoja_vida(current_user, id_hoja_vida):
     registro = Hoja_Vida.query.get_or_404(id_hoja_vida)
     data = request.get_json()
 
@@ -143,7 +148,8 @@ def actualizar_hoja_vida(id_hoja_vida):
 
 # DELETE - Eliminar
 @hoja_vida_bp.route("/<int:id_hoja_vida>", methods=["DELETE"])
-def eliminar_hoja_vida(id_hoja_vida):
+@token_required
+def eliminar_hoja_vida(current_user, id_hoja_vida):
     registro = Hoja_Vida.query.get_or_404(id_hoja_vida)
 
     # Guardar datos antes de eliminar

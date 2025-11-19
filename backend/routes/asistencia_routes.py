@@ -2,12 +2,14 @@ from flask import Blueprint, request, jsonify
 from extensions import db
 from models.asistencia import Asistencia
 from models.log_transaccional import LogTransaccional
+from utils.auth import token_required
 import json
 
 asistencia_bp = Blueprint("asistencia", __name__, url_prefix="/api/asistencias")
 
 @asistencia_bp.route("/", methods=["POST"])
-def crear_asistencia():
+@token_required
+def crear_asistencia(current_user):
     try:
         data = request.get_json()
         
@@ -51,7 +53,8 @@ def crear_asistencia():
 
 
 @asistencia_bp.route("/", methods=["GET"])
-def listar_asistencias():
+@token_required
+def listar_asistencias(current_user):
     try:
         # Filtrar por id_empleado si se proporciona
         id_empleado = request.args.get("id_empleado")
@@ -77,7 +80,8 @@ def listar_asistencias():
 
 
 @asistencia_bp.route("/<int:id>", methods=["GET"])
-def obtener_asistencia(id):
+@token_required
+def obtener_asistencia(current_user, id):
     try:
         a = Asistencia.query.get_or_404(id)
         return jsonify({
@@ -95,7 +99,8 @@ def obtener_asistencia(id):
 
 
 @asistencia_bp.route("/<int:id>", methods=["PUT"])
-def actualizar_asistencia(id):
+@token_required
+def actualizar_asistencia(current_user, id):
     try:
         data = request.get_json()
         a = Asistencia.query.get_or_404(id)
@@ -144,7 +149,8 @@ def actualizar_asistencia(id):
 
 
 @asistencia_bp.route("/<int:id>", methods=["DELETE"])
-def eliminar_asistencia(id):
+@token_required
+def eliminar_asistencia(current_user, id):
     try:
         a = Asistencia.query.get_or_404(id)
         

@@ -6,6 +6,8 @@ import Horario from './components/Horario';
 import HojaDeVida from './components/HojaDeVida';
 import Nominas from './components/Nominas';
 import Rubros from './components/Rubros';
+import Cargos from './components/Cargos';
+import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
 function App() {
@@ -14,11 +16,12 @@ function App() {
       <div className="App">
         <Routes>
           <Route path="/" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/horarios" element={<Horario />} />
-          <Route path="/hojas-vida" element={<HojaDeVida />} />
-          <Route path="/nomina" element={<Nominas />} />
-          <Route path="/rubros" element={<Rubros />} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/horarios" element={<ProtectedRoute><Horario /></ProtectedRoute>} />
+          <Route path="/hojas-vida" element={<ProtectedRoute><HojaDeVida /></ProtectedRoute>} />
+          <Route path="/nomina" element={<ProtectedRoute><Nominas /></ProtectedRoute>} />
+          <Route path="/rubros" element={<ProtectedRoute><Rubros /></ProtectedRoute>} />
+          <Route path="/cargos" element={<ProtectedRoute><Cargos /></ProtectedRoute>} />
         </Routes>
       </div>
     </Router>

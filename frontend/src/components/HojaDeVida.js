@@ -19,11 +19,26 @@ function HojaDeVida() {
     useEffect(() => {
         const fetchHojasVida = async () => {
             try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    setError('No se encontró token de autenticación. Por favor inicie sesión.');
+                    setLoading(false);
+                    return;
+                }
+
                 // Usamos la API de hojas_vida que probamos en Postman
-                const response = await axios.get('http://127.0.0.1:5000/api/hojas-vida/');
+                const response = await axios.get('http://127.0.0.1:5000/api/hojas-vida/', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 setHojasVida(response.data);
             } catch (err) {
-                setError('No se pudieron cargar los registros. Intente más tarde.');
+                if (err.response && err.response.status === 401) {
+                    setError('Sesión expirada. Por favor inicie sesión nuevamente.');
+                } else {
+                    setError('No se pudieron cargar los registros. Intente más tarde.');
+                }
                 console.error(err);
             } finally {
                 setLoading(false);

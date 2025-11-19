@@ -19,7 +19,7 @@ class Rubro(db.Model):
     modificado_por = db.Column(db.Integer, nullable=True)
 
     # Relación con Nómina
-    nomina = db.relationship("Nomina", backref="rubros")
+    nomina = db.relationship("Nomina", back_populates="rubros")
 
     def __repr__(self):
         return f"<Rubro {self.id_rubro} - Nomina {self.id_nomina} - {self.descripcion} : {self.monto}>"

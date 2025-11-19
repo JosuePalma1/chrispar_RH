@@ -2,12 +2,14 @@ from flask import Blueprint, request, jsonify
 from extensions import db
 from models.empleado import Empleado
 from models.log_transaccional import LogTransaccional
+from utils.auth import token_required
 import json
 
 empleado_bp = Blueprint("empleado", __name__, url_prefix="/api/empleados")
 
 @empleado_bp.route("/", methods=["POST"])
-def crear_empleado():
+@token_required
+def crear_empleado(current_user):
     try:
         data = request.get_json()
         
@@ -60,7 +62,8 @@ def crear_empleado():
 
 
 @empleado_bp.route("/", methods=["GET"])
-def listar_empleados():
+@token_required
+def listar_empleados(current_user):
     try:
         empleados = Empleado.query.all()
         result = []
@@ -79,7 +82,8 @@ def listar_empleados():
 
 
 @empleado_bp.route("/<int:id>", methods=["GET"])
-def obtener_empleado(id):
+@token_required
+def obtener_empleado(current_user, id):
     try:
         e = Empleado.query.get_or_404(id)
         return jsonify({
@@ -102,7 +106,8 @@ def obtener_empleado(id):
 
 
 @empleado_bp.route("/<int:id>", methods=["PUT"])
-def actualizar_empleado(id):
+@token_required
+def actualizar_empleado(current_user, id):
     try:
         data = request.get_json()
         e = Empleado.query.get_or_404(id)
@@ -164,7 +169,8 @@ def actualizar_empleado(id):
 
 
 @empleado_bp.route("/<int:id>", methods=["DELETE"])
-def eliminar_empleado(id):
+@token_required
+def eliminar_empleado(current_user, id):
     try:
         e = Empleado.query.get_or_404(id)
         

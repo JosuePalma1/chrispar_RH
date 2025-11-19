@@ -2,12 +2,14 @@ from flask import Blueprint, request, jsonify
 from extensions import db
 from models.permiso import Permiso
 from models.log_transaccional import LogTransaccional
+from utils.auth import token_required
 import json
 
 permiso_bp = Blueprint("permiso", __name__, url_prefix="/api/permisos")
 
 @permiso_bp.route("/", methods=["POST"])
-def crear_permiso():
+@token_required
+def crear_permiso(current_user):
     try:
         data = request.get_json()
         
@@ -55,7 +57,8 @@ def crear_permiso():
 
 
 @permiso_bp.route("/", methods=["GET"])
-def listar_permisos():
+@token_required
+def listar_permisos(current_user):
     try:
         # Filtrar por id_empleado si se proporciona
         id_empleado = request.args.get("id_empleado")
@@ -89,7 +92,8 @@ def listar_permisos():
 
 
 @permiso_bp.route("/<int:id>", methods=["GET"])
-def obtener_permiso(id):
+@token_required
+def obtener_permiso(current_user, id):
     try:
         p = Permiso.query.get_or_404(id)
         return jsonify({
@@ -109,7 +113,8 @@ def obtener_permiso(id):
 
 
 @permiso_bp.route("/<int:id>", methods=["PUT"])
-def actualizar_permiso(id):
+@token_required
+def actualizar_permiso(current_user, id):
     try:
         data = request.get_json()
         p = Permiso.query.get_or_404(id)
@@ -165,7 +170,8 @@ def actualizar_permiso(id):
 
 
 @permiso_bp.route("/<int:id>", methods=["DELETE"])
-def eliminar_permiso(id):
+@token_required
+def eliminar_permiso(current_user, id):
     try:
         p = Permiso.query.get_or_404(id)
         

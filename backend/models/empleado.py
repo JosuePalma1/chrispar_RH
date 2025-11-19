@@ -5,7 +5,7 @@ class Empleado(db.Model):
     __tablename__ = "empleados"
     id = db.Column(db.Integer, primary_key=True)
     id_usuario = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=True)
-    id_cargo = db.Column(db.Integer, db.ForeignKey("cargos.id"), nullable=False)
+    id_cargo = db.Column(db.Integer, db.ForeignKey("cargos.id_cargo"), nullable=False)
 
     nombres = db.Column(db.String(100))
     apellidos = db.Column(db.String(100))
@@ -31,4 +31,4 @@ class Empleado(db.Model):
     permisos = db.relationship("Permiso", back_populates="empleado", cascade="all, delete-orphan")
     horarios = db.relationship("Horario", back_populates="empleado", cascade="all, delete-orphan")
     hojas_vida = db.relationship("Hoja_Vida", back_populates="empleado", cascade="all, delete-orphan")
-    # nominas = db.relationship("Nomina", back_populates="empleado", cascade="all, delete-orphan")
+    nominas = db.relationship("Nomina", back_populates="empleado", cascade="all, delete-orphan")

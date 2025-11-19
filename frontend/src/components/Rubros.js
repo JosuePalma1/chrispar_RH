@@ -17,11 +17,18 @@ function Rubros() {
   const fetchRubros = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_URL}/api/rubros/`);
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API_URL}/api/rubros/`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       setRubros(res.data);
       setError('');
     } catch (err) {
-      setError('Error al cargar rubros');
+      if (err.response && err.response.status === 401) {
+        setError('Sesión expirada. Por favor inicie sesión nuevamente.');
+      } else {
+        setError('Error al cargar rubros');
+      }
     } finally {
       setLoading(false);
     }
@@ -32,6 +39,7 @@ function Rubros() {
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
+      const token = localStorage.getItem('token');
       const payload = {
         id_nomina: parseInt(form.id_nomina, 10),
         codigo: form.codigo,
@@ -40,7 +48,9 @@ function Rubros() {
         monto: parseFloat(form.monto) || 0,
         creado_por: 1
       };
-      await axios.post(`${API_URL}/api/rubros/`, payload);
+      await axios.post(`${API_URL}/api/rubros/`, payload, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       setForm({ id_nomina: '', codigo: '', descripcion: '', tipo: 'devengo', monto: '' });
       fetchRubros();
     } catch (err) {
@@ -51,7 +61,10 @@ function Rubros() {
   const handleDelete = async (id) => {
     if (!window.confirm('¿Eliminar este rubro?')) return;
     try {
-      await axios.delete(`${API_URL}/api/rubros/${id}`);
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_URL}/api/rubros/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       fetchRubros();
     } catch (err) {
       setError('Error al eliminar rubro');

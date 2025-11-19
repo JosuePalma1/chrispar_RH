@@ -2,13 +2,15 @@ from flask import Blueprint, request, jsonify
 from extensions import db
 from models.nomina import Nomina
 from models.log_transaccional import LogTransaccional
+from utils.auth import token_required
 import json
 
 nomina_bp = Blueprint('nomina', __name__, url_prefix='/api/nominas')
 
 
 @nomina_bp.route('/', methods=['POST'])
-def crear_nomina():
+@token_required
+def crear_nomina(current_user):
 	try:
 		data = request.get_json()
 		nuevo = Nomina(
@@ -49,7 +51,8 @@ def crear_nomina():
 
 
 @nomina_bp.route('/', methods=['GET'])
-def listar_nominas():
+@token_required
+def listar_nominas(current_user):
 	try:
 		id_empleado = request.args.get('id_empleado')
 		query = Nomina.query
@@ -72,7 +75,8 @@ def listar_nominas():
 
 
 @nomina_bp.route('/<int:id>', methods=['GET'])
-def obtener_nomina(id):
+@token_required
+def obtener_nomina(current_user, id):
 	try:
 		n = Nomina.query.get_or_404(id)
 		return jsonify({
@@ -90,7 +94,8 @@ def obtener_nomina(id):
 
 
 @nomina_bp.route('/<int:id>', methods=['PUT'])
-def actualizar_nomina(id):
+@token_required
+def actualizar_nomina(current_user, id):
 	try:
 		data = request.get_json()
 		n = Nomina.query.get_or_404(id)
@@ -131,7 +136,8 @@ def actualizar_nomina(id):
 
 
 @nomina_bp.route('/<int:id>', methods=['DELETE'])
-def eliminar_nomina(id):
+@token_required
+def eliminar_nomina(current_user, id):
 	try:
 		n = Nomina.query.get_or_404(id)
 		datos_anteriores = {

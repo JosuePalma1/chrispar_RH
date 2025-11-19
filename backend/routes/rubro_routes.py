@@ -2,13 +2,15 @@ from flask import Blueprint, request, jsonify
 from extensions import db
 from models.rubro import Rubro
 from models.log_transaccional import LogTransaccional
+from utils.auth import token_required
 import json
 
 rubro_bp = Blueprint('rubro', __name__, url_prefix='/api/rubros')
 
 
 @rubro_bp.route('/', methods=['POST'])
-def crear_rubro():
+@token_required
+def crear_rubro(current_user):
 	try:
 		data = request.get_json()
 		nuevo = Rubro(
@@ -49,7 +51,8 @@ def crear_rubro():
 
 
 @rubro_bp.route('/', methods=['GET'])
-def listar_rubros():
+@token_required
+def listar_rubros(current_user):
 	try:
 		id_nomina = request.args.get('id_nomina')
 		query = Rubro.query
@@ -72,7 +75,8 @@ def listar_rubros():
 
 
 @rubro_bp.route('/<int:id>', methods=['GET'])
-def obtener_rubro(id):
+@token_required
+def obtener_rubro(current_user, id):
 	try:
 		r = Rubro.query.get_or_404(id)
 		return jsonify({
@@ -90,7 +94,8 @@ def obtener_rubro(id):
 
 
 @rubro_bp.route('/<int:id>', methods=['PUT'])
-def actualizar_rubro(id):
+@token_required
+def actualizar_rubro(current_user, id):
 	try:
 		data = request.get_json()
 		r = Rubro.query.get_or_404(id)
@@ -128,7 +133,8 @@ def actualizar_rubro(id):
 
 
 @rubro_bp.route('/<int:id>', methods=['DELETE'])
-def eliminar_rubro(id):
+@token_required
+def eliminar_rubro(current_user, id):
 	try:
 		r = Rubro.query.get_or_404(id)
 		datos_anteriores = {
