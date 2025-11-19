@@ -47,7 +47,7 @@ def crear_permiso(current_user):
             db.session.add(log)
             db.session.commit()
         except Exception as log_error:
-            print(f"⚠️ Error al registrar log: {log_error}")
+            print(f" Error al registrar log: {log_error}")
         
         return jsonify({"mensaje": "Permiso creado", "id": nuevo.id_permiso}), 201
         
@@ -160,7 +160,7 @@ def actualizar_permiso(current_user, id):
             db.session.add(log)
             db.session.commit()
         except Exception as log_error:
-            print(f"⚠️ Error al registrar log: {log_error}")
+            print(f" Error al registrar log: {log_error}")
         
         return jsonify({"mensaje": "Permiso actualizado"}), 200
         
@@ -202,7 +202,7 @@ def eliminar_permiso(current_user, id):
             db.session.add(log)
             db.session.commit()
         except Exception as log_error:
-            print(f"⚠️ Error al registrar log: {log_error}")
+            print(f" Error al registrar log: {log_error}")
         
         return jsonify({"mensaje": "Permiso eliminado"}), 200
         

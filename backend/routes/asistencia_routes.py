@@ -43,7 +43,7 @@ def crear_asistencia(current_user):
             db.session.add(log)
             db.session.commit()
         except Exception as log_error:
-            print(f"⚠️ Error al registrar log: {log_error}")
+            print(f" Error al registrar log: {log_error}")
         
         return jsonify({"mensaje": "Asistencia creada", "id": nueva.id_asistencia}), 201
         
@@ -139,7 +139,7 @@ def actualizar_asistencia(current_user, id):
             db.session.add(log)
             db.session.commit()
         except Exception as log_error:
-            print(f"⚠️ Error al registrar log: {log_error}")
+            print(f" Error al registrar log: {log_error}")
         
         return jsonify({"mensaje": "Asistencia actualizada"}), 200
         
@@ -179,7 +179,7 @@ def eliminar_asistencia(current_user, id):
             db.session.add(log)
             db.session.commit()
         except Exception as log_error:
-            print(f"⚠️ Error al registrar log: {log_error}")
+            print(f" Error al registrar log: {log_error}")
         
         return jsonify({"mensaje": "Asistencia eliminada"}), 200
         

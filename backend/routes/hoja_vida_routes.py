@@ -65,7 +65,7 @@ def crear_hoja_vida(current_user):
         db.session.add(log)
         db.session.commit()
     except Exception as log_error:
-        print(f"⚠️ Error al registrar log: {log_error}")
+        print(f" Error al registrar log: {log_error}")
     
     return jsonify({
         "mensaje": "Registro de Hoja de Vida creado exitosamente",
@@ -139,7 +139,7 @@ def actualizar_hoja_vida(current_user, id_hoja_vida):
         db.session.add(log)
         db.session.commit()
     except Exception as log_error:
-        print(f"⚠️ Error al registrar log: {log_error}")
+        print(f" Error al registrar log: {log_error}")
     
     return jsonify({
         "mensaje": "Registro de Hoja de Vida actualizado exitosamente",
@@ -178,6 +178,6 @@ def eliminar_hoja_vida(current_user, id_hoja_vida):
         db.session.add(log)
         db.session.commit()
     except Exception as log_error:
-        print(f"⚠️ Error al registrar log: {log_error}")
+        print(f" Error al registrar log: {log_error}")
     
     return jsonify({"mensaje": "Registro de Hoja de Vida eliminado exitosamente"})

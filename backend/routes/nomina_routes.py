@@ -42,7 +42,7 @@ def crear_nomina(current_user):
 			db.session.add(log)
 			db.session.commit()
 		except Exception as log_error:
-			print(f"⚠️ Error al registrar log: {log_error}")
+			print(f" Error al registrar log: {log_error}")
 
 		return jsonify({'mensaje': 'Nómina creada', 'id': nuevo.id_nomina}), 201
 	except Exception as e:
@@ -127,7 +127,7 @@ def actualizar_nomina(current_user, id):
 			db.session.add(log)
 			db.session.commit()
 		except Exception as log_error:
-			print(f"⚠️ Error al registrar log: {log_error}")
+			print(f" Error al registrar log: {log_error}")
 
 		return jsonify({'mensaje': 'Nómina actualizada'}), 200
 	except Exception as error:
@@ -164,7 +164,7 @@ def eliminar_nomina(current_user, id):
 			db.session.add(log)
 			db.session.commit()
 		except Exception as log_error:
-			print(f"⚠️ Error al registrar log: {log_error}")
+			print(f" Error al registrar log: {log_error}")
 
 		return jsonify({'mensaje': 'Nómina eliminada'}), 200
 	except Exception as error:

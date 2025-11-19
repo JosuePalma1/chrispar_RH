@@ -59,7 +59,7 @@ def crear_usuario(current_user):
             db.session.add(log)
             db.session.commit()
         except Exception as log_error:
-            print(f"⚠️ Error al registrar log: {log_error}")
+            print(f" Error al registrar log: {log_error}")
         
         return jsonify({
             "mensaje": "Usuario creado exitosamente",
@@ -182,7 +182,7 @@ def actualizar_usuario(current_user, id):
             db.session.add(log)
             db.session.commit()
         except Exception as log_error:
-            print(f"⚠️ Error al registrar log: {log_error}")
+            print(f" Error al registrar log: {log_error}")
         
         return jsonify({
             "mensaje": "Usuario actualizado exitosamente",
@@ -231,7 +231,7 @@ def eliminar_usuario(current_user, id):
             db.session.add(log)
             db.session.commit()
         except Exception as log_error:
-            print(f"⚠️ Error al registrar log: {log_error}")
+            print(f" Error al registrar log: {log_error}")
         
         return jsonify({"mensaje": "Usuario eliminado exitosamente"}), 200
         
@@ -276,7 +276,7 @@ def login():
             db.session.add(log)
             db.session.commit()
         except Exception as log_error:
-            print(f"⚠️ Error al registrar log: {log_error}")
+            print(f" Error al registrar log: {log_error}")
         
         return jsonify({
             "mensaje": "Login exitoso",

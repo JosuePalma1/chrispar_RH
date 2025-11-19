@@ -42,7 +42,7 @@ def crear_rubro(current_user):
 			db.session.add(log)
 			db.session.commit()
 		except Exception as log_error:
-			print(f"⚠️ Error al registrar log: {log_error}")
+			print(f" Error al registrar log: {log_error}")
 
 		return jsonify({'mensaje': 'Rubro creado', 'id': nuevo.id_rubro}), 201
 	except Exception as e:
@@ -124,7 +124,7 @@ def actualizar_rubro(current_user, id):
 			db.session.add(log)
 			db.session.commit()
 		except Exception as log_error:
-			print(f"⚠️ Error al registrar log: {log_error}")
+			print(f" Error al registrar log: {log_error}")
 
 		return jsonify({'mensaje': 'Rubro actualizado'}), 200
 	except Exception as error:
@@ -161,7 +161,7 @@ def eliminar_rubro(current_user, id):
 			db.session.add(log)
 			db.session.commit()
 		except Exception as log_error:
-			print(f"⚠️ Error al registrar log: {log_error}")
+			print(f" Error al registrar log: {log_error}")
 
 		return jsonify({'mensaje': 'Rubro eliminado'}), 200
 	except Exception as error:

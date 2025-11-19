@@ -52,7 +52,7 @@ def crear_empleado(current_user):
             db.session.add(log)
             db.session.commit()
         except Exception as log_error:
-            print(f"⚠️ Error al registrar log: {log_error}")
+            print(f" Error al registrar log: {log_error}")
         
         return jsonify({"mensaje": "Empleado creado", "id": nuevo.id}), 201
         
@@ -159,7 +159,7 @@ def actualizar_empleado(current_user, id):
             db.session.add(log)
             db.session.commit()
         except Exception as log_error:
-            print(f"⚠️ Error al registrar log: {log_error}")
+            print(f" Error al registrar log: {log_error}")
         
         return jsonify({"mensaje": "Empleado actualizado"}), 200
         
@@ -200,7 +200,7 @@ def eliminar_empleado(current_user, id):
             db.session.add(log)
             db.session.commit()
         except Exception as log_error:
-            print(f"⚠️ Error al registrar log: {log_error}")
+            print(f" Error al registrar log: {log_error}")
         
         return jsonify({"mensaje": "Empleado eliminado"}), 200
         
