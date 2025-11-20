@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './Sidebar.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
+const AVAILABLE_MODULES = ['dashboard', 'cargos', 'usuarios', 'empleados', 'hojas-vida', 'horarios', 'nomina', 'rubros'];
 
 function Sidebar() {
     const [permisos, setPermisos] = useState(['dashboard']); // Dashboard siempre visible por defecto
@@ -18,11 +19,10 @@ function Sidebar() {
                 // Decodificar token para obtener el cargo del usuario
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 const nombreCargo = payload.rol;
-                console.log('Cargo del usuario:', nombreCargo);
 
                 // Si es administrador, mostrar todos los módulos
                 if (nombreCargo.toLowerCase() === 'administrador' || nombreCargo.toLowerCase() === 'admin') {
-                    setPermisos(['dashboard', 'cargos', 'usuarios', 'empleados', 'hojas-vida', 'asistencias', 'horarios', 'permisos', 'nomina', 'rubros', 'logs']);
+                    setPermisos(AVAILABLE_MODULES);
                     return;
                 }
 
@@ -35,24 +35,21 @@ function Sidebar() {
 
                 if (response.ok) {
                     const cargos = await response.json();
-                    console.log('Cargos cargados:', cargos);
                     const cargoUsuario = cargos.find(c => c.nombre_cargo === nombreCargo);
-                    console.log('Cargo del usuario encontrado:', cargoUsuario);
                     
                     if (cargoUsuario && cargoUsuario.permisos) {
-                        console.log('Permisos del cargo:', cargoUsuario.permisos);
-                        setPermisos(cargoUsuario.permisos);
+                        const permisosCargo = Array.isArray(cargoUsuario.permisos)
+                            ? cargoUsuario.permisos
+                            : JSON.parse(cargoUsuario.permisos || '[]');
+                        const permisosValidos = permisosCargo.filter((permiso) => AVAILABLE_MODULES.includes(permiso));
+                        setPermisos(permisosValidos.length ? permisosValidos : ['dashboard']);
                     } else {
-                        // Si no hay permisos definidos, solo mostrar dashboard
-                        console.log('No se encontraron permisos, usando solo dashboard');
                         setPermisos(['dashboard']);
                     }
                 } else {
-                    console.log('Error al cargar cargos, response no ok');
                     setPermisos(['dashboard']);
                 }
             } catch (error) {
-                console.error('Error al cargar permisos:', error);
                 setPermisos(['dashboard']);
             }
         };
@@ -67,12 +64,9 @@ function Sidebar() {
         { id: 'usuarios', nombre: 'Usuarios', ruta: '/usuarios' },
         { id: 'empleados', nombre: 'Empleados', ruta: '/empleados' },
         { id: 'hojas-vida', nombre: 'Hojas de Vida', ruta: '/hojas-vida' },
-        { id: 'asistencias', nombre: 'Asistencias', ruta: '/asistencias' },
         { id: 'horarios', nombre: 'Horarios', ruta: '/horarios' },
-        { id: 'permisos', nombre: 'Permisos / Vacaciones', ruta: '/permisos' },
         { id: 'nomina', nombre: 'Nómina', ruta: '/nomina' },
-        { id: 'rubros', nombre: 'Rubros de pago', ruta: '/rubros' },
-        { id: 'logs', nombre: 'Auditoría / Logs', ruta: '/logs' }
+        { id: 'rubros', nombre: 'Rubros de pago', ruta: '/rubros' }
     ];
 
     return (

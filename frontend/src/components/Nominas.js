@@ -48,16 +48,13 @@ function Nominas() {
         total: parseFloat(form.total) || 0,
         creado_por: 1
       };
-      console.log('Enviando nómina:', payload);
       const response = await axios.post(`${API_URL}/api/nominas/`, payload, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      console.log('Respuesta:', response.data);
       alert('Nómina creada exitosamente');
       setForm({ id_empleado: '', fecha_inicio: '', fecha_fin: '', total: '' });
       fetchNominas();
     } catch (err) {
-      console.error('Error completo:', err.response?.data || err);
       setError(err.response?.data?.error || 'Error al crear nómina');
       alert(err.response?.data?.error || 'Error al crear nómina');
     }

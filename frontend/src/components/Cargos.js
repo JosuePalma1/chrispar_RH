@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import './Cargos.css';
 
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
 
 function Cargos() {
   const [cargos, setCargos] = useState([]);
@@ -21,12 +21,9 @@ function Cargos() {
     { id: 'usuarios', nombre: 'Usuarios' },
     { id: 'empleados', nombre: 'Empleados' },
     { id: 'hojas-vida', nombre: 'Hojas de Vida' },
-    { id: 'asistencias', nombre: 'Asistencias' },
     { id: 'horarios', nombre: 'Horarios' },
-    { id: 'permisos', nombre: 'Permisos/Vacaciones' },
     { id: 'nomina', nombre: 'Nómina' },
-    { id: 'rubros', nombre: 'Rubros de Pago' },
-    { id: 'logs', nombre: 'Auditoría/Logs' }
+    { id: 'rubros', nombre: 'Rubros de Pago' }
   ];
 
   useEffect(() => {
@@ -99,8 +96,6 @@ function Cargos() {
   const guardarCargo = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
-    
-    console.log('Guardando cargo con permisos:', cargoActual.permisos);
     
     try {
       const url = modoEdicion 

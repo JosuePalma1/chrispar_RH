@@ -2,14 +2,14 @@ from flask import Blueprint, request, jsonify
 from extensions import db
 from models.rubro import Rubro
 from models.log_transaccional import LogTransaccional
-from utils.auth import token_required
+from utils.auth import token_required, admin_required
 import json
 
 rubro_bp = Blueprint('rubro', __name__, url_prefix='/api/rubros')
 
 
 @rubro_bp.route('/', methods=['POST'])
-@token_required
+@admin_required
 def crear_rubro(current_user):
 	try:
 		data = request.get_json()
@@ -94,7 +94,7 @@ def obtener_rubro(current_user, id):
 
 
 @rubro_bp.route('/<int:id>', methods=['PUT'])
-@token_required
+@admin_required
 def actualizar_rubro(current_user, id):
 	try:
 		data = request.get_json()
@@ -133,7 +133,7 @@ def actualizar_rubro(current_user, id):
 
 
 @rubro_bp.route('/<int:id>', methods=['DELETE'])
-@token_required
+@admin_required
 def eliminar_rubro(current_user, id):
 	try:
 		r = Rubro.query.get_or_404(id)

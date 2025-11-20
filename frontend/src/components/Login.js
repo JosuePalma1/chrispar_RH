@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './Login.css';
 
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -27,11 +27,6 @@ const Login = () => {
   setError('');
   setLoading(true);
 
-  console.log('🔵 1. Iniciando login...');
-  console.log('🔵 2. URL completa:', `${API_URL}/api/usuarios/login`);
-  console.log('🔵 3. Usuario:', formData.username);
-  console.log('🔵 3. Password:', formData.password);
-
   // Validación básica
   if (!formData.username || !formData.password) {
     setError('Por favor, completa todos los campos');
@@ -40,28 +35,17 @@ const Login = () => {
   }
 
   try {
-    console.log('🔵 4. Enviando petición al backend...');
-    
     const response = await axios.post(`${API_URL}/api/usuarios/login`, {
       username: formData.username,
       password: formData.password
     });
 
-    console.log('✅ 5. Respuesta recibida del backend:', response.data);
-
     // Guardar SOLO el token en localStorage (el token ya contiene la info del usuario codificada)
     localStorage.setItem('token', response.data.token);
-
-    console.log('✅ 6. Token guardado en localStorage');
-    console.log('✅ 7. Navegando al dashboard...');
     
     navigate('/dashboard');
 
   } catch (err) {
-    console.error('❌ ERROR COMPLETO:', err);
-    console.error('❌ Respuesta del servidor:', err.response);
-    console.error('❌ Datos de la respuesta:', err.response?.data);
-    
     if (err.response) {
       setError(err.response.data.error || 'Error al iniciar sesión');
     } else if (err.request) {

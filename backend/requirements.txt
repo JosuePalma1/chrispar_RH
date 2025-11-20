@@ -6,3 +6,5 @@ psycopg2-binary==2.9.11          # Controlador de PostgreSQL (actualizado para P
 python-dotenv==1.0.0             # Cargar variables de entorno desde un archivo .env
 marshmallow==3.20.1              # Para validaciones
 PyJWT==2.10.1                    # Para autenticación con JSON Web Tokens
+pytest==7.4.4                    # Framework de pruebas
+Werkzeug==2.2.3                  # Versión compatible con Flask 2.2

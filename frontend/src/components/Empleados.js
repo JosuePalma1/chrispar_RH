@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import './Empleados.css';
 
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
 
 function Empleados() {
   const [empleados, setEmpleados] = useState([]);
@@ -69,7 +69,6 @@ function Empleados() {
       }
       
       const data = await response.json();
-      console.log('Empleados cargados desde el backend:', data);
       setEmpleados(data);
     } catch (error) {
       console.error('Error:', error);
@@ -85,7 +84,6 @@ function Empleados() {
         }
       });
       const data = await response.json();
-      console.log('Cargos cargados desde el backend:', data);
       setCargos(data);
     } catch (error) {
       console.error('Error:', error);
@@ -109,8 +107,6 @@ function Empleados() {
 
   const abrirModal = (empleado = null) => {
     if (empleado) {
-      console.log('Abriendo modal para editar empleado (COMPLETO):', JSON.stringify(empleado, null, 2));
-      
       // Convertir fechas de YYYY-MM-DD a formato input date
       const formatearFecha = (fecha) => {
         if (!fecha) return '';
@@ -169,15 +165,10 @@ function Empleados() {
   };
 
   const abrirModalConUsuario = (usuario) => {
-    console.log('Abriendo modal con usuario:', usuario);
-    console.log('Cargos disponibles:', cargos);
-    
     // Buscar el cargo que corresponde al rol del usuario
     const cargoCorrespondiente = cargos.find(c => c.nombre_cargo === usuario.rol);
-    console.log('Cargo correspondiente encontrado:', cargoCorrespondiente);
-    
-    const cargoId = cargoCorrespondiente ? cargoCorrespondiente.id.toString() : '';
-    console.log('Cargo ID a asignar:', cargoId);
+    const cargoIdValor = cargoCorrespondiente?.id ?? cargoCorrespondiente?.id_cargo;
+    const cargoId = cargoIdValor ? cargoIdValor.toString() : '';
     
     setEmpleadoActual({
       id: null,
@@ -208,22 +199,14 @@ function Empleados() {
     
     const usuarioSeleccionado = usuarios.find(u => u.id === parseInt(idUsuario));
     
-    console.log('Usuario seleccionado:', usuarioSeleccionado);
-    console.log('Rol del usuario:', usuarioSeleccionado?.rol);
-    console.log('Cargos disponibles:', cargos);
-    
     if (usuarioSeleccionado && usuarioSeleccionado.rol) {
       // Buscar el cargo que coincide con el rol del usuario
       const cargoCorrespondiente = cargos.find(c => c.nombre_cargo === usuarioSeleccionado.rol);
-      
-      console.log('Cargo correspondiente encontrado:', cargoCorrespondiente);
-      console.log('ID del cargo:', cargoCorrespondiente?.id, cargoCorrespondiente?.id_cargo);
       
       // El backend puede devolver 'id' o 'id_cargo' dependiendo del endpoint
       const idCargo = cargoCorrespondiente?.id_cargo || cargoCorrespondiente?.id;
       
       if (cargoCorrespondiente && idCargo) {
-        console.log('Asignando cargo_id:', idCargo);
         setEmpleadoActual({
           ...empleadoActual,
           id_usuario: idUsuario,
@@ -242,14 +225,12 @@ function Empleados() {
   };
 
   const manejarCambioCargo = async (idCargo) => {
-    console.log('manejarCambioCargo llamado con:', idCargo);
     setEmpleadoActual({...empleadoActual, cargo_id: idCargo});
     
     // Si hay un usuario asignado, actualizar su rol
     if (empleadoActual.id_usuario && idCargo) {
       // Buscar por 'id' no por 'id_cargo'
       const cargoSeleccionado = cargos.find(c => c.id === parseInt(idCargo));
-      console.log('Cargo seleccionado para actualizar usuario:', cargoSeleccionado);
       
       if (cargoSeleccionado) {
         try {
@@ -276,9 +257,6 @@ function Empleados() {
   const guardarEmpleado = async (e) => {
     e.preventDefault();
     
-    console.log('Empleado actual antes de validar:', empleadoActual);
-    console.log('cargo_id valor:', empleadoActual.cargo_id, 'tipo:', typeof empleadoActual.cargo_id);
-    
     // Validar que cargo_id tenga valor
     if (!empleadoActual.cargo_id) {
       alert('Debe seleccionar un cargo');
@@ -296,8 +274,6 @@ function Empleados() {
     
     // Eliminar cargo_id ya que el backend no lo reconoce
     delete datosEmpleado.cargo_id;
-    
-    console.log('Datos a enviar:', datosEmpleado);
     
     try {
       const url = modoEdicion 

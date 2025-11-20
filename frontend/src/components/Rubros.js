@@ -49,16 +49,13 @@ function Rubros() {
         monto: parseFloat(form.monto) || 0,
         creado_por: 1
       };
-      console.log('Enviando rubro:', payload);
       const response = await axios.post(`${API_URL}/api/rubros/`, payload, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      console.log('Respuesta:', response.data);
       alert('Rubro creado exitosamente');
       setForm({ id_nomina: '', codigo: '', descripcion: '', tipo: 'devengo', monto: '' });
       fetchRubros();
     } catch (err) {
-      console.error('Error completo:', err.response?.data || err);
       setError(err.response?.data?.error || 'Error al crear rubro');
       alert(err.response?.data?.error || 'Error al crear rubro');
     }

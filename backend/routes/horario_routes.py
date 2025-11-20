@@ -1,46 +1,16 @@
 from flask import Blueprint, request, jsonify
 from extensions import db
 from models.horario import Horario
-from datetime import datetime, time, date
 from models.log_transaccional import LogTransaccional
-from utils.auth import token_required
+from utils.auth import token_required, admin_required
+from utils.parsers import parse_date, parse_time
 import json
 
 horario_bp = Blueprint('horario', __name__, url_prefix='/api/horarios')
 
-# Es buena práctica manejar la conversión de strings a time/date
-def parse_time(time_input):
-    # 1. Si ya es un objeto 'time', simplemente devuélvelo.
-    if isinstance(time_input, time):
-        return time_input
-    # 2. Si es None o un string vacío, devuelve None.
-    if not time_input: 
-        return None
-    # 3. Si es un string, intenta procesarlo.
-    try: 
-        return datetime.strptime(time_input, '%H:%M:%S').time()
-    except (ValueError, TypeError): 
-        try: 
-            return datetime.strptime(time_input, '%H:%M').time()
-        except (ValueError, TypeError):
-            return None # Falla si no es un string de tiempo válido
-
-def parse_date(date_input):
-    # 1. Si ya es un objeto 'date', simplemente devuélvelo.
-    if isinstance(date_input, date):
-        return date_input
-    # 2. Si es None o un string vacío, devuelve None.
-    if not date_input: 
-        return None
-    # 3. Si es un string, intenta procesarlo.
-    try: 
-        return datetime.strptime(date_input, '%Y-%m-%d').date()
-    except (ValueError, TypeError): 
-        return None # Falla si no es un string de fecha válido
-
 # CREATE - Crear [cite: 37-49]
 @horario_bp.route("/", methods=["POST"])
-@token_required
+@admin_required
 def crear_horario(current_user):
     data = request.get_json()
     
@@ -105,7 +75,7 @@ def obtener_horario(current_user, id_horario):
 
 # UPDATE - Actualizar [cite: 71-79]
 @horario_bp.route("/<int:id_horario>", methods=["PUT"])
-@token_required
+@admin_required
 def actualizar_horario(current_user, id_horario):
     horario = Horario.query.get_or_404(id_horario)
     data = request.get_json()
@@ -159,7 +129,7 @@ def actualizar_horario(current_user, id_horario):
 
 # DELETE - Eliminar [cite: 80-86]
 @horario_bp.route("/<int:id_horario>", methods=["DELETE"])
-@token_required
+@admin_required
 def eliminar_horario(current_user, id_horario):
     horario = Horario.query.get_or_404(id_horario)
 

@@ -4,6 +4,8 @@ import Sidebar from './Sidebar';
 // 1. Importamos el archivo CSS
 import './Horario.css'; 
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
+
 // Usamos 'Horario' como nombre de componente aunque el archivo sea 'Horario.js'
 // para que su propósito (mostrar una lista) sea claro.
 function Horario() {
@@ -29,7 +31,7 @@ function Horario() {
 
                 // Usamos axios para hacer la petición GET a la API de Flask
                 // Esta es la misma URL que probamos en Postman
-                const response = await axios.get('http://127.0.0.1:5000/api/horarios/', {
+                const response = await axios.get(`${API_URL}/api/horarios/`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }

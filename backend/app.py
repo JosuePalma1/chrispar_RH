@@ -17,8 +17,8 @@ def create_app():
     
     # Registrar blueprints
     from routes import all_blueprints
-    for blueprint, prefix in all_blueprints:
-        app.register_blueprint(blueprint, url_prefix=prefix)
+    for blueprint in all_blueprints:
+        app.register_blueprint(blueprint)
     
     return app
 

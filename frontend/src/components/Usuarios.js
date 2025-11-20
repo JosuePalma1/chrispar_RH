@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import './Usuarios.css';
 
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
+const ROLES = ['admin', 'supervisor', 'empleado'];
 
 function Usuarios() {
   const [usuarios, setUsuarios] = useState([]);
-  const [cargos, setCargos] = useState([]);
+  const [error, setError] = useState('');
   const [empleados, setEmpleados] = useState([]);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
@@ -14,13 +15,11 @@ function Usuarios() {
     id: null,
     username: '',
     password: '',
-    rol: 'empleado',
-    email: ''
+    rol: 'empleado'
   });
 
   useEffect(() => {
     cargarUsuarios();
-    cargarCargos();
     cargarEmpleados();
   }, []);
 
@@ -39,25 +38,20 @@ function Usuarios() {
         return;
       }
       
-      const data = await response.json();
-      setUsuarios(data);
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({ error: 'No se pudo cargar usuarios'}));
+        setError(errorBody.error || 'No se pudo cargar usuarios');
+        setUsuarios([]);
+        return;
+      }
 
-  const cargarCargos = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/api/cargos/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
       const data = await response.json();
-      setCargos(data);
+      setUsuarios(Array.isArray(data) ? data : []);
+      setError('');
     } catch (error) {
       console.error('Error:', error);
+      setUsuarios([]);
+      setError('No se pudo cargar usuarios');
     }
   };
 
@@ -70,7 +64,7 @@ function Usuarios() {
         }
       });
       const data = await response.json();
-      setEmpleados(data);
+      setEmpleados(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -89,8 +83,10 @@ function Usuarios() {
   const abrirModal = (usuario = null) => {
     if (usuario) {
       setUsuarioActual({
-        ...usuario,
-        password: '' // No mostrar la contraseña al editar
+        id: usuario.id,
+        username: usuario.username,
+        password: '', // No mostrar la contraseña al editar
+        rol: usuario.rol
       });
       setModoEdicion(true);
     } else {
@@ -98,8 +94,7 @@ function Usuarios() {
         id: null,
         username: '',
         password: '',
-        rol: 'empleado',
-        email: ''
+        rol: 'empleado'
       });
       setModoEdicion(false);
     }
@@ -116,8 +111,13 @@ function Usuarios() {
     
     // En modo edición, solo enviar password si se ingresó uno nuevo
     const datosUsuario = { ...usuarioActual };
-    if (modoEdicion && !datosUsuario.password) {
-      delete datosUsuario.password;
+    const payload = {
+      username: datosUsuario.username,
+      rol: datosUsuario.rol
+    };
+
+    if (!modoEdicion || datosUsuario.password) {
+      payload.password = datosUsuario.password;
     }
     
     try {
@@ -133,7 +133,7 @@ function Usuarios() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(datosUsuario)
+        body: JSON.stringify(payload)
       });
 
       if (response.ok) {
@@ -184,11 +184,12 @@ function Usuarios() {
           <button className="btn-nuevo" onClick={() => abrirModal()}>+ Nuevo Usuario</button>
         </div>
 
+        {error && <div className="error-banner">{error}</div>}
+
         <table className="usuarios-tabla">
         <thead>
           <tr>
             <th>Username</th>
-            <th>Email</th>
             <th>Rol</th>
             <th>Fecha Creación</th>
             <th>Acciones</th>
@@ -198,7 +199,6 @@ function Usuarios() {
           {usuarios.map(usuario => (
             <tr key={usuario.id}>
               <td>{usuario.username}</td>
-              <td>{usuario.email}</td>
               <td>
                 <span className={`rol ${usuario.rol}`}>{usuario.rol}</span>
               </td>
@@ -233,16 +233,6 @@ function Usuarios() {
               </div>
 
               <div className="form-grupo">
-                <label>Email:</label>
-                <input
-                  type="email"
-                  value={usuarioActual.email}
-                  onChange={(e) => setUsuarioActual({...usuarioActual, email: e.target.value})}
-                  required
-                />
-              </div>
-
-              <div className="form-grupo">
                 <label>Password {modoEdicion && '(dejar en blanco para mantener la actual)'}:</label>
                 <input
                   type="password"
@@ -253,16 +243,16 @@ function Usuarios() {
               </div>
 
               <div className="form-grupo">
-                <label>Cargo:</label>
+                <label>Rol:</label>
                 <select
                   value={usuarioActual.rol}
                   onChange={(e) => setUsuarioActual({...usuarioActual, rol: e.target.value})}
                   required
                 >
-                  <option value="">Seleccione un cargo</option>
-                  {cargos.map(cargo => (
-                    <option key={cargo.id_cargo} value={cargo.nombre_cargo}>
-                      {cargo.nombre_cargo}
+                  <option value="">Seleccione un rol</option>
+                  {ROLES.map((rol) => (
+                    <option key={rol} value={rol}>
+                      {rol.charAt(0).toUpperCase() + rol.slice(1)}
                     </option>
                   ))}
                 </select>

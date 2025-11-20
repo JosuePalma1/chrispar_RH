@@ -1,31 +1,16 @@
 from flask import Blueprint, request, jsonify
 from extensions import db
 from models.hoja_vida import Hoja_Vida
-from datetime import datetime, date
 from models.log_transaccional import LogTransaccional
-from utils.auth import token_required
+from utils.auth import token_required, admin_required
+from utils.parsers import parse_date
 import json
 
 hoja_vida_bp = Blueprint('hoja_vida', __name__, url_prefix='/api/hojas-vida')
 
-def parse_date(date_input):
-    # 1. Si ya es un objeto 'date', simplemente devuélvelo.
-    if isinstance(date_input, date):
-        return date_input
-    # 2. Si es None o un string vacío, devuelve None.
-    if not date_input: 
-        return None
-    # 3. Si es un string, intenta procesarlo.
-    try: 
-        return datetime.strptime(date_input, '%Y-%m-%d').date()
-    except (ValueError, TypeError): 
-        return None # Falla si no es un string de fecha válido
-
-hoja_vida_bp = Blueprint("hoja_vida", __name__, url_prefix="/api/hojas_vida")
-
 # CREATE - Crear
 @hoja_vida_bp.route("/", methods=["POST"])
-@token_required
+@admin_required
 def crear_hoja_vida(current_user):
     data = request.get_json()
     
@@ -94,7 +79,7 @@ def obtener_hoja_vida(current_user, id_hoja_vida):
 
 # UPDATE - Actualizar
 @hoja_vida_bp.route("/<int:id_hoja_vida>", methods=["PUT"])
-@token_required
+@admin_required
 def actualizar_hoja_vida(current_user, id_hoja_vida):
     registro = Hoja_Vida.query.get_or_404(id_hoja_vida)
     data = request.get_json()
@@ -148,7 +133,7 @@ def actualizar_hoja_vida(current_user, id_hoja_vida):
 
 # DELETE - Eliminar
 @hoja_vida_bp.route("/<int:id_hoja_vida>", methods=["DELETE"])
-@token_required
+@admin_required
 def eliminar_hoja_vida(current_user, id_hoja_vida):
     registro = Hoja_Vida.query.get_or_404(id_hoja_vida)
 

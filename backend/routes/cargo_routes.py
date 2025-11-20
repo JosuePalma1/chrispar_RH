@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from extensions import db
 from models.cargo import Cargo
 from models.log_transaccional import LogTransaccional
-from utils.auth import token_required
+from utils.auth import token_required, admin_required
 import json
 from decimal import Decimal
 
@@ -10,7 +10,7 @@ cargo_bp = Blueprint('cargo', __name__, url_prefix='/api/cargos')
 
 # CREATE - Crear un nuevo cargo
 @cargo_bp.route('/', methods=['POST'])
-@token_required
+@admin_required
 def crear_cargo(current_user):
     try:
         data = request.get_json()
@@ -111,7 +111,7 @@ def obtener_cargo(current_user, id):
 
 # UPDATE - Actualizar un cargo
 @cargo_bp.route('/<int:id>', methods=['PUT'])
-@token_required
+@admin_required
 def actualizar_cargo(current_user, id):
     try:
         cargo = Cargo.query.get(id)
@@ -178,7 +178,7 @@ def actualizar_cargo(current_user, id):
 
 # DELETE - Eliminar un cargo
 @cargo_bp.route('/<int:id>', methods=['DELETE'])
-@token_required
+@admin_required
 def eliminar_cargo(current_user, id):
     try:
         cargo = Cargo.query.get(id)

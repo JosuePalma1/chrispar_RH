@@ -2,23 +2,30 @@ from flask import Blueprint, request, jsonify
 from extensions import db
 from models.permiso import Permiso
 from models.log_transaccional import LogTransaccional
-from utils.auth import token_required
+from utils.auth import token_required, admin_required
+from utils.parsers import parse_date
 import json
 
 permiso_bp = Blueprint("permiso", __name__, url_prefix="/api/permisos")
 
 @permiso_bp.route("/", methods=["POST"])
-@token_required
+@admin_required
 def crear_permiso(current_user):
     try:
         data = request.get_json()
         
+        fecha_inicio = parse_date(data.get("fecha_inicio"))
+        fecha_fin = parse_date(data.get("fecha_fin"))
+
+        if not fecha_inicio or not fecha_fin:
+            return jsonify({"error": "fecha_inicio y fecha_fin válidas son requeridas"}), 400
+
         nuevo = Permiso(
             id_empleado=data["id_empleado"],
             tipo=data["tipo"],
             descripcion=data.get("descripcion"),
-            fecha_inicio=data["fecha_inicio"],
-            fecha_fin=data["fecha_fin"],
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_fin,
             estado=data.get("estado", "pendiente"),
             autorizado_por=data.get("autorizado_por"),
             creado_por=data.get("creado_por")
@@ -113,7 +120,7 @@ def obtener_permiso(current_user, id):
 
 
 @permiso_bp.route("/<int:id>", methods=["PUT"])
-@token_required
+@admin_required
 def actualizar_permiso(current_user, id):
     try:
         data = request.get_json()
@@ -131,8 +138,10 @@ def actualizar_permiso(current_user, id):
         # Actualizar campos
         p.tipo = data.get("tipo", p.tipo)
         p.descripcion = data.get("descripcion", p.descripcion)
-        p.fecha_inicio = data.get("fecha_inicio", p.fecha_inicio)
-        p.fecha_fin = data.get("fecha_fin", p.fecha_fin)
+        fecha_inicio = parse_date(data.get("fecha_inicio", p.fecha_inicio))
+        fecha_fin = parse_date(data.get("fecha_fin", p.fecha_fin))
+        p.fecha_inicio = fecha_inicio if fecha_inicio else p.fecha_inicio
+        p.fecha_fin = fecha_fin if fecha_fin else p.fecha_fin
         p.estado = data.get("estado", p.estado)
         p.autorizado_por = data.get("autorizado_por", p.autorizado_por)
         p.modificado_por = data.get("modificado_por")
@@ -170,7 +179,7 @@ def actualizar_permiso(current_user, id):
 
 
 @permiso_bp.route("/<int:id>", methods=["DELETE"])
-@token_required
+@admin_required
 def eliminar_permiso(current_user, id):
     try:
         p = Permiso.query.get_or_404(id)

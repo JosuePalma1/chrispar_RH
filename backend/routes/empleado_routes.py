@@ -2,26 +2,32 @@ from flask import Blueprint, request, jsonify
 from extensions import db
 from models.empleado import Empleado
 from models.log_transaccional import LogTransaccional
-from utils.auth import token_required
+from utils.auth import token_required, admin_required
+from utils.parsers import parse_date
 import json
 
 empleado_bp = Blueprint("empleado", __name__, url_prefix="/api/empleados")
 
 @empleado_bp.route("/", methods=["POST"])
-@token_required
+@admin_required
 def crear_empleado(current_user):
     try:
         data = request.get_json()
         
+        fecha_nacimiento = parse_date(data.get("fecha_nacimiento"))
+        fecha_ingreso = parse_date(data.get("fecha_ingreso"))
+        fecha_egreso = parse_date(data.get("fecha_egreso"))
+
         nuevo = Empleado(
             id_usuario=data.get("id_usuario"),
             id_cargo=data["id_cargo"],
             nombres=data.get("nombres"),
             apellidos=data.get("apellidos"),
-            fecha_nacimiento=data.get("fecha_nacimiento"),
+            fecha_nacimiento=fecha_nacimiento,
             cedula=data.get("cedula"),
             estado=data.get("estado", "activo"),
-            fecha_ingreso=data.get("fecha_ingreso"),
+            fecha_ingreso=fecha_ingreso,
+            fecha_egreso=fecha_egreso,
             tipo_cuenta_bancaria=data.get("tipo_cuenta_bancaria"),
             numero_cuenta_bancaria=data.get("numero_cuenta_bancaria"),
             modalidad_fondo_reserva=data.get("modalidad_fondo_reserva"),
@@ -114,7 +120,7 @@ def obtener_empleado(current_user, id):
 
 
 @empleado_bp.route("/<int:id>", methods=["PUT"])
-@token_required
+@admin_required
 def actualizar_empleado(current_user, id):
     try:
         data = request.get_json()
@@ -137,6 +143,12 @@ def actualizar_empleado(current_user, id):
         e.cedula = data.get("cedula", e.cedula)
         e.id_cargo = data.get("id_cargo", e.id_cargo)
         e.id_usuario = data.get("id_usuario", e.id_usuario)
+        fecha_nacimiento = parse_date(data.get("fecha_nacimiento", e.fecha_nacimiento))
+        fecha_ingreso = parse_date(data.get("fecha_ingreso", e.fecha_ingreso))
+        fecha_egreso = parse_date(data.get("fecha_egreso", e.fecha_egreso))
+        e.fecha_nacimiento = fecha_nacimiento if fecha_nacimiento else e.fecha_nacimiento
+        e.fecha_ingreso = fecha_ingreso if fecha_ingreso else e.fecha_ingreso
+        e.fecha_egreso = fecha_egreso if fecha_egreso else e.fecha_egreso
         e.tipo_cuenta_bancaria = data.get("tipo_cuenta_bancaria", e.tipo_cuenta_bancaria)
         e.numero_cuenta_bancaria = data.get("numero_cuenta_bancaria", e.numero_cuenta_bancaria)
         e.modalidad_fondo_reserva = data.get("modalidad_fondo_reserva", e.modalidad_fondo_reserva)
@@ -177,7 +189,7 @@ def actualizar_empleado(current_user, id):
 
 
 @empleado_bp.route("/<int:id>", methods=["DELETE"])
-@token_required
+@admin_required
 def eliminar_empleado(current_user, id):
     try:
         e = Empleado.query.get_or_404(id)

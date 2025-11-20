@@ -3,6 +3,8 @@ import axios from 'axios';
 import Sidebar from './Sidebar';
 import './HojaDeVida.css'; // Importamos los estilos
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
+
 // Renombramos el componente para que sea claro
 function HojaDeVida() {
     
@@ -28,7 +30,7 @@ function HojaDeVida() {
                 }
 
                 // Usamos la API de hojas_vida que probamos en Postman
-                const response = await axios.get('http://127.0.0.1:5000/api/hojas-vida/', {
+                const response = await axios.get(`${API_URL}/api/hojas-vida/`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }

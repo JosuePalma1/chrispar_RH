@@ -2,22 +2,30 @@ from flask import Blueprint, request, jsonify
 from extensions import db
 from models.asistencia import Asistencia
 from models.log_transaccional import LogTransaccional
-from utils.auth import token_required
+from utils.auth import token_required, admin_required
+from utils.parsers import parse_date, parse_time
 import json
 
 asistencia_bp = Blueprint("asistencia", __name__, url_prefix="/api/asistencias")
 
 @asistencia_bp.route("/", methods=["POST"])
-@token_required
+@admin_required
 def crear_asistencia(current_user):
     try:
         data = request.get_json()
         
+        fecha = parse_date(data.get("fecha"))
+        hora_entrada = parse_time(data.get("hora_entrada"))
+        hora_salida = parse_time(data.get("hora_salida"))
+
+        if not fecha or not hora_entrada:
+            return jsonify({"error": "fecha y hora_entrada válidas son requeridas"}), 400
+
         nueva = Asistencia(
             id_empleado=data["id_empleado"],
-            fecha=data["fecha"],
-            hora_entrada=data["hora_entrada"],
-            hora_salida=data.get("hora_salida"),
+            fecha=fecha,
+            hora_entrada=hora_entrada,
+            hora_salida=hora_salida,
             horas_extra=data.get("horas_extra", 0.0),
             creado_por=data.get("creado_por")
         )
@@ -99,7 +107,7 @@ def obtener_asistencia(current_user, id):
 
 
 @asistencia_bp.route("/<int:id>", methods=["PUT"])
-@token_required
+@admin_required
 def actualizar_asistencia(current_user, id):
     try:
         data = request.get_json()
@@ -113,8 +121,11 @@ def actualizar_asistencia(current_user, id):
         }
         
         # Actualizar campos
-        a.hora_entrada = data.get("hora_entrada", a.hora_entrada)
-        a.hora_salida = data.get("hora_salida", a.hora_salida)
+        hora_entrada = parse_time(data.get("hora_entrada", a.hora_entrada))
+        hora_salida = parse_time(data.get("hora_salida", a.hora_salida))
+
+        a.hora_entrada = hora_entrada if hora_entrada is not None else a.hora_entrada
+        a.hora_salida = hora_salida if hora_salida is not None else a.hora_salida
         a.horas_extra = data.get("horas_extra", a.horas_extra)
         a.modificado_por = data.get("modificado_por")
         
@@ -149,7 +160,7 @@ def actualizar_asistencia(current_user, id):
 
 
 @asistencia_bp.route("/<int:id>", methods=["DELETE"])
-@token_required
+@admin_required
 def eliminar_asistencia(current_user, id):
     try:
         a = Asistencia.query.get_or_404(id)

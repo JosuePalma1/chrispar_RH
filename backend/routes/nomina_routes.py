@@ -2,21 +2,28 @@ from flask import Blueprint, request, jsonify
 from extensions import db
 from models.nomina import Nomina
 from models.log_transaccional import LogTransaccional
-from utils.auth import token_required
+from utils.auth import token_required, admin_required
+from utils.parsers import parse_date
 import json
 
 nomina_bp = Blueprint('nomina', __name__, url_prefix='/api/nominas')
 
 
 @nomina_bp.route('/', methods=['POST'])
-@token_required
+@admin_required
 def crear_nomina(current_user):
 	try:
 		data = request.get_json()
+		fecha_inicio = parse_date(data.get('fecha_inicio'))
+		fecha_fin = parse_date(data.get('fecha_fin'))
+
+		if not fecha_inicio or not fecha_fin:
+			return jsonify({'error': 'fecha_inicio y fecha_fin válidas son requeridas'}), 400
+
 		nuevo = Nomina(
 			id_empleado=data['id_empleado'],
-			fecha_inicio=data['fecha_inicio'],
-			fecha_fin=data['fecha_fin'],
+			fecha_inicio=fecha_inicio,
+			fecha_fin=fecha_fin,
 			total=data.get('total', 0.0),
 			estado=data.get('estado', 'pendiente'),
 			creado_por=data.get('creado_por')
@@ -94,7 +101,7 @@ def obtener_nomina(current_user, id):
 
 
 @nomina_bp.route('/<int:id>', methods=['PUT'])
-@token_required
+@admin_required
 def actualizar_nomina(current_user, id):
 	try:
 		data = request.get_json()
@@ -105,8 +112,10 @@ def actualizar_nomina(current_user, id):
 			'estado': n.estado
 		}
 
-		n.fecha_inicio = data.get('fecha_inicio', n.fecha_inicio)
-		n.fecha_fin = data.get('fecha_fin', n.fecha_fin)
+		fecha_inicio = parse_date(data.get('fecha_inicio', n.fecha_inicio))
+		fecha_fin = parse_date(data.get('fecha_fin', n.fecha_fin))
+		n.fecha_inicio = fecha_inicio if fecha_inicio else n.fecha_inicio
+		n.fecha_fin = fecha_fin if fecha_fin else n.fecha_fin
 		n.total = data.get('total', n.total)
 		n.estado = data.get('estado', n.estado)
 		n.modificado_por = data.get('modificado_por')
@@ -136,7 +145,7 @@ def actualizar_nomina(current_user, id):
 
 
 @nomina_bp.route('/<int:id>', methods=['DELETE'])
-@token_required
+@admin_required
 def eliminar_nomina(current_user, id):
 	try:
 		n = Nomina.query.get_or_404(id)
