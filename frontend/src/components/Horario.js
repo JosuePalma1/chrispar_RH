@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Sidebar from './Sidebar';
 // 1. Importamos el archivo CSS
 import './Horario.css'; 
 
@@ -70,9 +71,11 @@ function Horario() {
 
     // 3. Mostrar la tabla si todo salió bien
     return (
-        <div className="horario-container">
-            <h1>Gestión de Horarios</h1>
-            <table className="horario-table">
+        <div style={{ display: 'flex' }}>
+            <Sidebar />
+            <div className="horario-container">
+                <h1>Gestión de Horarios</h1>
+                <table className="horario-table">
                 <thead>
                     <tr>
                         <th>ID Empleado</th>
@@ -105,6 +108,7 @@ function Horario() {
                     )}
                 </tbody>
             </table>
+            </div>
         </div>
     );
 }

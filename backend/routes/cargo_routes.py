@@ -26,6 +26,7 @@ def crear_cargo(current_user):
         nuevo_cargo = Cargo(
             nombre_cargo=nombre,
             sueldo_base=data.get('sueldo_base', 0.0),
+            permisos=json.dumps(data.get('permisos', [])),  # Guardar como JSON string
             creado_por=data.get('creado_por')
         )
         
@@ -73,6 +74,7 @@ def listar_cargos(current_user):
                 "id": cargo.id_cargo,
                 "nombre_cargo": cargo.nombre_cargo,
                 "sueldo_base": cargo.sueldo_base,
+                "permisos": json.loads(cargo.permisos) if cargo.permisos else [],
                 "fecha_creacion": cargo.fecha_creacion.isoformat() if cargo.fecha_creacion else None
             })
         
@@ -96,6 +98,7 @@ def obtener_cargo(current_user, id):
             "id": cargo.id_cargo,
             "nombre_cargo": cargo.nombre_cargo,
             "sueldo_base": cargo.sueldo_base,
+            "permisos": json.loads(cargo.permisos) if cargo.permisos else [],
             "fecha_creacion": cargo.fecha_creacion.isoformat() if cargo.fecha_creacion else None,
             "fecha_actualizacion": cargo.fecha_actualizacion.isoformat() if cargo.fecha_actualizacion else None,
             "creado_por": cargo.creado_por,
@@ -130,6 +133,9 @@ def actualizar_cargo(current_user, id):
         
         if 'sueldo_base' in data:
             cargo.sueldo_base = data['sueldo_base']
+        
+        if 'permisos' in data:
+            cargo.permisos = json.dumps(data['permisos'])
         
         if 'modificado_por' in data:
             cargo.modificado_por = data['modificado_por']

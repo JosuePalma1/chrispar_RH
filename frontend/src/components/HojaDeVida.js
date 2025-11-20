@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Sidebar from './Sidebar';
 import './HojaDeVida.css'; // Importamos los estilos
 
 // Renombramos el componente para que sea claro
@@ -65,11 +66,13 @@ function HojaDeVida() {
     if (error) return <div className="hv-error">{error}</div>;
 
     return (
-        <div className="hv-container">
-            <h1>Registros de Hoja de Vida</h1>
-            
-            {/* --- La Lista Principal --- */}
-            <ul className="hv-list">
+        <div style={{ display: 'flex' }}>
+            <Sidebar />
+            <div className="hv-container">
+                <h1>Registros de Hoja de Vida</h1>
+                
+                {/* --- La Lista Principal --- */}
+                <ul className="hv-list">
                 {hojasVida.length > 0 ? (
                     hojasVida.map(registro => (
                         <li key={registro.id_hoja_vida}>
@@ -120,6 +123,7 @@ function HojaDeVida() {
                 </div>
             )}
             
+            </div>
         </div>
     );
 }

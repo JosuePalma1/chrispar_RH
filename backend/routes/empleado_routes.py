@@ -70,11 +70,19 @@ def listar_empleados(current_user):
         for e in empleados:
             result.append({
                 "id": e.id,
+                "id_usuario": e.id_usuario,
+                "cargo_id": e.id_cargo,
                 "nombres": e.nombres,
                 "apellidos": e.apellidos,
+                "fecha_nacimiento": e.fecha_nacimiento.isoformat() if e.fecha_nacimiento else None,
                 "cedula": e.cedula,
-                "cargo_id": e.id_cargo,
-                "estado": e.estado
+                "estado": e.estado,
+                "fecha_ingreso": e.fecha_ingreso.isoformat() if e.fecha_ingreso else None,
+                "fecha_egreso": e.fecha_egreso.isoformat() if e.fecha_egreso else None,
+                "tipo_cuenta_bancaria": e.tipo_cuenta_bancaria,
+                "numero_cuenta_bancaria": e.numero_cuenta_bancaria,
+                "modalidad_fondo_reserva": e.modalidad_fondo_reserva,
+                "modalidad_decimos": e.modalidad_decimos
             })
         return jsonify(result), 200
     except Exception as error:

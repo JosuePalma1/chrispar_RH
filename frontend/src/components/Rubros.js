@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Sidebar from './Sidebar';
 import './Rubros.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
@@ -48,13 +49,18 @@ function Rubros() {
         monto: parseFloat(form.monto) || 0,
         creado_por: 1
       };
-      await axios.post(`${API_URL}/api/rubros/`, payload, {
+      console.log('Enviando rubro:', payload);
+      const response = await axios.post(`${API_URL}/api/rubros/`, payload, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      console.log('Respuesta:', response.data);
+      alert('Rubro creado exitosamente');
       setForm({ id_nomina: '', codigo: '', descripcion: '', tipo: 'devengo', monto: '' });
       fetchRubros();
     } catch (err) {
-      setError('Error al crear rubro');
+      console.error('Error completo:', err.response?.data || err);
+      setError(err.response?.data?.error || 'Error al crear rubro');
+      alert(err.response?.data?.error || 'Error al crear rubro');
     }
   };
 
@@ -72,18 +78,20 @@ function Rubros() {
   };
 
   return (
-    <div className="rubros-container">
-      <h2 className="title">Rubros</h2>
+    <div style={{ display: 'flex' }}>
+      <Sidebar />
+      <div className="rubros-container">
+        <h2 className="title">Rubros</h2>
 
-      <form className="rubro-form" onSubmit={handleCreate}>
-        <input name="id_nomina" placeholder="ID Nómina" value={form.id_nomina} onChange={handleChange} />
-        <input name="codigo" placeholder="Código" value={form.codigo} onChange={handleChange} />
-        <input name="descripcion" placeholder="Descripción" value={form.descripcion} onChange={handleChange} />
-        <select name="tipo" value={form.tipo} onChange={handleChange}>
+        <form className="rubro-form" onSubmit={handleCreate}>
+        <input name="id_nomina" placeholder="ID Nómina" value={form.id_nomina} onChange={handleChange} required />
+        <input name="codigo" placeholder="Código" value={form.codigo} onChange={handleChange} required />
+        <input name="descripcion" placeholder="Descripción" value={form.descripcion} onChange={handleChange} required />
+        <select name="tipo" value={form.tipo} onChange={handleChange} required>
           <option value="devengo">Devengo</option>
           <option value="deduccion">Deducción</option>
         </select>
-        <input name="monto" placeholder="Monto" value={form.monto} onChange={handleChange} />
+        <input name="monto" placeholder="Monto" value={form.monto} onChange={handleChange} required />
         <button className="btn-create" type="submit">Crear Rubro</button>
       </form>
 
@@ -121,6 +129,7 @@ function Rubros() {
           </tbody>
         </table>
       )}
+      </div>
     </div>
   );
 }

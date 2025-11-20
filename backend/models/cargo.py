@@ -6,6 +6,7 @@ class Cargo(db.Model):
     id_cargo = db.Column(db.Integer, primary_key=True)
     nombre_cargo = db.Column(db.String(100), nullable=False)
     sueldo_base = db.Column(db.Float, nullable=False, default=0.0)
+    permisos = db.Column(db.Text, nullable=True)  # JSON string con módulos permitidos
 
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
     fecha_actualizacion = db.Column(db.DateTime, onupdate=datetime.utcnow)

@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import './Dashboard.css';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 function Dashboard() {
     const navigate = useNavigate();
     const [usuario, setUsuario] = useState(null);
     const [empleados, setEmpleados] = useState([]);
+    const [cargos, setCargos] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState(null);
 
@@ -34,13 +37,33 @@ function Dashboard() {
         }
 
         cargarEmpleados(token);
+        cargarCargos(token);
     }, [navigate]);
+
+    const cargarCargos = async (token) => {
+        try {
+            const respuesta = await fetch(`${API_URL}/api/cargos/`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (respuesta.ok) {
+                const data = await respuesta.json();
+                setCargos(data);
+            }
+        } catch (err) {
+            console.error('Error al cargar cargos:', err);
+        }
+    };
 
     const cargarEmpleados = async (token) => {
         try {
             setCargando(true);
             
-            const respuesta = await fetch('http://127.0.0.1:5000/api/empleados/', {
+            const respuesta = await fetch(`${API_URL}/api/empleados/`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -74,6 +97,11 @@ function Dashboard() {
     const handleLogout = () => {
         localStorage.removeItem('token');
         navigate('/');
+    };
+
+    const getNombreCargo = (cargo_id) => {
+        const cargo = cargos.find(c => c.id === cargo_id);
+        return cargo ? cargo.nombre_cargo : 'N/A';
     };
 
     if (!usuario) {
@@ -138,7 +166,7 @@ function Dashboard() {
                                             <tr key={empleado.id}>
                                                 <td>{empleado.id}</td>
                                                 <td>{empleado.nombres} {empleado.apellidos}</td>
-                                                <td>{empleado.cargo_id}</td>
+                                                <td>{getNombreCargo(empleado.cargo_id)}</td>
                                                 <td>
                                                     <span className={`badge badge-${empleado.estado.toLowerCase()}`}>
                                                         {empleado.estado}

@@ -25,11 +25,6 @@ def crear_usuario(current_user):
         if usuario_existente:
             return jsonify({"error": "El nombre de usuario ya existe"}), 400
         
-        # Validar rol
-        roles_validos = ['admin', 'supervisor', 'empleado']
-        if data['rol'] not in roles_validos:
-            return jsonify({"error": f"Rol inválido. Debe ser uno de: {', '.join(roles_validos)}"}), 400
-        
         # Hash de la contraseña
         password_hash = generate_password_hash(data['password'])
         
@@ -154,9 +149,6 @@ def actualizar_usuario(current_user, id):
         
         # Actualizar rol si se proporciona
         if 'rol' in data:
-            roles_validos = ['admin', 'supervisor', 'empleado']
-            if data['rol'] not in roles_validos:
-                return jsonify({"error": f"Rol inválido. Debe ser uno de: {', '.join(roles_validos)}"}), 400
             usuario.rol = data['rol']
         
         # Actualizar fecha de modificación

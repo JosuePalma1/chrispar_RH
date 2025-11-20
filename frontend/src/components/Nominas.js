@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Sidebar from './Sidebar';
 import './Nominas.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
@@ -47,13 +48,18 @@ function Nominas() {
         total: parseFloat(form.total) || 0,
         creado_por: 1
       };
-      await axios.post(`${API_URL}/api/nominas/`, payload, {
+      console.log('Enviando nómina:', payload);
+      const response = await axios.post(`${API_URL}/api/nominas/`, payload, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      console.log('Respuesta:', response.data);
+      alert('Nómina creada exitosamente');
       setForm({ id_empleado: '', fecha_inicio: '', fecha_fin: '', total: '' });
       fetchNominas();
     } catch (err) {
-      setError('Error al crear nómina');
+      console.error('Error completo:', err.response?.data || err);
+      setError(err.response?.data?.error || 'Error al crear nómina');
+      alert(err.response?.data?.error || 'Error al crear nómina');
     }
   };
 
@@ -71,14 +77,16 @@ function Nominas() {
   };
 
   return (
-    <div className="nominas-container">
-      <h2 className="title">Nóminas</h2>
+    <div style={{ display: 'flex' }}>
+      <Sidebar />
+      <div className="nominas-container">
+        <h2 className="title">Nóminas</h2>
 
-      <form className="nomina-form" onSubmit={handleCreate}>
-        <input name="id_empleado" placeholder="ID Empleado" value={form.id_empleado} onChange={handleChange} />
-        <input name="fecha_inicio" type="date" value={form.fecha_inicio} onChange={handleChange} />
-        <input name="fecha_fin" type="date" value={form.fecha_fin} onChange={handleChange} />
-        <input name="total" placeholder="Total" value={form.total} onChange={handleChange} />
+        <form className="nomina-form" onSubmit={handleCreate}>
+        <input name="id_empleado" placeholder="ID Empleado" value={form.id_empleado} onChange={handleChange} required />
+        <input name="fecha_inicio" type="date" value={form.fecha_inicio} onChange={handleChange} required />
+        <input name="fecha_fin" type="date" value={form.fecha_fin} onChange={handleChange} required />
+        <input name="total" placeholder="Total" value={form.total} onChange={handleChange} required />
         <button className="btn-create" type="submit">Crear Nómina</button>
       </form>
 
@@ -114,6 +122,7 @@ function Nominas() {
           </tbody>
         </table>
       )}
+      </div>
     </div>
   );
 }
