@@ -39,10 +39,12 @@ def crear_cargo(current_user):
                 tabla_afectada='cargos',
                 operacion='INSERT',
                 id_registro=nuevo_cargo.id_cargo,
-                usuario=str(data.get('creado_por', 'sistema')),
+                usuario=current_user.username,
                 datos_nuevos=json.dumps({
+                    'id_cargo': nuevo_cargo.id_cargo,
                     'nombre_cargo': nuevo_cargo.nombre_cargo,
                     'sueldo_base': float(nuevo_cargo.sueldo_base) if nuevo_cargo.sueldo_base else 0.0,
+                    'permisos': nuevo_cargo.permisos
                 })
             )
             db.session.add(log)
@@ -123,8 +125,10 @@ def actualizar_cargo(current_user, id):
         
         # Guardar datos anteriores
         datos_anteriores = {
+            'id_cargo': cargo.id_cargo,
             'nombre_cargo': cargo.nombre_cargo,
             'sueldo_base': float(cargo.sueldo_base) if cargo.sueldo_base else 0.0,
+            'permisos': cargo.permisos
         }
         
         # Actualizar campos
@@ -145,15 +149,17 @@ def actualizar_cargo(current_user, id):
         # REGISTRAR LOG
         try:
             datos_nuevos = {
+                'id_cargo': cargo.id_cargo,
                 'nombre_cargo': cargo.nombre_cargo,
                 'sueldo_base': float(cargo.sueldo_base) if cargo.sueldo_base else 0.0,
+                'permisos': cargo.permisos
             }
             
             log = LogTransaccional(
                 tabla_afectada='cargos',
                 operacion='UPDATE',
                 id_registro=cargo.id_cargo,
-                usuario=str(data.get('modificado_por', 'sistema')),
+                usuario=current_user.username,
                 datos_anteriores=json.dumps(datos_anteriores),
                 datos_nuevos=json.dumps(datos_nuevos)
             )
@@ -194,8 +200,10 @@ def eliminar_cargo(current_user, id):
         
         # Guardar datos antes de eliminar
         datos_anteriores = {
+            'id_cargo': cargo.id_cargo,
             'nombre_cargo': cargo.nombre_cargo,
             'sueldo_base': float(cargo.sueldo_base) if cargo.sueldo_base else 0.0,
+            'permisos': cargo.permisos
         }
         cargo_id = cargo.id_cargo
         
@@ -208,7 +216,7 @@ def eliminar_cargo(current_user, id):
                 tabla_afectada='cargos',
                 operacion='DELETE',
                 id_registro=cargo_id,
-                usuario='sistema',
+                usuario=current_user.username,
                 datos_anteriores=json.dumps(datos_anteriores)
             )
             db.session.add(log)

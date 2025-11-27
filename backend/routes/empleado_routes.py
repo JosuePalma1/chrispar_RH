@@ -44,15 +44,19 @@ def crear_empleado(current_user):
                 tabla_afectada='empleados',
                 operacion='INSERT',
                 id_registro=nuevo.id,
-                usuario=str(data.get('creado_por', 'sistema')),
+                usuario=current_user.username,
                 datos_nuevos=json.dumps({
+                    'id_empleado': nuevo.id,
                     'nombres': nuevo.nombres,
                     'apellidos': nuevo.apellidos,
                     'cedula': nuevo.cedula,
                     'estado': nuevo.estado,
                     'id_cargo': nuevo.id_cargo,
                     'id_usuario': nuevo.id_usuario,
-                    'fecha_ingreso': nuevo.fecha_ingreso.isoformat() if nuevo.fecha_ingreso else None
+                    'fecha_nacimiento': nuevo.fecha_nacimiento.isoformat() if nuevo.fecha_nacimiento else None,
+                    'fecha_ingreso': nuevo.fecha_ingreso.isoformat() if nuevo.fecha_ingreso else None,
+                    'tipo_cuenta_bancaria': nuevo.tipo_cuenta_bancaria,
+                    'numero_cuenta_bancaria': nuevo.numero_cuenta_bancaria
                 })
             )
             db.session.add(log)
@@ -128,12 +132,17 @@ def actualizar_empleado(current_user, id):
         
         # Guardar datos anteriores para el log
         datos_anteriores = {
+            'id_empleado': e.id,
             'nombres': e.nombres,
             'apellidos': e.apellidos,
             'cedula': e.cedula,
             'estado': e.estado,
             'id_cargo': e.id_cargo,
-            'id_usuario': e.id_usuario
+            'id_usuario': e.id_usuario,
+            'fecha_nacimiento': e.fecha_nacimiento.isoformat() if e.fecha_nacimiento else None,
+            'fecha_ingreso': e.fecha_ingreso.isoformat() if e.fecha_ingreso else None,
+            'tipo_cuenta_bancaria': e.tipo_cuenta_bancaria,
+            'numero_cuenta_bancaria': e.numero_cuenta_bancaria
         }
         
         # Actualizar campos
@@ -160,19 +169,24 @@ def actualizar_empleado(current_user, id):
         # REGISTRAR LOG
         try:
             datos_nuevos = {
+                'id_empleado': e.id,
                 'nombres': e.nombres,
                 'apellidos': e.apellidos,
                 'cedula': e.cedula,
                 'estado': e.estado,
                 'id_cargo': e.id_cargo,
-                'id_usuario': e.id_usuario
+                'id_usuario': e.id_usuario,
+                'fecha_nacimiento': e.fecha_nacimiento.isoformat() if e.fecha_nacimiento else None,
+                'fecha_ingreso': e.fecha_ingreso.isoformat() if e.fecha_ingreso else None,
+                'tipo_cuenta_bancaria': e.tipo_cuenta_bancaria,
+                'numero_cuenta_bancaria': e.numero_cuenta_bancaria
             }
             
             log = LogTransaccional(
                 tabla_afectada='empleados',
                 operacion='UPDATE',
                 id_registro=e.id,
-                usuario=str(data.get('modificado_por', 'sistema')),
+                usuario=current_user.username,
                 datos_anteriores=json.dumps(datos_anteriores),
                 datos_nuevos=json.dumps(datos_nuevos)
             )
@@ -196,12 +210,17 @@ def eliminar_empleado(current_user, id):
         
         # Guardar datos antes de eliminar
         datos_anteriores = {
+            'id_empleado': e.id,
             'nombres': e.nombres,
             'apellidos': e.apellidos,
             'cedula': e.cedula,
             'estado': e.estado,
             'id_cargo': e.id_cargo,
-            'id_usuario': e.id_usuario
+            'id_usuario': e.id_usuario,
+            'fecha_nacimiento': e.fecha_nacimiento.isoformat() if e.fecha_nacimiento else None,
+            'fecha_ingreso': e.fecha_ingreso.isoformat() if e.fecha_ingreso else None,
+            'tipo_cuenta_bancaria': e.tipo_cuenta_bancaria,
+            'numero_cuenta_bancaria': e.numero_cuenta_bancaria
         }
         empleado_id = e.id
         
@@ -214,7 +233,7 @@ def eliminar_empleado(current_user, id):
                 tabla_afectada='empleados',
                 operacion='DELETE',
                 id_registro=empleado_id,
-                usuario='sistema',
+                usuario=current_user.username,
                 datos_anteriores=json.dumps(datos_anteriores)
             )
             db.session.add(log)

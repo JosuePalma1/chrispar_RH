@@ -9,6 +9,7 @@ import HojaDeVida from './components/HojaDeVida';
 import Horario from './components/Horario';
 import Nominas from './components/Nominas';
 import Rubros from './components/Rubros';
+import Logs from './components/Logs';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
@@ -26,6 +27,7 @@ function App() {
           <Route path="/horarios" element={<ProtectedRoute><Horario /></ProtectedRoute>} />
           <Route path="/nomina" element={<ProtectedRoute><Nominas /></ProtectedRoute>} />
           <Route path="/rubros" element={<ProtectedRoute><Rubros /></ProtectedRoute>} />
+          <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} />
         </Routes>
       </div>
     </Router>

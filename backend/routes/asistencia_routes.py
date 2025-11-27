@@ -39,7 +39,7 @@ def crear_asistencia(current_user):
                 tabla_afectada='asistencias',
                 operacion='INSERT',
                 id_registro=nueva.id_asistencia,
-                usuario=str(data.get('creado_por', 'sistema')),
+                usuario=current_user.username,
                 datos_nuevos=json.dumps({
                     'id_empleado': nueva.id_empleado,
                     'fecha': nueva.fecha.isoformat(),
@@ -143,7 +143,7 @@ def actualizar_asistencia(current_user, id):
                 tabla_afectada='asistencias',
                 operacion='UPDATE',
                 id_registro=a.id_asistencia,
-                usuario=str(data.get('modificado_por', 'sistema')),
+                usuario=current_user.username,
                 datos_anteriores=json.dumps(datos_anteriores),
                 datos_nuevos=json.dumps(datos_nuevos)
             )
@@ -184,7 +184,7 @@ def eliminar_asistencia(current_user, id):
                 tabla_afectada='asistencias',
                 operacion='DELETE',
                 id_registro=asistencia_id,
-                usuario='sistema',
+                usuario=current_user.username,
                 datos_anteriores=json.dumps(datos_anteriores)
             )
             db.session.add(log)

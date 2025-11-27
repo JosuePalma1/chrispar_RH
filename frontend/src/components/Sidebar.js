@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import './Sidebar.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
-const AVAILABLE_MODULES = ['dashboard', 'cargos', 'usuarios', 'empleados', 'hojas-vida', 'horarios', 'nomina', 'rubros'];
+const AVAILABLE_MODULES = ['dashboard', 'cargos', 'usuarios', 'empleados', 'hojas-vida', 'horarios', 'nomina', 'rubros', 'logs'];
 
 function Sidebar() {
-    const [permisos, setPermisos] = useState(['dashboard']); // Dashboard siempre visible por defecto
+    const [permisos, setPermisos] = useState(['dashboard']);
 
     useEffect(() => {
         const cargarPermisos = async () => {
@@ -16,17 +16,14 @@ function Sidebar() {
             }
 
             try {
-                // Decodificar token para obtener el cargo del usuario
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 const nombreCargo = payload.rol;
 
-                // Si es administrador, mostrar todos los módulos
                 if (nombreCargo.toLowerCase() === 'administrador' || nombreCargo.toLowerCase() === 'admin') {
                     setPermisos(AVAILABLE_MODULES);
                     return;
                 }
 
-                // Cargar todos los cargos para encontrar los permisos
                 const response = await fetch(`${API_URL}/api/cargos/`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -57,7 +54,6 @@ function Sidebar() {
         cargarPermisos();
     }, []);
 
-    // Definir todos los módulos disponibles
     const modulos = [
         { id: 'dashboard', nombre: '🏠 Dashboard', ruta: '/dashboard' },
         { id: 'cargos', nombre: 'Cargos', ruta: '/cargos' },
@@ -66,7 +62,8 @@ function Sidebar() {
         { id: 'hojas-vida', nombre: 'Hojas de Vida', ruta: '/hojas-vida' },
         { id: 'horarios', nombre: 'Horarios', ruta: '/horarios' },
         { id: 'nomina', nombre: 'Nómina', ruta: '/nomina' },
-        { id: 'rubros', nombre: 'Rubros de pago', ruta: '/rubros' }
+        { id: 'rubros', nombre: 'Rubros de pago', ruta: '/rubros' },
+        { id: 'logs', nombre: 'Auditoría / Logs', ruta: '/logs' }
     ];
 
     return (

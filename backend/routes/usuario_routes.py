@@ -44,7 +44,7 @@ def crear_usuario(current_user):
                 tabla_afectada='usuarios',
                 operacion='INSERT',
                 id_registro=nuevo_usuario.id,
-                usuario=data.get('username', 'sistema'),
+                usuario=current_user.username,
                 datos_nuevos=json.dumps({
                     'username': nuevo_usuario.username,
                     'rol': nuevo_usuario.rol
@@ -167,7 +167,7 @@ def actualizar_usuario(current_user, id):
                 tabla_afectada='usuarios',
                 operacion='UPDATE',
                 id_registro=usuario.id,
-                usuario=data.get('usuario_modificador', usuario.username),
+                usuario=current_user.username,
                 datos_anteriores=json.dumps(datos_anteriores),
                 datos_nuevos=json.dumps(datos_nuevos)
             )
@@ -217,7 +217,7 @@ def eliminar_usuario(current_user, id):
                 tabla_afectada='usuarios',
                 operacion='DELETE',
                 id_registro=usuario_id,
-                usuario='sistema',
+                usuario=current_user.username,
                 datos_anteriores=json.dumps(datos_anteriores)
             )
             db.session.add(log)

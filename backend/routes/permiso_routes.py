@@ -40,7 +40,7 @@ def crear_permiso(current_user):
                 tabla_afectada='permisos',
                 operacion='INSERT',
                 id_registro=nuevo.id_permiso,
-                usuario=str(data.get('creado_por', 'sistema')),
+                usuario=current_user.username,
                 datos_nuevos=json.dumps({
                     'id_empleado': nuevo.id_empleado,
                     'tipo': nuevo.tipo,
@@ -162,7 +162,7 @@ def actualizar_permiso(current_user, id):
                 tabla_afectada='permisos',
                 operacion='UPDATE',
                 id_registro=p.id_permiso,
-                usuario=str(data.get('modificado_por', 'sistema')),
+                usuario=current_user.username,
                 datos_anteriores=json.dumps(datos_anteriores),
                 datos_nuevos=json.dumps(datos_nuevos)
             )
@@ -205,7 +205,7 @@ def eliminar_permiso(current_user, id):
                 tabla_afectada='permisos',
                 operacion='DELETE',
                 id_registro=permiso_id,
-                usuario='sistema',
+                usuario=current_user.username,
                 datos_anteriores=json.dumps(datos_anteriores)
             )
             db.session.add(log)

@@ -40,14 +40,18 @@ def crear_horario(current_user):
             tabla_afectada='horarios',
             operacion='INSERT',
             id_registro=nuevo_horario.id_horario,
-            usuario=str(data.get('creado_por', 'sistema')),
+            usuario=current_user.username,
             datos_nuevos=json.dumps({
-                'id_empleado': nuevo_horario.id_empleado,
-                'dia_laborables': nuevo_horario.dia_laborables,
-                'turno': nuevo_horario.turno,
-                'hora_entrada': str(nuevo_horario.hora_entrada) if nuevo_horario.hora_entrada else None,
-                'hora_salida': str(nuevo_horario.hora_salida) if nuevo_horario.hora_salida else None
-            })
+                    'id_horario': nuevo_horario.id_horario,
+                    'id_empleado': nuevo_horario.id_empleado,
+                    'dia_laborables': nuevo_horario.dia_laborables,
+                    'turno': nuevo_horario.turno,
+                    'hora_entrada': str(nuevo_horario.hora_entrada) if nuevo_horario.hora_entrada else None,
+                    'hora_salida': str(nuevo_horario.hora_salida) if nuevo_horario.hora_salida else None,
+                    'descanso_minutos': nuevo_horario.descanso_minutos,
+                    'inicio_vigencia': nuevo_horario.inicio_vigencia.isoformat() if nuevo_horario.inicio_vigencia else None,
+                    'fin_vigencia': nuevo_horario.fin_vigencia.isoformat() if nuevo_horario.fin_vigencia else None
+                })
         )
         db.session.add(log)
         db.session.commit()
@@ -113,7 +117,7 @@ def actualizar_horario(current_user, id_horario):
             tabla_afectada='horarios',
             operacion='UPDATE',
             id_registro=horario.id_horario,
-            usuario=str(data.get('modificado_por', 'sistema')),
+            usuario=current_user.username,
             datos_anteriores=json.dumps(datos_anteriores),
             datos_nuevos=json.dumps(datos_nuevos)
         )
@@ -152,7 +156,7 @@ def eliminar_horario(current_user, id_horario):
             tabla_afectada='horarios',
             operacion='DELETE',
             id_registro=horario_id,
-            usuario='sistema',
+            usuario=current_user.username,
             datos_anteriores=json.dumps(datos_anteriores)
         )
         db.session.add(log)

@@ -30,7 +30,7 @@ def crear_rubro(current_user):
 				tabla_afectada='rubros',
 				operacion='INSERT',
 				id_registro=nuevo.id_rubro,
-				usuario=str(data.get('creado_por', 'sistema')),
+				usuario=current_user.username,
 				datos_nuevos=json.dumps({
 					'id_nomina': nuevo.id_nomina,
 					'codigo': nuevo.codigo,
@@ -117,7 +117,7 @@ def actualizar_rubro(current_user, id):
 				tabla_afectada='rubros',
 				operacion='UPDATE',
 				id_registro=r.id_rubro,
-				usuario=str(data.get('modificado_por', 'sistema')),
+				usuario=current_user.username,
 				datos_anteriores=json.dumps(datos_anteriores),
 				datos_nuevos=json.dumps(datos_nuevos)
 			)
@@ -155,7 +155,7 @@ def eliminar_rubro(current_user, id):
 				tabla_afectada='rubros',
 				operacion='DELETE',
 				id_registro=rubro_id,
-				usuario='sistema',
+				usuario=current_user.username,
 				datos_anteriores=json.dumps(datos_anteriores)
 			)
 			db.session.add(log)

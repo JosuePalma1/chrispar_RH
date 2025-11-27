@@ -37,7 +37,7 @@ def crear_nomina(current_user):
 				tabla_afectada='nominas',
 				operacion='INSERT',
 				id_registro=nuevo.id_nomina,
-				usuario=str(data.get('creado_por', 'sistema')),
+				usuario=current_user.username,
 				datos_nuevos=json.dumps({
 					'id_empleado': nuevo.id_empleado,
 					'fecha_inicio': str(nuevo.fecha_inicio),
@@ -129,7 +129,7 @@ def actualizar_nomina(current_user, id):
 				tabla_afectada='nominas',
 				operacion='UPDATE',
 				id_registro=n.id_nomina,
-				usuario=str(data.get('modificado_por', 'sistema')),
+				usuario=current_user.username,
 				datos_anteriores=json.dumps(datos_anteriores),
 				datos_nuevos=json.dumps(datos_nuevos)
 			)
@@ -167,7 +167,7 @@ def eliminar_nomina(current_user, id):
 				tabla_afectada='nominas',
 				operacion='DELETE',
 				id_registro=nomina_id,
-				usuario='sistema',
+				usuario=current_user.username,
 				datos_anteriores=json.dumps(datos_anteriores)
 			)
 			db.session.add(log)

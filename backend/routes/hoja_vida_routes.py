@@ -37,7 +37,7 @@ def crear_hoja_vida(current_user):
             tabla_afectada='hojas_vida',
             operacion='INSERT',
             id_registro=nueva_hoja_vida.id_hoja_vida,
-            usuario=str(data.get('creado_por', 'sistema')),
+            usuario=current_user.username,
             datos_nuevos=json.dumps({
                 'id_empleado': nueva_hoja_vida.id_empleado,
                 'tipo': nueva_hoja_vida.tipo,
@@ -117,7 +117,7 @@ def actualizar_hoja_vida(current_user, id_hoja_vida):
             tabla_afectada='hojas_vida',
             operacion='UPDATE',
             id_registro=registro.id_hoja_vida,
-            usuario=str(data.get('modificado_por', 'sistema')),
+            usuario=current_user.username,
             datos_anteriores=json.dumps(datos_anteriores),
             datos_nuevos=json.dumps(datos_nuevos)
         )
@@ -157,7 +157,7 @@ def eliminar_hoja_vida(current_user, id_hoja_vida):
             tabla_afectada='hojas_vida',
             operacion='DELETE',
             id_registro=hoja_vida_id,
-            usuario='sistema',
+            usuario=current_user.username,
             datos_anteriores=json.dumps(datos_anteriores)
         )
         db.session.add(log)
