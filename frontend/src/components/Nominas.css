@@ -92,6 +92,54 @@
   cursor: pointer;
 }
 
+.btn-update {
+  background: var(--verde);
+  color: white;
+  border: none;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-right: 8px;
+  font-weight: 600;
+}
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 420px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+.modal-row { margin-bottom: 10px; display:flex; flex-direction:column }
+.modal-row label { font-size: 0.9rem; margin-bottom:4px }
+.modal-row input, .modal-row select { padding:8px 10px; border-radius:6px; border:1px solid #ddd }
+.modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px }
+.field-error { color: #d8000c; font-size: 0.85rem; margin-top:6px }
+
+.btn-update {
+  background: var(--verde);
+  color: white;
+  border: none;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-right: 8px;
+  font-weight: 600;
+}
+
 .error { color: #d8000c; }
 
 @media (max-width: 768px) {
