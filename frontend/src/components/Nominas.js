@@ -11,8 +11,20 @@ function Nominas() {
   const [error, setError] = useState('');
   const [form, setForm] = useState({ id_empleado: '', fecha_inicio: '', fecha_fin: '', total: '' });
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ id_nomina: null, id_empleado: '', fecha_inicio: '', fecha_fin: '', total: '', estado: '' });
+  const [editForm, setEditForm] = useState({ id_nomina: null, id_empleado: '', fecha_inicio: '', fecha_fin: '', total: '' });
   const [formErrors, setFormErrors] = useState({});
+
+  // Prevent non-numeric characters in numeric inputs
+  const numericKeyDown = (e) => {
+    const allowedKeys = [
+      'Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'Delete', 'Home', 'End',
+      '.',
+    ];
+    if (allowedKeys.includes(e.key)) return;
+    if (e.ctrlKey || e.metaKey) return;
+    if (/^[0-9]$/.test(e.key)) return;
+    e.preventDefault();
+  };
 
   useEffect(() => {
     fetchNominas();
@@ -118,14 +130,14 @@ function Nominas() {
       const payload = {
         fecha_inicio: editForm.fecha_inicio,
         fecha_fin: editForm.fecha_fin,
-        total: parseFloat(editForm.total) || 0,
-        estado: editForm.estado
+        total: parseFloat(editForm.total) || 0
       };
       await axios.put(`${API_URL}/api/nominas/${editForm.id_nomina}`, payload, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setEditModalOpen(false);
       fetchNominas();
+      alert('Nómina actualizada correctamente');
     } catch (err) {
       setError(err.response?.data?.error || 'Error al actualizar nómina');
       alert(err.response?.data?.error || 'Error al actualizar nómina');
@@ -152,7 +164,7 @@ function Nominas() {
           {formErrors.fecha_fin && <div className="field-error">{formErrors.fecha_fin}</div>}
         </div>
         <div>
-          <input name="total" placeholder="Total" value={form.total} onChange={handleChange} required />
+          <input name="total" placeholder="Total" type="number" step="0.01" min="0" value={form.total} onChange={handleChange} onKeyDown={numericKeyDown} required />
           {formErrors.total && <div className="field-error">{formErrors.total}</div>}
         </div>
         <button className="btn-create" type="submit">Crear Nómina</button>
@@ -207,12 +219,8 @@ function Nominas() {
             </div>
             <div className="modal-row">
               <label>Total</label>
-              <input name="total" value={editForm.total} onChange={handleEditChange} />
+              <input name="total" type="number" step="0.01" min="0" value={editForm.total} onChange={handleEditChange} onKeyDown={numericKeyDown} />
               {formErrors.total && <div className="field-error">{formErrors.total}</div>}
-            </div>
-            <div className="modal-row">
-              <label>Estado</label>
-              <input name="estado" value={editForm.estado} onChange={handleEditChange} />
             </div>
             <div className="modal-actions">
               <button className="btn-update" onClick={handleEditSave}>Guardar</button>

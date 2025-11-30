@@ -40,6 +40,21 @@ function Rubros() {
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  // Prevent non-numeric characters in numeric inputs (block letters like 'e' etc.)
+  const numericKeyDown = (e) => {
+    const allowedKeys = [
+      'Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'Delete', 'Home', 'End',
+      '.', // decimal point
+    ];
+    if (allowedKeys.includes(e.key)) return;
+    // Allow Ctrl/Cmd combos
+    if (e.ctrlKey || e.metaKey) return;
+    // Allow digits
+    if (/^[0-9]$/.test(e.key)) return;
+    // Prevent everything else
+    e.preventDefault();
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
     // Validaciones
@@ -127,6 +142,7 @@ function Rubros() {
       });
       setEditModalOpen(false);
       fetchRubros();
+      alert('Rubro actualizado correctamente');
     } catch (err) {
       setError(err.response?.data?.error || 'Error al actualizar rubro');
       alert(err.response?.data?.error || 'Error al actualizar rubro');
@@ -160,7 +176,7 @@ function Rubros() {
           {formErrors.tipo && <div className="field-error">{formErrors.tipo}</div>}
         </div>
         <div>
-          <input name="monto" placeholder="Monto" value={form.monto} onChange={handleChange} required />
+          <input name="monto" placeholder="Monto" type="number" step="0.01" min="0" value={form.monto} onChange={handleChange} onKeyDown={numericKeyDown} required />
           {formErrors.monto && <div className="field-error">{formErrors.monto}</div>}
         </div>
         <button className="btn-create" type="submit">Crear Rubro</button>
@@ -226,7 +242,7 @@ function Rubros() {
             </div>
             <div className="modal-row">
               <label>Monto</label>
-              <input name="monto" value={editForm.monto} onChange={handleEditChange} />
+              <input name="monto" type="number" step="0.01" min="0" value={editForm.monto} onChange={handleEditChange} onKeyDown={numericKeyDown} />
               {formErrors.monto && <div className="field-error">{formErrors.monto}</div>}
             </div>
             <div className="modal-actions">
