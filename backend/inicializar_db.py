@@ -27,7 +27,7 @@ with app.app_context():
     else:
         print("✓ Cargo 'Administrador' ya existe")
     
-    # Verificar si ya existe el usuario admin
+    # Verificar si ya existe el usuario admin y actualizar hash si es necesario
     admin_existente = Usuario.query.filter_by(username='admin').first()
     
     if not admin_existente:
@@ -40,7 +40,10 @@ with app.app_context():
         db.session.commit()
         print("✓ Usuario 'admin' creado exitosamente")
     else:
-        print("✓ Usuario 'admin' ya existe")
+        # Actualizar password para asegurar compatibilidad con Werkzeug 2.2.3
+        admin_existente.password = generate_password_hash('123')
+        db.session.commit()
+        print("✓ Usuario 'admin' actualizado con hash compatible")
     
     print("\n" + "=" * 50)
     print("CREDENCIALES DE ACCESO AL SISTEMA")
