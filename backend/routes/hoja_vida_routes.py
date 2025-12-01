@@ -25,7 +25,7 @@ def crear_hoja_vida(current_user):
         fecha_inicio=parse_date(data.get("fecha_inicio")),
         fecha_finalizacion=parse_date(data.get("fecha_finalizacion")),
         ruta_archivo_url=data.get("ruta_archivo_url"),
-        creado_por=data.get("creado_por")
+        creado_por=current_user.id
     )
     
     db.session.add(nueva_hoja_vida)
@@ -99,7 +99,7 @@ def actualizar_hoja_vida(current_user, id_hoja_vida):
     registro.fecha_inicio = parse_date(data.get("fecha_inicio", registro.fecha_inicio))
     registro.fecha_finalizacion = parse_date(data.get("fecha_finalizacion", registro.fecha_finalizacion))
     registro.ruta_archivo_url = data.get("ruta_archivo_url", registro.ruta_archivo_url)
-    registro.modificado_por = data.get("modificado_por")
+    registro.modificado_por = current_user.id
 
     db.session.commit()
 

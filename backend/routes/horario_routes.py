@@ -8,7 +8,7 @@ import json
 
 horario_bp = Blueprint('horario', __name__, url_prefix='/api/horarios')
 
-# CREATE - Crear [cite: 37-49]
+# CREATE - Crear
 @horario_bp.route("/", methods=["POST"])
 @admin_required
 def crear_horario(current_user):
@@ -28,7 +28,7 @@ def crear_horario(current_user):
         turno=data.get("turno"),
         inicio_vigencia=parse_date(data.get("inicio_vigencia")),
         fin_vigencia=parse_date(data.get("fin_vigencia")),
-        creado_por=data.get("creado_por") # Asumir que el ID del usuario viene del frontend
+        creado_por=current_user.id
     )
     
     db.session.add(nuevo_horario)
@@ -63,21 +63,21 @@ def crear_horario(current_user):
         "horario": nuevo_horario.to_dict()
     }), 201
 
-# READ - Listar todos [cite: 50-61]
+# READ - Listar todos 
 @horario_bp.route("/", methods=["GET"])
 @token_required
 def listar_horarios(current_user):
     horarios = Horario.query.all()
     return jsonify([h.to_dict() for h in horarios])
 
-# READ - Obtener uno [cite: 62-70]
+# READ - Obtener uno 
 @horario_bp.route("/<int:id_horario>", methods=["GET"])
 @token_required
 def obtener_horario(current_user, id_horario):
     horario = Horario.query.get_or_404(id_horario)
     return jsonify(horario.to_dict())
 
-# UPDATE - Actualizar [cite: 71-79]
+# UPDATE - Actualizar 
 @horario_bp.route("/<int:id_horario>", methods=["PUT"])
 @admin_required
 def actualizar_horario(current_user, id_horario):
@@ -99,8 +99,7 @@ def actualizar_horario(current_user, id_horario):
     horario.turno = data.get("turno", horario.turno)
     horario.inicio_vigencia = parse_date(data.get("inicio_vigencia", horario.inicio_vigencia))
     horario.fin_vigencia = parse_date(data.get("fin_vigencia", horario.fin_vigencia))
-    horario.modificado_por = data.get("modificado_por") # Asumir ID de usuario
-    # 'id_empleado' no debería cambiarse en un update, se crea uno nuevo.
+    horario.modificado_por = current_user.id
 
     db.session.commit()
 
@@ -131,7 +130,7 @@ def actualizar_horario(current_user, id_horario):
         "horario": horario.to_dict()
     })
 
-# DELETE - Eliminar [cite: 80-86]
+# DELETE - Eliminar
 @horario_bp.route("/<int:id_horario>", methods=["DELETE"])
 @admin_required
 def eliminar_horario(current_user, id_horario):
