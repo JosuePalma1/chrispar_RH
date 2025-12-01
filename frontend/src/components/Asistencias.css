@@ -1,0 +1,39 @@
+.asistencias-container{padding:24px;flex:1}
+.asistencias-form{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px;align-items:end}
+.asistencias-form .field{display:flex;flex-direction:column}
+.asistencias-form .field label{font-weight:600;margin-bottom:4px;color:#333}
+.asistencias-form .field input,.asistencias-form .field select{padding:8px;border:1px solid #ddd;border-radius:4px}
+.asistencias-form .field.wide{min-width:220px}
+
+.asistencias-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.asistencias-header h2{color:#111}
+
+.asistencias-table{width:100%;border-collapse:collapse;background:white;box-shadow:0 2px 4px rgba(0,0,0,0.06)}
+.asistencias-table th,.asistencias-table td{padding:12px;text-align:left;border-bottom:1px solid #eee}
+.asistencias-table th{background:#f5f5f5;font-weight:700}
+.asistencias-table tr:hover{background:#fafafa}
+
+.col-id{width:48px;font-weight:700}
+.col-emp{min-width:180px}
+.col-date{width:110px;white-space:nowrap}
+.col-time{width:90px}
+.col-extra{width:90px;text-align:center}
+.col-user{min-width:120px}
+.col-date,.col-time,.col-extra,.col-user{overflow:hidden;text-overflow:ellipsis}
+.col-created,.col-updated{white-space:normal;width:110px;overflow:hidden}
+.col-created .datetime,.col-updated .datetime,.col-user .datetime{display:flex;flex-direction:column;gap:2px}
+.col-created .datetime .d,.col-updated .datetime .d,.col-user .datetime .d{font-weight:600}
+.col-created .datetime .t,.col-updated .datetime .t,.col-user .datetime .t{color:#666;font-size:12px;overflow:hidden}
+.col-actions{width:120px}
+
+.action-vertical{display:flex;flex-direction:column;gap:8px}
+.btn-editar{background:#28a745;color:#fff;border:0;padding:6px 10px;border-radius:4px;cursor:pointer}
+.btn-editar:hover{background:#218838}
+
+.btn-nuevo{background-color:#9bcf15;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-weight:700}
+.btn-nuevo:hover{background:#8ab613}
+
+.btn-eliminar{background:#6c757d;color:#fff;border:0;padding:6px 10px;border-radius:4px;cursor:pointer}
+.btn-eliminar:hover{background:#5a6268}
+
+.error{color:#b00}
