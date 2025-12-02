@@ -44,6 +44,6 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 
-# Migraciones - Cada quien genera las suyas localmente
-backend/migrations/versions/*.py
+# Migraciones - Ahora versionadas en git
+# backend/migrations/versions/*.py
 backend/migrations/versions/__pycache__/
