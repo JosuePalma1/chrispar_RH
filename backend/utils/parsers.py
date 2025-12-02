@@ -5,10 +5,11 @@ def parse_date(value):
     """Convert a string (YYYY-MM-DD) to date or return the original date."""
     if value is None or value == "":
         return None
-    if isinstance(value, date):
-        return value
+    # Check datetime first since datetime is a subclass of date
     if isinstance(value, datetime):
         return value.date()
+    if isinstance(value, date):
+        return value
     try:
         return datetime.strptime(str(value), "%Y-%m-%d").date()
     except (ValueError, TypeError):

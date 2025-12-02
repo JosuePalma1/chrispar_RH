@@ -182,14 +182,42 @@ npm run build          # Genera artefactos para producción
 
 ## 🧪 Pruebas Automatizadas
 
-### Backend (pytest)
+![Tests](https://img.shields.io/badge/tests-58%20passing-success)
+![Coverage](https://img.shields.io/badge/coverage-63%25-yellow)
+![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
+
+### Backend (pytest) - ✅ 58 tests, 63% cobertura
+
+#### Ejecutar suite completa
 ```powershell
 cd backend
-.\.venv\Scripts\activate
-python -m pytest tests/test_auth.py
+python -m pytest tests/ -v
 ```
-- Usa SQLite en memoria y crea usuarios de prueba automáticamente.
-- Ejecuta antes de subir cambios que afecten autenticación o modelos relacionados.
+
+#### Con reporte de cobertura
+```powershell
+pytest tests/ --cov=routes --cov=utils --cov=models --cov-report=html
+# Abre: backend/htmlcov/index.html
+```
+
+#### Tests por categoría
+```powershell
+# Solo tests unitarios
+pytest tests/test_parsers.py tests/test_auth_utils.py -v
+
+# Solo tests de integración
+pytest tests/test_*_routes.py -v
+
+# Solo tests E2E
+pytest tests/test_e2e_workflows.py -v
+```
+
+**Cobertura por módulo:**
+- ✅ Modelos: 91% promedio (Cargo, Empleado, Usuario: 100%)
+- ✅ Utilidades: 87% (Parsers: 100%, Auth: 75%)
+- ⚠️ Rutas: 58% promedio (Empleados: 84%, Nóminas: 80%, Asistencias: 75%)
+
+Ver [TESTING_REPORT.md](backend/TESTING_REPORT.md) para detalles completos.
 
 ### Frontend (React Testing Library)
 ```powershell
@@ -198,6 +226,13 @@ npm test -- --watchAll=false
 ```
 - Smoke test que monta el Dashboard con rutas protegidas simuladas.
 - Amplía los tests agregando archivos `*.test.js` junto a cada componente.
+
+### CI/CD
+Los tests se ejecutan automáticamente en cada push/PR mediante GitHub Actions:
+- ✅ Tests unitarios e integración
+- ✅ Linting con Flake8
+- ✅ Escaneo de seguridad con Bandit
+- ✅ Reporte de cobertura
 
 ---
 
