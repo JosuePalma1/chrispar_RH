@@ -20,6 +20,7 @@ instance/
 .venv
 env/
 ENV/
+.venv_backend/
 
 # Node
 node_modules/

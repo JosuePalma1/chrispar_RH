@@ -117,8 +117,8 @@ def admin_required(f):
             if not current_user:
                 return jsonify({'error': 'Usuario no encontrado'}), 401
             
-            # Verificar que sea administrador
-            if current_user.rol.lower() != 'administrador':
+            # Verificar que sea administrador (aceptar variantes 'administrador' o 'admin')
+            if current_user.rol is None or current_user.rol.lower() not in ('administrador', 'admin'):
                 return jsonify({'error': 'Acceso denegado. Se requiere rol de administrador'}), 403
                 
         except jwt.ExpiredSignatureError:

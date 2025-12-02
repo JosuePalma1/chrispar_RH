@@ -2,9 +2,11 @@ from flask import Blueprint, request, jsonify
 from extensions import db
 from models.asistencia import Asistencia
 from models.log_transaccional import LogTransaccional
+from models.usuario import Usuario
 from utils.auth import token_required, admin_required
 from utils.parsers import parse_date, parse_time
 import json
+from datetime import datetime, time as dt_time
 
 asistencia_bp = Blueprint("asistencia", __name__, url_prefix="/api/asistencias")
 
@@ -21,13 +23,47 @@ def crear_asistencia(current_user):
         if not fecha or not hora_entrada:
             return jsonify({"error": "fecha y hora_entrada válidas son requeridas"}), 400
 
+        # Calcular horas extra según horario: Lunes-Sábado 08:00 - 20:00
+        def calcular_horas_extra(fecha_dt, entrada, salida):
+            if entrada is None or salida is None:
+                return 0.0
+            try:
+                dt_entrada = datetime.combine(fecha_dt, entrada)
+                dt_salida = datetime.combine(fecha_dt, salida)
+                if dt_salida <= dt_entrada:
+                    return 0.0
+
+                total_seg = (dt_salida - dt_entrada).total_seconds()
+
+                # Si es domingo (weekday() == 6) todo es hora extra
+                if fecha_dt.weekday() == 6:
+                    return round(total_seg / 3600.0, 2)
+
+                # Ventana normal: 08:00 - 20:00
+                ventana_inicio = datetime.combine(fecha_dt, dt_time(hour=8, minute=0, second=0))
+                ventana_fin = datetime.combine(fecha_dt, dt_time(hour=20, minute=0, second=0))
+
+                # Calcular solapamiento entre [entrada, salida] y [ventana_inicio, ventana_fin]
+                inicio_solap = max(dt_entrada, ventana_inicio)
+                fin_solap = min(dt_salida, ventana_fin)
+                solap_seg = 0
+                if fin_solap > inicio_solap:
+                    solap_seg = (fin_solap - inicio_solap).total_seconds()
+
+                extra_seg = total_seg - solap_seg
+                return round(max(0.0, extra_seg) / 3600.0, 2)
+            except Exception:
+                return 0.0
+
+        horas_extra = calcular_horas_extra(fecha, hora_entrada, hora_salida)
+
         nueva = Asistencia(
             id_empleado=data["id_empleado"],
             fecha=fecha,
             hora_entrada=hora_entrada,
             hora_salida=hora_salida,
-            horas_extra=data.get("horas_extra", 0.0),
-            creado_por=data.get("creado_por")
+            horas_extra=horas_extra,
+            creado_por=current_user.id
         )
         
         db.session.add(nueva)
@@ -74,13 +110,32 @@ def listar_asistencias(current_user):
         
         result = []
         for a in asistencias:
+            creado_usuario = None
+            mod_usuario = None
+            try:
+                if a.creado_por:
+                    u = Usuario.query.get(a.creado_por)
+                    creado_usuario = u.username if u else None
+                if a.modificado_por:
+                    m = Usuario.query.get(a.modificado_por)
+                    mod_usuario = m.username if m else None
+            except Exception:
+                creado_usuario = None
+                mod_usuario = None
+
             result.append({
                 "id_asistencia": a.id_asistencia,
                 "id_empleado": a.id_empleado,
                 "fecha": a.fecha.isoformat(),
                 "hora_entrada": str(a.hora_entrada),
                 "hora_salida": str(a.hora_salida) if a.hora_salida else None,
-                "horas_extra": a.horas_extra
+                "horas_extra": a.horas_extra,
+                "creado_por": a.creado_por,
+                "creado_por_username": creado_usuario,
+                "modificado_por": a.modificado_por,
+                "modificado_por_username": mod_usuario,
+                "fecha_creacion": a.fecha_creacion.isoformat() if a.fecha_creacion else None,
+                "fecha_actualizacion": a.fecha_actualizacion.isoformat() if a.fecha_actualizacion else None
             })
         return jsonify(result), 200
     except Exception as error:
@@ -126,8 +181,38 @@ def actualizar_asistencia(current_user, id):
 
         a.hora_entrada = hora_entrada if hora_entrada is not None else a.hora_entrada
         a.hora_salida = hora_salida if hora_salida is not None else a.hora_salida
-        a.horas_extra = data.get("horas_extra", a.horas_extra)
-        a.modificado_por = data.get("modificado_por")
+
+        # Recalcular horas extra si hay entrada/salida
+        try:
+            def calcular_horas_extra(fecha_dt, entrada, salida):
+                if entrada is None or salida is None:
+                    return 0.0
+                try:
+                    dt_entrada = datetime.combine(fecha_dt, entrada)
+                    dt_salida = datetime.combine(fecha_dt, salida)
+                    if dt_salida <= dt_entrada:
+                        return 0.0
+
+                    total_seg = (dt_salida - dt_entrada).total_seconds()
+                    if fecha_dt.weekday() == 6:
+                        return round(total_seg / 3600.0, 2)
+                    ventana_inicio = datetime.combine(fecha_dt, dt_time(hour=8, minute=0, second=0))
+                    ventana_fin = datetime.combine(fecha_dt, dt_time(hour=20, minute=0, second=0))
+                    inicio_solap = max(dt_entrada, ventana_inicio)
+                    fin_solap = min(dt_salida, ventana_fin)
+                    solap_seg = 0
+                    if fin_solap > inicio_solap:
+                        solap_seg = (fin_solap - inicio_solap).total_seconds()
+                    extra_seg = total_seg - solap_seg
+                    return round(max(0.0, extra_seg) / 3600.0, 2)
+                except Exception:
+                    return 0.0
+
+            a.horas_extra = calcular_horas_extra(a.fecha, a.hora_entrada, a.hora_salida)
+        except Exception:
+            a.horas_extra = a.horas_extra
+
+        a.modificado_por = current_user.id
         
         db.session.commit()
         

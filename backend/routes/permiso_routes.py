@@ -20,6 +20,22 @@ def crear_permiso(current_user):
         if not fecha_inicio or not fecha_fin:
             return jsonify({"error": "fecha_inicio y fecha_fin válidas son requeridas"}), 400
 
+        # Validar campos obligatorios
+        if not data.get('id_empleado'):
+            return jsonify({"error": "id_empleado es requerido"}), 400
+
+        tipo = data.get('tipo')
+        if not tipo or tipo not in ('permiso', 'vacaciones', 'licencia'):
+            return jsonify({"error": "tipo inválido o faltante (permiso, vacaciones, licencia)"}), 400
+
+        descripcion = data.get('descripcion')
+        if not descripcion or not str(descripcion).strip():
+            return jsonify({"error": "descripcion (motivo) es requerida"}), 400
+
+        # Validar que fecha_fin no sea anterior a fecha_inicio
+        if fecha_fin < fecha_inicio:
+            return jsonify({"error": "fecha_fin no puede ser anterior a fecha_inicio"}), 400
+
         nuevo = Permiso(
             id_empleado=data["id_empleado"],
             tipo=data["tipo"],
@@ -91,7 +107,11 @@ def listar_permisos(current_user):
                 "fecha_inicio": p.fecha_inicio.isoformat(),
                 "fecha_fin": p.fecha_fin.isoformat(),
                 "estado": p.estado,
-                "autorizado_por": p.autorizado_por
+                "autorizado_por": p.autorizado_por,
+                "fecha_creacion": p.fecha_creacion.isoformat() if p.fecha_creacion else None,
+                "fecha_actualizacion": p.fecha_actualizacion.isoformat() if p.fecha_actualizacion else None,
+                "creado_por": p.creado_por,
+                "modificado_por": p.modificado_por
             })
         return jsonify(result), 200
     except Exception as error:
@@ -138,10 +158,25 @@ def actualizar_permiso(current_user, id):
         # Actualizar campos
         p.tipo = data.get("tipo", p.tipo)
         p.descripcion = data.get("descripcion", p.descripcion)
-        fecha_inicio = parse_date(data.get("fecha_inicio", p.fecha_inicio))
-        fecha_fin = parse_date(data.get("fecha_fin", p.fecha_fin))
-        p.fecha_inicio = fecha_inicio if fecha_inicio else p.fecha_inicio
-        p.fecha_fin = fecha_fin if fecha_fin else p.fecha_fin
+        # Validar tipo si se proporciona
+        if 'tipo' in data and data.get('tipo') not in ('permiso', 'vacaciones', 'licencia'):
+            return jsonify({"error": "tipo inválido (permiso, vacaciones, licencia)"}), 400
+
+        # Manejo y validación de fechas
+        fecha_inicio_input = data.get("fecha_inicio")
+        fecha_fin_input = data.get("fecha_fin")
+
+        fecha_inicio = parse_date(fecha_inicio_input) if fecha_inicio_input is not None else p.fecha_inicio
+        fecha_fin = parse_date(fecha_fin_input) if fecha_fin_input is not None else p.fecha_fin
+
+        if fecha_inicio is None or fecha_fin is None:
+            return jsonify({"error": "fecha_inicio y fecha_fin válidas son requeridas"}), 400
+
+        if fecha_fin < fecha_inicio:
+            return jsonify({"error": "fecha_fin no puede ser anterior a fecha_inicio"}), 400
+
+        p.fecha_inicio = fecha_inicio
+        p.fecha_fin = fecha_fin
         p.estado = data.get("estado", p.estado)
         p.autorizado_por = data.get("autorizado_por", p.autorizado_por)
         p.modificado_por = data.get("modificado_por")
