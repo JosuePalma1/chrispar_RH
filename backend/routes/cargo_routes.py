@@ -236,7 +236,7 @@ def eliminar_cargo(current_user, id):
         except Exception as log_error:
             print(f"Error al registrar log: {log_error}")
         
-        return jsonify({"mensaje": "Cargo actualizado exitosamente"}), 200
+        return jsonify({"mensaje": "Cargo eliminado exitosamente"}), 200
         
     except ValueError as e:
         db.session.rollback()

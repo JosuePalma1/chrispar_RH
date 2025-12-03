@@ -103,7 +103,7 @@ class TestRubroRoutes:
         }
         response = client.post("/api/rubros/", json=rubro_data, headers=auth_headers)
         
-        assert response.status_code == 500  # Error porque falta id_nomina
+        assert response.status_code == 400  # Error porque falta id_nomina (Bad Request es correcto)
 
     def test_listar_rubros(self, client, auth_headers, cargo_fixture):
         """Test: Listar todos los rubros"""

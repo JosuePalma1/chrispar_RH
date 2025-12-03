@@ -21,8 +21,8 @@ def crear_rubro(current_user):
 		if not data.get('tipo'):
 			return jsonify({'error': 'El tipo de rubro es requerido'}), 400
 		
-		if data.get('tipo') not in ['ingreso', 'deduccion', 'egreso']:
-			return jsonify({'error': 'El tipo debe ser: ingreso, deduccion o egreso'}), 400
+		if data.get('tipo') not in ['devengo', 'deduccion', 'egreso', 'ingreso']:
+			return jsonify({'error': 'El tipo debe ser: devengo, deduccion, egreso o ingreso'}), 400
 		
 		try:
 			monto = float(data.get('monto', 0.0))
@@ -62,7 +62,7 @@ def crear_rubro(current_user):
 		except Exception as log_error:
 			print(f" Error al registrar log: {log_error}")
 
-		return jsonify({'mensaje': 'Rubro creado', 'id': nuevo.id_rubro}), 201
+		return jsonify({'mensaje': 'Rubro creado', 'id_rubro': nuevo.id_rubro, 'id': nuevo.id_rubro}), 201
 	except KeyError as e:
 		db.session.rollback()
 		return jsonify({'error': f'Campo requerido faltante: {str(e)}'}), 400

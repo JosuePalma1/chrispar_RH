@@ -16,8 +16,8 @@ def crear_horario(current_user):
         data = request.get_json()
         
         # Validaciones
-        if not data.get("id_empleado"):
-            return jsonify({"error": "El empleado es requerido"}), 400
+        if not data.get('id_empleado'):
+            return jsonify({"error": "El id_empleado es requerido"}), 400
         
         if not data.get("hora_entrada") or not data.get("hora_salida"):
             return jsonify({"error": "Las horas de entrada y salida son requeridas"}), 400

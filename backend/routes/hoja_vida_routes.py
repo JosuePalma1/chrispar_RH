@@ -16,8 +16,8 @@ def crear_hoja_vida(current_user):
         data = request.get_json()
         
         # Validaciones
-        if not data.get("id_empleado"):
-            return jsonify({"error": "El empleado es requerido"}), 400
+        if not data.get('id_empleado'):
+            return jsonify({"error": "El id_empleado es requerido"}), 400
         
         if not data.get("tipo"):
             return jsonify({"error": "El tipo de documento es requerido"}), 400

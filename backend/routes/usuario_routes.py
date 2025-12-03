@@ -237,7 +237,7 @@ def eliminar_usuario(current_user, id):
         except Exception as log_error:
             print(f" Error al registrar log: {log_error}")
         
-        return jsonify({"mensaje": "Usuario actualizado exitosamente"}), 200
+        return jsonify({"mensaje": "Usuario eliminado exitosamente"}), 200
         
     except ValueError as e:
         db.session.rollback()

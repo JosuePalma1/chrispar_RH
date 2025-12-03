@@ -1,6 +1,12 @@
 """
 Fixtures compartidos para todos los tests
 """
+import sys
+import os
+
+# Agregar el directorio backend al PYTHONPATH
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import pytest
 from flask import Flask
 from flask_cors import CORS
