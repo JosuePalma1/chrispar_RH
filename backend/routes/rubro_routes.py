@@ -13,12 +13,30 @@ rubro_bp = Blueprint('rubro', __name__, url_prefix='/api/rubros')
 def crear_rubro(current_user):
 	try:
 		data = request.get_json()
+		
+		# Validaciones de campos requeridos
+		if not data.get('id_nomina'):
+			return jsonify({'error': 'La nómina es requerida'}), 400
+		
+		if not data.get('tipo'):
+			return jsonify({'error': 'El tipo de rubro es requerido'}), 400
+		
+		if data.get('tipo') not in ['ingreso', 'deduccion', 'egreso']:
+			return jsonify({'error': 'El tipo debe ser: ingreso, deduccion o egreso'}), 400
+		
+		try:
+			monto = float(data.get('monto', 0.0))
+			if monto < 0:
+				return jsonify({'error': 'El monto no puede ser negativo'}), 400
+		except ValueError:
+			return jsonify({'error': 'El monto debe ser un número válido'}), 400
+		
 		nuevo = Rubro(
 			id_nomina=data['id_nomina'],
 			codigo=data.get('codigo'),
 			descripcion=data.get('descripcion'),
 			tipo=data['tipo'],
-			monto=data.get('monto', 0.0),
+			monto=monto,
 			creado_por=data.get('creado_por')
 		)
 		db.session.add(nuevo)
@@ -45,9 +63,23 @@ def crear_rubro(current_user):
 			print(f" Error al registrar log: {log_error}")
 
 		return jsonify({'mensaje': 'Rubro creado', 'id': nuevo.id_rubro}), 201
+	except KeyError as e:
+		db.session.rollback()
+		return jsonify({'error': f'Campo requerido faltante: {str(e)}'}), 400
+	except ValueError as e:
+		db.session.rollback()
+		return jsonify({'error': f'Valor inválido: {str(e)}'}), 400
 	except Exception as e:
 		db.session.rollback()
-		return jsonify({'error': f'Error al crear rubro: {str(e)}'}), 500
+		error_msg = str(e)
+		if 'foreign key constraint' in error_msg.lower():
+			return jsonify({'error': 'La nómina especificada no existe'}), 400
+		elif 'not null constraint' in error_msg.lower():
+			return jsonify({'error': 'Faltan campos obligatorios en el formulario'}), 400
+		elif 'unique constraint' in error_msg.lower():
+			return jsonify({'error': 'Ya existe un rubro con este código'}), 400
+		else:
+			return jsonify({'error': 'Error al crear el rubro. Verifica los datos ingresados'}), 500
 
 
 @rubro_bp.route('/', methods=['GET'])
@@ -127,9 +159,20 @@ def actualizar_rubro(current_user, id):
 			print(f" Error al registrar log: {log_error}")
 
 		return jsonify({'mensaje': 'Rubro actualizado'}), 200
+	except ValueError as e:
+		db.session.rollback()
+		return jsonify({'error': f'Valor inválido: {str(e)}'}), 400
 	except Exception as error:
 		db.session.rollback()
-		return jsonify({'error': f'Error al actualizar rubro: {str(error)}'}), 500
+		error_msg = str(error)
+		if 'foreign key constraint' in error_msg.lower():
+			return jsonify({'error': 'La nómina especificada no existe'}), 400
+		elif 'not null constraint' in error_msg.lower():
+			return jsonify({'error': 'Faltan campos obligatorios'}), 400
+		elif 'unique constraint' in error_msg.lower():
+			return jsonify({'error': 'Ya existe un rubro con este código'}), 400
+		else:
+			return jsonify({'error': 'Error al actualizar el rubro. Verifica los datos'}), 500
 
 
 @rubro_bp.route('/<int:id>', methods=['DELETE'])

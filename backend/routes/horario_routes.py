@@ -12,56 +12,76 @@ horario_bp = Blueprint('horario', __name__, url_prefix='/api/horarios')
 @horario_bp.route("/", methods=["POST"])
 @admin_required
 def crear_horario(current_user):
-    data = request.get_json()
-    
-    # Validación básica
-    if "id_empleado" not in data:
-        return jsonify({"error": "id_empleado es requerido"}), 400
-
-    nuevo_horario = Horario(
-        id_empleado=data["id_empleado"],
-        dia_laborables=data.get("dia_laborables"),
-        fecha_inicio=parse_date(data.get("fecha_inicio")),
-        hora_entrada=parse_time(data.get("hora_entrada")),
-        hora_salida=parse_time(data.get("hora_salida")),
-        descanso_minutos=data.get("descanso_minutos"),
-        turno=data.get("turno"),
-        inicio_vigencia=parse_date(data.get("inicio_vigencia")),
-        fin_vigencia=parse_date(data.get("fin_vigencia")),
-        creado_por=current_user.id
-    )
-    
-    db.session.add(nuevo_horario)
-    db.session.commit()
-
-    # REGISTRAR LOG
     try:
-        log = LogTransaccional(
-            tabla_afectada='horarios',
-            operacion='INSERT',
-            id_registro=nuevo_horario.id_horario,
-            usuario=current_user.username,
-            datos_nuevos=json.dumps({
-                    'id_horario': nuevo_horario.id_horario,
-                    'id_empleado': nuevo_horario.id_empleado,
-                    'dia_laborables': nuevo_horario.dia_laborables,
-                    'turno': nuevo_horario.turno,
-                    'hora_entrada': str(nuevo_horario.hora_entrada) if nuevo_horario.hora_entrada else None,
-                    'hora_salida': str(nuevo_horario.hora_salida) if nuevo_horario.hora_salida else None,
-                    'descanso_minutos': nuevo_horario.descanso_minutos,
-                    'inicio_vigencia': nuevo_horario.inicio_vigencia.isoformat() if nuevo_horario.inicio_vigencia else None,
-                    'fin_vigencia': nuevo_horario.fin_vigencia.isoformat() if nuevo_horario.fin_vigencia else None
-                })
+        data = request.get_json()
+        
+        # Validaciones
+        if not data.get("id_empleado"):
+            return jsonify({"error": "El empleado es requerido"}), 400
+        
+        if not data.get("hora_entrada") or not data.get("hora_salida"):
+            return jsonify({"error": "Las horas de entrada y salida son requeridas"}), 400
+
+        nuevo_horario = Horario(
+            id_empleado=data["id_empleado"],
+            dia_laborables=data.get("dia_laborables"),
+            fecha_inicio=parse_date(data.get("fecha_inicio")),
+            hora_entrada=parse_time(data.get("hora_entrada")),
+            hora_salida=parse_time(data.get("hora_salida")),
+            descanso_minutos=data.get("descanso_minutos"),
+            turno=data.get("turno"),
+            inicio_vigencia=parse_date(data.get("inicio_vigencia")),
+            fin_vigencia=parse_date(data.get("fin_vigencia")),
+            creado_por=current_user.id
         )
-        db.session.add(log)
+        
+        db.session.add(nuevo_horario)
         db.session.commit()
-    except Exception as log_error:
-        print(f" Error al registrar log: {log_error}")
-    
-    return jsonify({
-        "mensaje": "Horario creado exitosamente", 
-        "horario": nuevo_horario.to_dict()
-    }), 201
+
+        # REGISTRAR LOG
+        try:
+            log = LogTransaccional(
+                tabla_afectada='horarios',
+                operacion='INSERT',
+                id_registro=nuevo_horario.id_horario,
+                usuario=current_user.username,
+                datos_nuevos=json.dumps({
+                        'id_horario': nuevo_horario.id_horario,
+                        'id_empleado': nuevo_horario.id_empleado,
+                        'dia_laborables': nuevo_horario.dia_laborables,
+                        'turno': nuevo_horario.turno,
+                        'hora_entrada': str(nuevo_horario.hora_entrada) if nuevo_horario.hora_entrada else None,
+                        'hora_salida': str(nuevo_horario.hora_salida) if nuevo_horario.hora_salida else None,
+                        'descanso_minutos': nuevo_horario.descanso_minutos,
+                        'inicio_vigencia': nuevo_horario.inicio_vigencia.isoformat() if nuevo_horario.inicio_vigencia else None,
+                        'fin_vigencia': nuevo_horario.fin_vigencia.isoformat() if nuevo_horario.fin_vigencia else None
+                    })
+            )
+            db.session.add(log)
+            db.session.commit()
+        except Exception as log_error:
+            print(f" Error al registrar log: {log_error}")
+        
+        return jsonify({
+            "mensaje": "Horario creado exitosamente", 
+            "horario": nuevo_horario.to_dict()
+        }), 201
+        
+    except KeyError as e:
+        db.session.rollback()
+        return jsonify({"error": f"Campo requerido faltante: {str(e)}"}), 400
+    except ValueError as e:
+        db.session.rollback()
+        return jsonify({"error": f"Valor inválido en los datos: {str(e)}"}), 400
+    except Exception as e:
+        db.session.rollback()
+        error_msg = str(e)
+        if 'foreign key constraint' in error_msg.lower():
+            return jsonify({"error": "El empleado especificado no existe"}), 400
+        elif 'not null constraint' in error_msg.lower():
+            return jsonify({"error": "Faltan campos obligatorios en el formulario"}), 400
+        else:
+            return jsonify({"error": "Error al crear el horario. Verifica los datos ingresados"}), 500
 
 # READ - Listar todos 
 @horario_bp.route("/", methods=["GET"])

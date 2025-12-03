@@ -63,9 +63,10 @@ function Sidebar() {
         { id: 'horarios', nombre: 'Horarios', ruta: '/horarios' },
         { id: 'nomina', nombre: 'Nómina', ruta: '/nomina' },
         { id: 'rubros', nombre: 'Rubros de pago', ruta: '/rubros' },
-        { id: 'logs', nombre: 'Auditoría / Logs', ruta: '/logs' },
         { id: 'permisos', nombre: 'Permisos', ruta: '/permisos' },
-        { id: 'asistencias', nombre: 'Asistencias', ruta: '/asistencias' }
+        { id: 'asistencias', nombre: 'Asistencias', ruta: '/asistencias' },
+        { id: 'logs', nombre: 'Auditoría / Logs', ruta: '/logs' },
+
     ];
 
     return (

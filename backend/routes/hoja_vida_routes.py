@@ -12,50 +12,71 @@ hoja_vida_bp = Blueprint('hoja_vida', __name__, url_prefix='/api/hojas-vida')
 @hoja_vida_bp.route("/", methods=["POST"])
 @admin_required
 def crear_hoja_vida(current_user):
-    data = request.get_json()
-    
-    if "id_empleado" not in data:
-        return jsonify({"error": "id_empleado es requerido"}), 400
-
-    nueva_hoja_vida = Hoja_Vida(
-        id_empleado=data["id_empleado"],
-        tipo=data.get("tipo"),
-        nombre_documento=data.get("nombre_documento"),
-        institucion=data.get("institucion"),
-        fecha_inicio=parse_date(data.get("fecha_inicio")),
-        fecha_finalizacion=parse_date(data.get("fecha_finalizacion")),
-        ruta_archivo_url=data.get("ruta_archivo_url"),
-        creado_por=current_user.id
-    )
-    
-    db.session.add(nueva_hoja_vida)
-    db.session.commit()
-
-    # REGISTRAR LOG
     try:
-        log = LogTransaccional(
-            tabla_afectada='hojas_vida',
-            operacion='INSERT',
-            id_registro=nueva_hoja_vida.id_hoja_vida,
-            usuario=current_user.username,
-            datos_nuevos=json.dumps({
-                'id_empleado': nueva_hoja_vida.id_empleado,
-                'tipo': nueva_hoja_vida.tipo,
-                'nombre_documento': nueva_hoja_vida.nombre_documento,
-                'institucion': nueva_hoja_vida.institucion,
-                'fecha_inicio': nueva_hoja_vida.fecha_inicio.isoformat() if nueva_hoja_vida.fecha_inicio else None,
-                'fecha_finalizacion': nueva_hoja_vida.fecha_finalizacion.isoformat() if nueva_hoja_vida.fecha_finalizacion else None
-            })
+        data = request.get_json()
+        
+        # Validaciones
+        if not data.get("id_empleado"):
+            return jsonify({"error": "El empleado es requerido"}), 400
+        
+        if not data.get("tipo"):
+            return jsonify({"error": "El tipo de documento es requerido"}), 400
+
+        nueva_hoja_vida = Hoja_Vida(
+            id_empleado=data["id_empleado"],
+            tipo=data.get("tipo"),
+            nombre_documento=data.get("nombre_documento"),
+            institucion=data.get("institucion"),
+            fecha_inicio=parse_date(data.get("fecha_inicio")),
+            fecha_finalizacion=parse_date(data.get("fecha_finalizacion")),
+            ruta_archivo_url=data.get("ruta_archivo_url"),
+            creado_por=current_user.id
         )
-        db.session.add(log)
+        
+        db.session.add(nueva_hoja_vida)
         db.session.commit()
-    except Exception as log_error:
-        print(f" Error al registrar log: {log_error}")
-    
-    return jsonify({
-        "mensaje": "Registro de Hoja de Vida creado exitosamente",
-        "hoja_vida": nueva_hoja_vida.to_dict()
-    }), 201
+
+        # REGISTRAR LOG
+        try:
+            log = LogTransaccional(
+                tabla_afectada='hojas_vida',
+                operacion='INSERT',
+                id_registro=nueva_hoja_vida.id_hoja_vida,
+                usuario=current_user.username,
+                datos_nuevos=json.dumps({
+                    'id_empleado': nueva_hoja_vida.id_empleado,
+                    'tipo': nueva_hoja_vida.tipo,
+                    'nombre_documento': nueva_hoja_vida.nombre_documento,
+                    'institucion': nueva_hoja_vida.institucion,
+                    'fecha_inicio': nueva_hoja_vida.fecha_inicio.isoformat() if nueva_hoja_vida.fecha_inicio else None,
+                    'fecha_finalizacion': nueva_hoja_vida.fecha_finalizacion.isoformat() if nueva_hoja_vida.fecha_finalizacion else None
+                })
+            )
+            db.session.add(log)
+            db.session.commit()
+        except Exception as log_error:
+            print(f" Error al registrar log: {log_error}")
+        
+        return jsonify({
+            "mensaje": "Registro de Hoja de Vida creado exitosamente",
+            "hoja_vida": nueva_hoja_vida.to_dict()
+        }), 201
+        
+    except KeyError as e:
+        db.session.rollback()
+        return jsonify({"error": f"Campo requerido faltante: {str(e)}"}), 400
+    except ValueError as e:
+        db.session.rollback()
+        return jsonify({"error": f"Valor inválido: {str(e)}"}), 400
+    except Exception as e:
+        db.session.rollback()
+        error_msg = str(e)
+        if 'foreign key constraint' in error_msg.lower():
+            return jsonify({"error": "El empleado especificado no existe"}), 400
+        elif 'not null constraint' in error_msg.lower():
+            return jsonify({"error": "Faltan campos obligatorios en el formulario"}), 400
+        else:
+            return jsonify({"error": "Error al crear la hoja de vida. Verifica los datos"}), 500
 
 # READ - Listar todos
 @hoja_vida_bp.route("/", methods=["GET"])

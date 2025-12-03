@@ -66,9 +66,21 @@ def crear_usuario(current_user):
             }
         }), 201
         
+    except KeyError as e:
+        db.session.rollback()
+        return jsonify({"error": f"Campo requerido faltante: {str(e)}"}), 400
+    except ValueError as e:
+        db.session.rollback()
+        return jsonify({"error": f"Valor inválido: {str(e)}"}), 400
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": f"Error al crear usuario: {str(e)}"}), 500
+        error_msg = str(e)
+        if 'not null constraint' in error_msg.lower():
+            return jsonify({"error": "Faltan campos obligatorios en el formulario"}), 400
+        elif 'unique constraint' in error_msg.lower():
+            return jsonify({"error": "Ya existe un usuario con este nombre de usuario"}), 400
+        else:
+            return jsonify({"error": "Error al crear el usuario. Verifica los datos ingresados"}), 500
 
 
 # READ - Obtener todos los usuarios
@@ -225,11 +237,20 @@ def eliminar_usuario(current_user, id):
         except Exception as log_error:
             print(f" Error al registrar log: {log_error}")
         
-        return jsonify({"mensaje": "Usuario eliminado exitosamente"}), 200
+        return jsonify({"mensaje": "Usuario actualizado exitosamente"}), 200
         
+    except ValueError as e:
+        db.session.rollback()
+        return jsonify({"error": f"Valor inválido: {str(e)}"}), 400
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": f"Error al eliminar usuario: {str(e)}"}), 500
+        error_msg = str(e)
+        if 'not null constraint' in error_msg.lower():
+            return jsonify({"error": "Faltan campos obligatorios"}), 400
+        elif 'unique constraint' in error_msg.lower():
+            return jsonify({"error": "Ya existe un usuario con este nombre de usuario"}), 400
+        else:
+            return jsonify({"error": "Error al actualizar el usuario. Verifica los datos"}), 500
 
 
 # LOGIN - Autenticar usuario

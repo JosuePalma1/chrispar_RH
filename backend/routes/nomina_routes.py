@@ -14,11 +14,19 @@ nomina_bp = Blueprint('nomina', __name__, url_prefix='/api/nominas')
 def crear_nomina(current_user):
 	try:
 		data = request.get_json()
+		
+		# Validaciones de campos requeridos
+		if not data.get('id_empleado'):
+			return jsonify({'error': 'El empleado es requerido'}), 400
+		
 		fecha_inicio = parse_date(data.get('fecha_inicio'))
 		fecha_fin = parse_date(data.get('fecha_fin'))
 
 		if not fecha_inicio or not fecha_fin:
-			return jsonify({'error': 'fecha_inicio y fecha_fin válidas son requeridas'}), 400
+			return jsonify({'error': 'Las fechas de inicio y fin son requeridas y deben ser válidas'}), 400
+		
+		if fecha_inicio > fecha_fin:
+			return jsonify({'error': 'La fecha de inicio no puede ser mayor a la fecha de fin'}), 400
 
 		nuevo = Nomina(
 			id_empleado=data['id_empleado'],
@@ -52,9 +60,23 @@ def crear_nomina(current_user):
 			print(f" Error al registrar log: {log_error}")
 
 		return jsonify({'mensaje': 'Nómina creada', 'id': nuevo.id_nomina}), 201
+	except KeyError as e:
+		db.session.rollback()
+		return jsonify({'error': f'Campo requerido faltante: {str(e)}'}), 400
+	except ValueError as e:
+		db.session.rollback()
+		return jsonify({'error': f'Valor inválido: {str(e)}'}), 400
 	except Exception as e:
 		db.session.rollback()
-		return jsonify({'error': f'Error al crear nómina: {str(e)}'}), 500
+		error_msg = str(e)
+		if 'foreign key constraint' in error_msg.lower():
+			return jsonify({'error': 'El empleado especificado no existe'}), 400
+		elif 'not null constraint' in error_msg.lower():
+			return jsonify({'error': 'Faltan campos obligatorios en el formulario'}), 400
+		elif 'unique constraint' in error_msg.lower():
+			return jsonify({'error': 'Ya existe una nómina con estos datos'}), 400
+		else:
+			return jsonify({'error': 'Error al crear la nómina. Verifica los datos ingresados'}), 500
 
 
 @nomina_bp.route('/', methods=['GET'])
@@ -139,9 +161,18 @@ def actualizar_nomina(current_user, id):
 			print(f" Error al registrar log: {log_error}")
 
 		return jsonify({'mensaje': 'Nómina actualizada'}), 200
+	except ValueError as e:
+		db.session.rollback()
+		return jsonify({'error': f'Valor inválido: {str(e)}'}), 400
 	except Exception as error:
 		db.session.rollback()
-		return jsonify({'error': f'Error al actualizar nómina: {str(error)}'}), 500
+		error_msg = str(error)
+		if 'foreign key constraint' in error_msg.lower():
+			return jsonify({'error': 'El empleado especificado no existe'}), 400
+		elif 'not null constraint' in error_msg.lower():
+			return jsonify({'error': 'Faltan campos obligatorios'}), 400
+		else:
+			return jsonify({'error': 'Error al actualizar la nómina. Verifica los datos'}), 500
 
 
 @nomina_bp.route('/<int:id>', methods=['DELETE'])
