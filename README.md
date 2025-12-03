@@ -426,7 +426,6 @@ git push origin main
 - Alex Sahid Triviño Hidalgo
 
 **Curso:** Aplicaciones Web II - 6to Semestre  
-**Institución:** Universidad de Guayaquil  
 **Proyecto:** Sistema de Gestión de Recursos Humanos para Chrispar Market
 
 ---
