@@ -3,12 +3,16 @@ import Sidebar from './Sidebar';
 import './Usuarios.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
-const ROLES = ['admin', 'supervisor', 'empleado'];
 
 function Usuarios() {
   const [usuarios, setUsuarios] = useState([]);
   const [error, setError] = useState('');
   const [empleados, setEmpleados] = useState([]);
+  const [cargos, setCargos] = useState([]);
+  const [busqueda, setBusqueda] = useState('');
+  const [ordenamiento, setOrdenamiento] = useState({ campo: null, direccion: 'asc' });
+  const [rolUsuario, setRolUsuario] = useState('');
+  const [idUsuarioActual, setIdUsuarioActual] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [usuarioActual, setUsuarioActual] = useState({
@@ -19,8 +23,19 @@ function Usuarios() {
   });
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setRolUsuario(payload.rol || '');
+        setIdUsuarioActual(payload.user_id);
+      } catch (e) {
+        console.error('Error al decodificar token:', e);
+      }
+    }
     cargarUsuarios();
     cargarEmpleados();
+    cargarCargos();
   }, []);
 
   const cargarUsuarios = async () => {
@@ -65,6 +80,21 @@ function Usuarios() {
       });
       const data = await response.json();
       setEmpleados(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const cargarCargos = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/cargos/`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      setCargos(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -175,28 +205,96 @@ function Usuarios() {
     }
   };
 
+  const ordenarPor = (campo) => {
+    const direccion = ordenamiento.campo === campo && ordenamiento.direccion === 'asc' ? 'desc' : 'asc';
+    setOrdenamiento({ campo, direccion });
+  };
+
+  const filtrarUsuarios = () => {
+    return usuarios.filter(usuario => {
+      const busquedaLower = busqueda.toLowerCase();
+      const fechaCreacion = new Date(usuario.fecha_creacion).toLocaleDateString();
+      
+      return (
+        usuario.username.toLowerCase().includes(busquedaLower) ||
+        usuario.rol.toLowerCase().includes(busquedaLower) ||
+        fechaCreacion.includes(busquedaLower)
+      );
+    });
+  };
+
+  const obtenerUsuariosFiltradosYOrdenados = () => {
+    if (!Array.isArray(usuarios)) return [];
+    let resultado = filtrarUsuarios();
+
+    // Filtrar visualmente si no es admin o supervisor
+    const esAdminOSupervisor = rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor';
+    if (!esAdminOSupervisor) {
+      resultado = resultado.filter(u => u.id === idUsuarioActual);
+    }
+
+    if (ordenamiento.campo) {
+      resultado.sort((a, b) => {
+        let valorA = a[ordenamiento.campo];
+        let valorB = b[ordenamiento.campo];
+
+        if (ordenamiento.campo === 'fecha_creacion') {
+          valorA = new Date(valorA);
+          valorB = new Date(valorB);
+        } else if (typeof valorA === 'string') {
+          valorA = valorA.toLowerCase();
+          valorB = valorB.toLowerCase();
+        }
+
+        if (valorA < valorB) return ordenamiento.direccion === 'asc' ? -1 : 1;
+        if (valorA > valorB) return ordenamiento.direccion === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return resultado;
+  };
+
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar />
       <div className="usuarios-container">
         <div className="usuarios-header">
           <h2>Gestión de Usuarios</h2>
-          <button className="btn-nuevo" onClick={() => abrirModal()}>+ Nuevo Usuario</button>
+          {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') && (
+            <button className="btn-nuevo" onClick={() => abrirModal()}>+ Nuevo Usuario</button>
+          )}
         </div>
 
         {error && <div className="error-banner">{error}</div>}
 
+        <div style={{marginBottom: '15px'}}>
+          <input
+            type="text"
+            placeholder="Buscar por username, rol o fecha..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            style={{padding: '8px 12px', width: '300px', borderRadius: '4px', border: '1px solid #ddd'}}
+          />
+        </div>
+
         <table className="usuarios-tabla">
         <thead>
           <tr>
-            <th>Username</th>
-            <th>Rol</th>
-            <th>Fecha Creación</th>
+            <th onClick={() => ordenarPor('username')} style={{cursor: 'pointer'}}>
+              Username {ordenamiento.campo === 'username' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
+            </th>
+            <th onClick={() => ordenarPor('rol')} style={{cursor: 'pointer'}}>
+              Rol {ordenamiento.campo === 'rol' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
+            </th>
+            <th onClick={() => ordenarPor('fecha_creacion')} style={{cursor: 'pointer'}}>
+              Fecha Creación {ordenamiento.campo === 'fecha_creacion' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
+            </th>
             <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
-          {usuarios.map(usuario => (
+          {obtenerUsuariosFiltradosYOrdenados().map(usuario => (
             <tr key={usuario.id}>
               <td>{usuario.username}</td>
               <td>
@@ -204,11 +302,31 @@ function Usuarios() {
               </td>
               <td>{usuario.fecha_creacion ? new Date(usuario.fecha_creacion).toLocaleDateString() : 'N/A'}</td>
               <td>
-                <button className="btn-editar" onClick={() => abrirModal(usuario)}>Editar</button>
-                <button className="btn-eliminar" onClick={() => eliminarUsuario(usuario.id)}>Eliminar</button>
-                {!verificarTieneEmpleado(usuario.id) && (
+                {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') ? (
+                  <>
+                    <button className="btn-editar" onClick={() => abrirModal(usuario)}>Editar</button>
+                    {(rolUsuario === 'admin' || rolUsuario === 'Administrador') && (
+                      <button className="btn-eliminar" onClick={() => eliminarUsuario(usuario.id)}>Eliminar</button>
+                    )}
+                  </>
+                ) : usuario.id === idUsuarioActual ? (
+                  <button className="btn-editar" onClick={() => abrirModal(usuario)}>Editar</button>
+                ) : (
+                  <span style={{color: '#999', fontSize: '14px'}}>-</span>
+                )}
+                {!verificarTieneEmpleado(usuario.id) ? (
                   <button className="btn-guardar" onClick={() => irACrearEmpleado(usuario)} style={{marginLeft: '5px'}}>
                     Completar Datos Empleado
+                  </button>
+                ) : (
+                  <button className="btn-editar" onClick={() => {
+                    const empleado = empleados.find(emp => emp.id_usuario === usuario.id);
+                    if (empleado) {
+                      sessionStorage.setItem('empleadoSeleccionado', JSON.stringify(empleado));
+                      window.location.href = '/empleados?ver=' + empleado.id;
+                    }
+                  }} style={{marginLeft: '5px', backgroundColor: '#2196F3'}}>
+                    Ver Empleado
                   </button>
                 )}
               </td>
@@ -227,7 +345,12 @@ function Usuarios() {
                 <input
                   type="text"
                   value={usuarioActual.username}
-                  onChange={(e) => setUsuarioActual({...usuarioActual, username: e.target.value})}
+                  onChange={(e) => {
+                    const valor = e.target.value.replace(/\s/g, ''); // Eliminar espacios
+                    setUsuarioActual({...usuarioActual, username: valor});
+                  }}
+                  pattern="[^\s]+"
+                  title="El username no puede contener espacios"
                   required
                 />
               </div>
@@ -243,16 +366,16 @@ function Usuarios() {
               </div>
 
               <div className="form-grupo">
-                <label>Rol:</label>
+                <label>Rol (Cargo):</label>
                 <select
                   value={usuarioActual.rol}
                   onChange={(e) => setUsuarioActual({...usuarioActual, rol: e.target.value})}
                   required
                 >
-                  <option value="">Seleccione un rol</option>
-                  {ROLES.map((rol) => (
-                    <option key={rol} value={rol}>
-                      {rol.charAt(0).toUpperCase() + rol.slice(1)}
+                  <option value="">Seleccione un cargo</option>
+                  {cargos.map((cargo) => (
+                    <option key={cargo.id} value={cargo.nombre_cargo}>
+                      {cargo.nombre_cargo}
                     </option>
                   ))}
                 </select>

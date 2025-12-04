@@ -8,6 +8,10 @@ function Empleados() {
   const [empleados, setEmpleados] = useState([]);
   const [cargos, setCargos] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
+  const [busqueda, setBusqueda] = useState('');
+  const [ordenamiento, setOrdenamiento] = useState({ campo: null, direccion: 'asc' });
+  const [rolUsuario, setRolUsuario] = useState('');
+  const [idUsuarioActual, setIdUsuarioActual] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [usuarioPendiente, setUsuarioPendiente] = useState(null);
@@ -29,6 +33,16 @@ function Empleados() {
   });
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setRolUsuario(payload.rol || '');
+        setIdUsuarioActual(payload.user_id);
+      } catch (e) {
+        console.error('Error al decodificar token:', e);
+      }
+    }
     cargarEmpleados();
     cargarCargos();
     cargarUsuarios();
@@ -41,6 +55,16 @@ function Empleados() {
         const usuario = JSON.parse(usuarioData);
         setUsuarioPendiente(usuario);
         sessionStorage.removeItem('usuarioParaEmpleado');
+      }
+    }
+    
+    // Si viene con parámetro ver, abrir modal del empleado
+    if (params.get('ver')) {
+      const empleadoData = sessionStorage.getItem('empleadoSeleccionado');
+      if (empleadoData) {
+        const empleado = JSON.parse(empleadoData);
+        setTimeout(() => abrirModal(empleado), 500); // Esperar a que carguen los datos
+        sessionStorage.removeItem('empleadoSeleccionado');
       }
     }
   }, []);
@@ -123,7 +147,7 @@ function Empleados() {
       
       setEmpleadoActual({
         id: empleado.id,
-        id_usuario: empleado.id_usuario || empleado.usuario_id || '',
+        id_usuario: empleado.id_usuario || '',
         cargo_id: empleado.cargo_id || empleado.id_cargo || '',
         nombres: empleado.nombres || '',
         apellidos: empleado.apellidos || '',
@@ -167,8 +191,7 @@ function Empleados() {
   const abrirModalConUsuario = (usuario) => {
     // Buscar el cargo que corresponde al rol del usuario
     const cargoCorrespondiente = cargos.find(c => c.nombre_cargo === usuario.rol);
-    const cargoIdValor = cargoCorrespondiente?.id ?? cargoCorrespondiente?.id_cargo;
-    const cargoId = cargoIdValor ? cargoIdValor.toString() : '';
+    const cargoId = cargoCorrespondiente?.id ? cargoCorrespondiente.id.toString() : '';
     
     setEmpleadoActual({
       id: null,
@@ -263,12 +286,44 @@ function Empleados() {
       return;
     }
     
+    // Validar que el usuario no esté asignado a otro empleado
+    if (empleadoActual.id_usuario) {
+      const usuarioYaAsignado = empleados.find(
+        emp => emp.id_usuario === parseInt(empleadoActual.id_usuario) && emp.id !== empleadoActual.id
+      );
+      if (usuarioYaAsignado) {
+        alert('Este usuario ya está asignado a otro empleado');
+        return;
+      }
+    }
+    
+    // Validar fecha de ingreso no sea anterior a fecha de nacimiento
+    if (empleadoActual.fecha_nacimiento && empleadoActual.fecha_ingreso) {
+      if (new Date(empleadoActual.fecha_ingreso) < new Date(empleadoActual.fecha_nacimiento)) {
+        alert('La fecha de ingreso no puede ser anterior a la fecha de nacimiento');
+        return;
+      }
+    }
+    
+    // Validar cédula
+    if (empleadoActual.cedula.length !== 10) {
+      alert('La cédula debe tener exactamente 10 dígitos');
+      return;
+    }
+    
+    // Validar número de cuenta si se ingresó
+    if (empleadoActual.numero_cuenta_bancaria && empleadoActual.numero_cuenta_bancaria.length !== 10) {
+      alert('El número de cuenta debe tener exactamente 10 dígitos');
+      return;
+    }
+    
     const token = localStorage.getItem('token');
     
     const datosEmpleado = {
       ...empleadoActual,
       id_usuario: empleadoActual.id_usuario ? parseInt(empleadoActual.id_usuario) : null,
       id_cargo: parseInt(empleadoActual.cargo_id), // Backend espera id_cargo
+      fecha_ingreso: empleadoActual.fecha_ingreso || new Date().toISOString().split('T')[0], // Asegurar fecha por defecto
       fecha_egreso: empleadoActual.fecha_egreso || null
     };
     
@@ -335,41 +390,141 @@ function Empleados() {
     return cargo ? cargo.nombre_cargo : 'N/A';
   };
 
+  const ordenarPor = (campo) => {
+    const direccion = ordenamiento.campo === campo && ordenamiento.direccion === 'asc' ? 'desc' : 'asc';
+    setOrdenamiento({ campo, direccion });
+  };
+
+  const filtrarEmpleados = () => {
+    if (!Array.isArray(empleados)) return [];
+    return empleados.filter(empleado => {
+      const busquedaLower = busqueda.toLowerCase();
+      const usuario = Array.isArray(usuarios) ? usuarios.find(u => u.id === empleado.id_usuario) : null;
+      const nombreUsuario = usuario?.username || '';
+      const nombreCargo = getNombreCargo(empleado.cargo_id);
+      
+      return (
+        (empleado.cedula || '').includes(busquedaLower) ||
+        (empleado.nombres || '').toLowerCase().includes(busquedaLower) ||
+        (empleado.apellidos || '').toLowerCase().includes(busquedaLower) ||
+        nombreUsuario.toLowerCase().includes(busquedaLower) ||
+        nombreCargo.toLowerCase().includes(busquedaLower) ||
+        (empleado.fecha_ingreso || '').includes(busquedaLower)
+      );
+    });
+  };
+
+  const obtenerEmpleadosFiltradosYOrdenados = () => {
+    let resultado = filtrarEmpleados();
+
+    // Filtrar visualmente si no es admin o supervisor
+    const esAdminOSupervisor = rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor';
+    if (!esAdminOSupervisor) {
+      resultado = resultado.filter(emp => emp.id_usuario === idUsuarioActual);
+    }
+
+    if (ordenamiento.campo) {
+      resultado.sort((a, b) => {
+        let valorA, valorB;
+
+        if (ordenamiento.campo === 'usuario') {
+          const usuarioA = usuarios.find(u => u.id === a.id_usuario);
+          const usuarioB = usuarios.find(u => u.id === b.id_usuario);
+          valorA = (usuarioA?.username || '').toLowerCase();
+          valorB = (usuarioB?.username || '').toLowerCase();
+        } else if (ordenamiento.campo === 'cargo') {
+          valorA = getNombreCargo(a.cargo_id).toLowerCase();
+          valorB = getNombreCargo(b.cargo_id).toLowerCase();
+        } else if (ordenamiento.campo === 'fecha_ingreso') {
+          valorA = new Date(a.fecha_ingreso || '1900-01-01');
+          valorB = new Date(b.fecha_ingreso || '1900-01-01');
+        } else {
+          valorA = (a[ordenamiento.campo] || '').toString().toLowerCase();
+          valorB = (b[ordenamiento.campo] || '').toString().toLowerCase();
+        }
+
+        if (valorA < valorB) return ordenamiento.direccion === 'asc' ? -1 : 1;
+        if (valorA > valorB) return ordenamiento.direccion === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return resultado;
+  };
+
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar />
       <div className="empleados-container">
         <div className="empleados-header">
           <h2>Gestión de Empleados</h2>
-          <button className="btn-nuevo" onClick={() => abrirModal()}>+ Nuevo Empleado</button>
+          {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') && (
+            <button className="btn-nuevo" onClick={() => abrirModal()}>+ Nuevo Empleado</button>
+          )}
+        </div>
+
+        <div style={{marginBottom: '15px'}}>
+          <input
+            type="text"
+            placeholder="Buscar por cédula, nombres, apellidos, cargo, usuario o fecha..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            style={{padding: '8px 12px', width: '450px', borderRadius: '4px', border: '1px solid #ddd'}}
+          />
         </div>
 
         <table className="empleados-tabla">
         <thead>
           <tr>
-            <th>Cédula</th>
-            <th>Nombres</th>
-            <th>Apellidos</th>
-            <th>Cargo</th>
-            <th>Estado</th>
-            <th>Fecha Ingreso</th>
+            <th onClick={() => ordenarPor('cedula')} style={{cursor: 'pointer'}}>
+              Cédula {ordenamiento.campo === 'cedula' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
+            </th>
+            <th onClick={() => ordenarPor('nombres')} style={{cursor: 'pointer'}}>
+              Nombres {ordenamiento.campo === 'nombres' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
+            </th>
+            <th onClick={() => ordenarPor('apellidos')} style={{cursor: 'pointer'}}>
+              Apellidos {ordenamiento.campo === 'apellidos' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
+            </th>
+            <th onClick={() => ordenarPor('usuario')} style={{cursor: 'pointer'}}>
+              Usuario {ordenamiento.campo === 'usuario' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
+            </th>
+            <th onClick={() => ordenarPor('cargo')} style={{cursor: 'pointer'}}>
+              Cargo {ordenamiento.campo === 'cargo' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
+            </th>
+            <th onClick={() => ordenarPor('estado')} style={{cursor: 'pointer'}}>
+              Estado {ordenamiento.campo === 'estado' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
+            </th>
+            <th onClick={() => ordenarPor('fecha_ingreso')} style={{cursor: 'pointer'}}>
+              Fecha Ingreso {ordenamiento.campo === 'fecha_ingreso' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
+            </th>
             <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
-          {empleados.map(empleado => (
+          {obtenerEmpleadosFiltradosYOrdenados().map(empleado => (
             <tr key={empleado.id}>
               <td>{empleado.cedula}</td>
               <td>{empleado.nombres}</td>
               <td>{empleado.apellidos}</td>
+              <td>{Array.isArray(usuarios) ? (usuarios.find(u => u.id === empleado.id_usuario)?.username || 'Sin usuario') : 'Cargando...'}</td>
               <td>{getNombreCargo(empleado.cargo_id)}</td>
               <td>
                 <span className={`estado ${empleado.estado}`}>{empleado.estado}</span>
               </td>
               <td>{empleado.fecha_ingreso}</td>
               <td>
-                <button className="btn-editar" onClick={() => abrirModal(empleado)}>Editar</button>
-                <button className="btn-eliminar" onClick={() => eliminarEmpleado(empleado.id)}>Eliminar</button>
+                {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') ? (
+                  <>
+                    <button className="btn-editar" onClick={() => abrirModal(empleado)}>Editar</button>
+                    {(rolUsuario === 'admin' || rolUsuario === 'Administrador') && (
+                      <button className="btn-eliminar" onClick={() => eliminarEmpleado(empleado.id)}>Eliminar</button>
+                    )}
+                  </>
+                ) : empleado.id_usuario === idUsuarioActual ? (
+                  <button className="btn-editar" onClick={() => abrirModal(empleado)}>Editar</button>
+                ) : (
+                  <span style={{color: '#999', fontSize: '14px'}}>-</span>
+                )}
               </td>
             </tr>
           ))}
@@ -408,8 +563,18 @@ function Empleados() {
                   <input
                     type="text"
                     value={empleadoActual.cedula}
-                    onChange={(e) => setEmpleadoActual({...empleadoActual, cedula: e.target.value})}
+                    onChange={(e) => {
+                      const valor = e.target.value.replace(/\D/g, ''); // Solo números
+                      if (valor.length <= 10) {
+                        setEmpleadoActual({...empleadoActual, cedula: valor});
+                      }
+                    }}
+                    minLength="10"
+                    maxLength="10"
+                    pattern="\d{10}"
                     required
+                    title="La cédula debe tener exactamente 10 dígitos"
+                    placeholder="1234567890"
                   />
                 </div>
                 <div className="form-grupo">
@@ -418,6 +583,8 @@ function Empleados() {
                     type="date"
                     value={empleadoActual.fecha_nacimiento}
                     onChange={(e) => setEmpleadoActual({...empleadoActual, fecha_nacimiento: e.target.value})}
+                    max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                    min="1940-01-01"
                   />
                 </div>
               </div>
@@ -471,19 +638,23 @@ function Empleados() {
                   <label>Fecha Ingreso:</label>
                   <input
                     type="date"
-                    value={empleadoActual.fecha_ingreso}
+                    value={empleadoActual.fecha_ingreso || new Date().toISOString().split('T')[0]}
                     onChange={(e) => setEmpleadoActual({...empleadoActual, fecha_ingreso: e.target.value})}
+                    min={empleadoActual.fecha_nacimiento || '1940-01-01'}
+                    max={new Date().toISOString().split('T')[0]}
+                    required
                   />
                 </div>
               </div>
 
               <div className="form-row">
                 <div className="form-grupo">
-                  <label>Tipo Cuenta:</label>
+                  <label>Tipo Cuenta y Banco:</label>
                   <input
                     type="text"
                     value={empleadoActual.tipo_cuenta_bancaria}
                     onChange={(e) => setEmpleadoActual({...empleadoActual, tipo_cuenta_bancaria: e.target.value})}
+                    placeholder="Ej: Ahorros - Banco Pichincha"
                   />
                 </div>
                 <div className="form-grupo">
@@ -491,7 +662,17 @@ function Empleados() {
                   <input
                     type="text"
                     value={empleadoActual.numero_cuenta_bancaria}
-                    onChange={(e) => setEmpleadoActual({...empleadoActual, numero_cuenta_bancaria: e.target.value})}
+                    onChange={(e) => {
+                      const valor = e.target.value.replace(/\D/g, ''); // Solo números
+                      if (valor.length <= 10) {
+                        setEmpleadoActual({...empleadoActual, numero_cuenta_bancaria: valor});
+                      }
+                    }}
+                    minLength="10"
+                    maxLength="10"
+                    pattern="\d{10}"
+                    title="El número de cuenta debe tener exactamente 10 dígitos"
+                    placeholder="1234567890"
                   />
                 </div>
               </div>
