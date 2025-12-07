@@ -7,9 +7,12 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
 
 function Nominas() {
   const [nominas, setNominas] = useState([]);
+  const [empleadosList, setEmpleadosList] = useState([]);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [form, setForm] = useState({ id_empleado: '', fecha_inicio: '', fecha_fin: '', total: '' });
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({ id_nomina: null, id_empleado: '', fecha_inicio: '', fecha_fin: '', total: '' });
   const [formErrors, setFormErrors] = useState({});
@@ -28,7 +31,14 @@ function Nominas() {
 
   useEffect(() => {
     fetchNominas();
+    fetchEmpleados();
   }, []);
+
+  const handleSearch = (e) => setSearch(e.target.value);
+
+  const filteredNominas = Array.isArray(nominas) && search.trim()
+    ? nominas.filter(n => Object.values(n).some(v => String(v ?? '').toLowerCase().includes(search.toLowerCase())))
+    : nominas;
 
   const fetchNominas = async () => {
     try {
@@ -50,17 +60,47 @@ function Nominas() {
     }
   };
 
+  const fetchEmpleados = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API_URL}/api/empleados/`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setEmpleadosList(res.data || []);
+    } catch (err) {
+      // silence: dropdown can be empty if unauthenticated
+      setEmpleadosList([]);
+    }
+  };
+
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleCreate = async (e) => {
-    e.preventDefault();
-    // Validaciones
+    if (e && e.preventDefault) e.preventDefault();
+    // Validaciones completas
     const errors = {};
-    if (!form.id_empleado || isNaN(parseInt(form.id_empleado, 10)) || parseInt(form.id_empleado, 10) <= 0) errors.id_empleado = 'ID de empleado inválido';
-    if (!form.fecha_inicio) errors.fecha_inicio = 'Fecha inicio requerida';
-    if (!form.fecha_fin) errors.fecha_fin = 'Fecha fin requerida';
-    if (form.fecha_inicio && form.fecha_fin && new Date(form.fecha_inicio) > new Date(form.fecha_fin)) errors.fecha_fin = 'Fecha fin debe ser posterior o igual a fecha inicio';
-    if (form.total === '' || isNaN(parseFloat(form.total)) || parseFloat(form.total) < 0) errors.total = 'Total inválido';
+    // Empleado seleccionado y válido
+    if (!form.id_empleado) {
+      errors.id_empleado = 'Selecciona un empleado';
+    } else if (!empleadosList.find(emp => String(emp.id) === String(form.id_empleado))) {
+      errors.id_empleado = 'Empleado no válido';
+    }
+    // Fechas
+    const fechaInicioVal = form.fecha_inicio ? Date.parse(form.fecha_inicio) : NaN;
+    const fechaFinVal = form.fecha_fin ? Date.parse(form.fecha_fin) : NaN;
+    if (!form.fecha_inicio || isNaN(fechaInicioVal)) errors.fecha_inicio = 'Fecha inicio inválida';
+    if (!form.fecha_fin || isNaN(fechaFinVal)) errors.fecha_fin = 'Fecha fin inválida';
+    if (!errors.fecha_inicio && !errors.fecha_fin && fechaInicioVal > fechaFinVal) errors.fecha_fin = 'Fecha fin debe ser posterior o igual a fecha inicio';
+    // Total
+    if (form.total === '' || form.total === null || typeof form.total === 'undefined') {
+      errors.total = 'Total requerido';
+    } else if (!/^\d+(?:\.\d{1,2})?$/.test(String(form.total))) {
+      errors.total = 'Total debe ser numérico con hasta 2 decimales';
+    } else if (parseFloat(form.total) < 0) {
+      errors.total = 'Total no puede ser negativo';
+    } else if (parseFloat(form.total) > 1000000000) {
+      errors.total = 'Total demasiado grande';
+    }
     setFormErrors(errors);
     if (Object.keys(errors).length) return;
 
@@ -73,11 +113,12 @@ function Nominas() {
         total: parseFloat(form.total) || 0,
         creado_por: 1
       };
-      const response = await axios.post(`${API_URL}/api/nominas/`, payload, {
+      await axios.post(`${API_URL}/api/nominas/`, payload, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       alert('Nómina creada exitosamente');
       setForm({ id_empleado: '', fecha_inicio: '', fecha_fin: '', total: '' });
+      setCreateModalOpen(false);
       fetchNominas();
     } catch (err) {
       setError(err.response?.data?.error || 'Error al crear nómina');
@@ -115,10 +156,20 @@ function Nominas() {
 
   const validateEdit = () => {
     const errors = {};
-    if (!editForm.fecha_inicio) errors.fecha_inicio = 'Fecha inicio requerida';
-    if (!editForm.fecha_fin) errors.fecha_fin = 'Fecha fin requerida';
-    if (editForm.fecha_inicio && editForm.fecha_fin && new Date(editForm.fecha_inicio) > new Date(editForm.fecha_fin)) errors.fecha_fin = 'Fecha fin debe ser posterior o igual a fecha inicio';
-    if (editForm.total === '' || isNaN(parseFloat(editForm.total)) || parseFloat(editForm.total) < 0) errors.total = 'Total inválido';
+    const fechaInicioVal = editForm.fecha_inicio ? Date.parse(editForm.fecha_inicio) : NaN;
+    const fechaFinVal = editForm.fecha_fin ? Date.parse(editForm.fecha_fin) : NaN;
+    if (!editForm.fecha_inicio || isNaN(fechaInicioVal)) errors.fecha_inicio = 'Fecha inicio inválida';
+    if (!editForm.fecha_fin || isNaN(fechaFinVal)) errors.fecha_fin = 'Fecha fin inválida';
+    if (!errors.fecha_inicio && !errors.fecha_fin && fechaInicioVal > fechaFinVal) errors.fecha_fin = 'Fecha fin debe ser posterior o igual a fecha inicio';
+    if (editForm.total === '' || editForm.total === null || typeof editForm.total === 'undefined') {
+      errors.total = 'Total requerido';
+    } else if (!/^\d+(?:\.\d{1,2})?$/.test(String(editForm.total))) {
+      errors.total = 'Total debe ser numérico con hasta 2 decimales';
+    } else if (parseFloat(editForm.total) < 0) {
+      errors.total = 'Total no puede ser negativo';
+    } else if (parseFloat(editForm.total) > 1000000000) {
+      errors.total = 'Total demasiado grande';
+    }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -150,25 +201,10 @@ function Nominas() {
       <div className="nominas-container">
         <h2 className="title">Nóminas</h2>
 
-        <form className="nomina-form" onSubmit={handleCreate}>
-        <div>
-          <input name="id_empleado" placeholder="ID Empleado" value={form.id_empleado} onChange={handleChange} required />
-          {formErrors.id_empleado && <div className="field-error">{formErrors.id_empleado}</div>}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <button className="btn-create" onClick={() => { setCreateModalOpen(true); setForm({ id_empleado: '', fecha_inicio: '', fecha_fin: '', total: '' }); setFormErrors({}); }}>Crear Nómina</button>
+          <input className="search-input" placeholder="Buscar en nóminas..." value={search} onChange={handleSearch} />
         </div>
-        <div>
-          <input name="fecha_inicio" type="date" value={form.fecha_inicio} onChange={handleChange} required />
-          {formErrors.fecha_inicio && <div className="field-error">{formErrors.fecha_inicio}</div>}
-        </div>
-        <div>
-          <input name="fecha_fin" type="date" value={form.fecha_fin} onChange={handleChange} required />
-          {formErrors.fecha_fin && <div className="field-error">{formErrors.fecha_fin}</div>}
-        </div>
-        <div>
-          <input name="total" placeholder="Total" type="number" step="0.01" min="0" value={form.total} onChange={handleChange} onKeyDown={numericKeyDown} required />
-          {formErrors.total && <div className="field-error">{formErrors.total}</div>}
-        </div>
-        <button className="btn-create" type="submit">Crear Nómina</button>
-      </form>
 
       {loading ? (
         <p>Cargando...</p>
@@ -187,7 +223,7 @@ function Nominas() {
             </tr>
           </thead>
           <tbody>
-            {nominas.map(n => (
+            {filteredNominas.map(n => (
               <tr key={n.id_nomina}>
                 <td>{n.id_nomina}</td>
                 <td>{n.id_empleado}</td>
@@ -225,6 +261,42 @@ function Nominas() {
             <div className="modal-actions">
               <button className="btn-update" onClick={handleEditSave}>Guardar</button>
               <button className="btn-delete" onClick={() => setEditModalOpen(false)}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {createModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Crear Nómina</h3>
+            <div className="modal-row">
+              <label>Empleado</label>
+              <select name="id_empleado" value={form.id_empleado} onChange={handleChange}>
+                <option value="">-- Seleccionar empleado --</option>
+                {empleadosList.map(emp => (
+                  <option key={emp.id} value={emp.id}>{emp.nombres} {emp.apellidos} (#{emp.id})</option>
+                ))}
+              </select>
+              {formErrors.id_empleado && <div className="field-error">{formErrors.id_empleado}</div>}
+            </div>
+            <div className="modal-row">
+              <label>Fecha Inicio</label>
+              <input name="fecha_inicio" type="date" value={form.fecha_inicio} onChange={handleChange} />
+              {formErrors.fecha_inicio && <div className="field-error">{formErrors.fecha_inicio}</div>}
+            </div>
+            <div className="modal-row">
+              <label>Fecha Fin</label>
+              <input name="fecha_fin" type="date" value={form.fecha_fin} onChange={handleChange} />
+              {formErrors.fecha_fin && <div className="field-error">{formErrors.fecha_fin}</div>}
+            </div>
+            <div className="modal-row">
+              <label>Total</label>
+              <input name="total" type="number" step="0.01" min="0" value={form.total} onChange={handleChange} onKeyDown={numericKeyDown} />
+              {formErrors.total && <div className="field-error">{formErrors.total}</div>}
+            </div>
+            <div className="modal-actions">
+              <button className="btn-update" onClick={handleCreate}>Guardar</button>
+              <button className="btn-delete" onClick={() => setCreateModalOpen(false)}>Cancelar</button>
             </div>
           </div>
         </div>
