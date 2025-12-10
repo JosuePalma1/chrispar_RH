@@ -5,7 +5,18 @@ Este directorio contiene los diagramas de arquitectura del Sistema de Gestión d
 ## 📁 Contenido
 
 ### C4 Nivel 1: Diagrama de Contexto del Sistema
-**Archivo:** `c4-nivel1-contexto.puml`
+
+#### Versión Básica
+**Archivo:** `c4-nivel1-contexto.puml`  
+**Imagen:** `C4_Context_Diagram.png`
+
+![Diagrama C4 Nivel 1 - Contexto](./C4_Context_Diagram.png)
+
+#### Versión Detallada
+**Archivo:** `c4-nivel1-contexto-detallado.puml`  
+**Imagen:** `C4_Context_Diagram_Detailed.png`
+
+![Diagrama C4 Nivel 1 - Contexto Detallado](./C4_Context_Diagram_Detailed.png)
 
 Este diagrama muestra el panorama general del sistema, incluyendo:
 
