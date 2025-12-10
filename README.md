@@ -7,6 +7,7 @@ Aplicación web full-stack (Flask + React) para centralizar los procesos de RR. 
 ## 📚 Tabla de Contenidos
 - [Resumen del Proyecto](#-resumen-del-proyecto)
 - [Arquitectura y Stack](#-arquitectura-y-stack)
+- [Documentación y Diagramas](#-documentación-y-diagramas)
 - [Estructura del Repositorio](#-estructura-del-repositorio)
 - [Requisitos Previos](#-requisitos-previos)
 - [Instalación Inicial](#-instalación-inicial-primera-vez)
@@ -38,6 +39,24 @@ Aplicación web full-stack (Flask + React) para centralizar los procesos de RR. 
 | Frontend | React 19, React Router 6 | Create React App, Axios |
 | Testing | Pytest, React Testing Library | 186 tests backend, 20 tests frontend |
 | CI/CD | GitHub Actions | Tests automáticos en Python 3.10/3.11/3.12 |
+
+---
+
+## 📊 Documentación y Diagramas
+
+El proyecto incluye documentación arquitectónica completa con diagramas C4:
+
+### 🏗️ Diagramas de Arquitectura
+- **[C4 Nivel 1: Contexto del Sistema](docs/diagrams/)** - Vista general del sistema, actores externos y sistemas relacionados
+- **[Documentación Completa](docs/)** - Guías técnicas y arquitectónicas
+
+Los diagramas muestran:
+- Sistema principal (Chrispar HR)
+- Actores externos (Administrador RH, Gerentes, Empleados)
+- Sistemas externos (PostgreSQL, Email, JWT Auth)
+- Relaciones de comunicación principales
+
+**Herramientas**: PlantUML con notación C4 Model
 
 ---
 
