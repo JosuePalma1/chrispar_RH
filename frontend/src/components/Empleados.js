@@ -1,4 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { FaEdit, FaTrash, FaEye, FaFilePdf, FaFileExcel, FaPlus, FaTimes, FaSave } from 'react-icons/fa';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import Sidebar from './Sidebar';
 import './Empleados.css';
 
@@ -15,6 +19,9 @@ function Empleados() {
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [usuarioPendiente, setUsuarioPendiente] = useState(null);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const registrosPorPagina = 5;
+  const modalRef = useRef(null);
   const [empleadoActual, setEmpleadoActual] = useState({
     id: null,
     id_usuario: '',
@@ -452,89 +459,228 @@ function Empleados() {
     return resultado;
   };
 
+  // Paginación
+  const empleadosFiltrados = obtenerEmpleadosFiltradosYOrdenados();
+  const indiceInicio = (paginaActual - 1) * registrosPorPagina;
+  const indiceFin = indiceInicio + registrosPorPagina;
+  const empleadosPaginados = empleadosFiltrados.slice(indiceInicio, indiceFin);
+
+  const cambiarPagina = (numeroPagina) => {
+    setPaginaActual(numeroPagina);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Exportar a PDF
+  const exportarPDF = () => {
+    const doc = new jsPDF();
+    doc.text('Listado de Empleados', 14, 15);
+    
+    const datos = empleadosFiltrados.map(empleado => [
+      empleado.cedula,
+      `${empleado.nombres} ${empleado.apellidos}`,
+      getNombreCargo(empleado.cargo_id),
+      empleado.fecha_ingreso ? new Date(empleado.fecha_ingreso).toLocaleDateString() : 'N/A',
+      empleado.estado
+    ]);
+
+    autoTable(doc, {
+      head: [['Cédula', 'Nombre Completo', 'Cargo', 'Fecha Ingreso', 'Estado']],
+      body: datos,
+      startY: 20
+    });
+
+    doc.save(`empleados_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  // Exportar a Excel
+  const exportarExcel = () => {
+    const datos = empleadosFiltrados.map(empleado => ({
+      'Cédula': empleado.cedula,
+      'Nombres': empleado.nombres,
+      'Apellidos': empleado.apellidos,
+      'Cargo': getNombreCargo(empleado.cargo_id),
+      'Fecha Nacimiento': empleado.fecha_nacimiento ? new Date(empleado.fecha_nacimiento).toLocaleDateString() : 'N/A',
+      'Fecha Ingreso': empleado.fecha_ingreso ? new Date(empleado.fecha_ingreso).toLocaleDateString() : 'N/A',
+      'Estado': empleado.estado
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(datos);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Empleados');
+    XLSX.writeFile(workbook, `empleados_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  // Cerrar modal al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        cerrarModal();
+      }
+    };
+
+    if (mostrarModal) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [mostrarModal]);
+
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar />
       <div className="empleados-container">
         <div className="empleados-header">
           <h2>Gestión de Empleados</h2>
-          {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') && (
-            <button className="btn-nuevo" onClick={() => abrirModal()}>+ Nuevo Empleado</button>
-          )}
+          <div className="header-actions">
+            <button className="btn-exportar btn-pdf" onClick={exportarPDF}>
+              <FaFilePdf /> PDF
+            </button>
+            <button className="btn-exportar btn-excel" onClick={exportarExcel}>
+              <FaFileExcel /> Excel
+            </button>
+            {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') && (
+              <button className="btn-nuevo" onClick={() => abrirModal()}>
+                <FaPlus /> Nuevo Empleado
+              </button>
+            )}
+          </div>
         </div>
 
-        <div style={{marginBottom: '15px'}}>
-          <input
-            type="text"
-            placeholder="Buscar por cédula, nombres, apellidos, cargo, usuario o fecha..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            style={{padding: '8px 12px', width: '450px', borderRadius: '4px', border: '1px solid #ddd'}}
-          />
+        <div className="busqueda-seccion">
+          <div className="busqueda-wrapper">
+            <input
+              type="text"
+              className="input-busqueda"
+              placeholder="Buscar por cédula, nombres, apellidos, cargo, usuario o fecha..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+            />
+          </div>
+          <span className="resultados-info">
+            Mostrando <strong>{empleadosPaginados.length}</strong> de <strong>{empleadosFiltrados.length}</strong> registros
+          </span>
         </div>
 
+        <div className="tabla-responsive">
         <table className="empleados-tabla">
         <thead>
           <tr>
-            <th onClick={() => ordenarPor('cedula')} style={{cursor: 'pointer'}}>
+            <th className="th-sortable" onClick={() => ordenarPor('cedula')}>
               Cédula {ordenamiento.campo === 'cedula' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
             </th>
-            <th onClick={() => ordenarPor('nombres')} style={{cursor: 'pointer'}}>
+            <th className="th-sortable" onClick={() => ordenarPor('nombres')}>
               Nombres {ordenamiento.campo === 'nombres' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
             </th>
-            <th onClick={() => ordenarPor('apellidos')} style={{cursor: 'pointer'}}>
+            <th className="th-sortable" onClick={() => ordenarPor('apellidos')}>
               Apellidos {ordenamiento.campo === 'apellidos' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
             </th>
-            <th onClick={() => ordenarPor('usuario')} style={{cursor: 'pointer'}}>
+            <th className="th-sortable" onClick={() => ordenarPor('usuario')}>
               Usuario {ordenamiento.campo === 'usuario' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
             </th>
-            <th onClick={() => ordenarPor('cargo')} style={{cursor: 'pointer'}}>
+            <th className="th-sortable" onClick={() => ordenarPor('cargo')}>
               Cargo {ordenamiento.campo === 'cargo' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
             </th>
-            <th onClick={() => ordenarPor('estado')} style={{cursor: 'pointer'}}>
+            <th className="th-sortable th-center" onClick={() => ordenarPor('estado')}>
               Estado {ordenamiento.campo === 'estado' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
             </th>
-            <th onClick={() => ordenarPor('fecha_ingreso')} style={{cursor: 'pointer'}}>
+            <th className="th-sortable th-center" onClick={() => ordenarPor('fecha_ingreso')}>
               Fecha Ingreso {ordenamiento.campo === 'fecha_ingreso' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
             </th>
-            <th>Acciones</th>
+            <th className="th-center">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          {obtenerEmpleadosFiltradosYOrdenados().map(empleado => (
+          {empleadosPaginados.length === 0 ? (
+            <tr>
+              <td colSpan="8" className="no-data">No se encontraron empleados</td>
+            </tr>
+          ) : (
+            empleadosPaginados.map(empleado => (
             <tr key={empleado.id}>
               <td>{empleado.cedula}</td>
               <td>{empleado.nombres}</td>
               <td>{empleado.apellidos}</td>
               <td>{Array.isArray(usuarios) ? (usuarios.find(u => u.id === empleado.id_usuario)?.username || 'Sin usuario') : 'Cargando...'}</td>
               <td>{getNombreCargo(empleado.cargo_id)}</td>
-              <td>
+              <td className="td-center">
                 <span className={`estado ${empleado.estado}`}>{empleado.estado}</span>
               </td>
-              <td>{empleado.fecha_ingreso}</td>
-              <td>
-                {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') ? (
-                  <>
-                    <button className="btn-editar" onClick={() => abrirModal(empleado)}>Editar</button>
-                    {(rolUsuario === 'admin' || rolUsuario === 'Administrador') && (
-                      <button className="btn-eliminar" onClick={() => eliminarEmpleado(empleado.id)}>Eliminar</button>
-                    )}
-                  </>
-                ) : empleado.id_usuario === idUsuarioActual ? (
-                  <button className="btn-editar" onClick={() => abrirModal(empleado)}>Editar</button>
-                ) : (
-                  <span style={{color: '#999', fontSize: '14px'}}>-</span>
-                )}
+              <td className="td-center">{empleado.fecha_ingreso}</td>
+              <td className="td-center">
+                <div className="acciones-grupo">
+                  {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') ? (
+                    <>
+                      <button className="btn-icono editar" onClick={() => abrirModal(empleado)} title="Editar">
+                        <FaEdit />
+                      </button>
+                      {(rolUsuario === 'admin' || rolUsuario === 'Administrador') && (
+                        <button className="btn-icono eliminar" onClick={() => eliminarEmpleado(empleado.id)} title="Eliminar">
+                          <FaTrash />
+                        </button>
+                      )}
+                    </>
+                  ) : empleado.id_usuario === idUsuarioActual ? (
+                    <button className="btn-icono editar" onClick={() => abrirModal(empleado)} title="Editar">
+                      <FaEdit />
+                    </button>
+                  ) : (
+                    <span style={{color: '#999'}}>-</span>
+                  )}
+                </div>
               </td>
             </tr>
-          ))}
+            ))
+          )}
         </tbody>
       </table>
+      </div>
+
+      {/* Paginación */}
+      {empleadosFiltrados.length > 0 && (
+        <div className="paginacion">
+          <div className="paginacion-controles">
+            <button 
+              className="btn-paginacion" 
+              onClick={() => cambiarPagina(paginaActual - 1)}
+              disabled={paginaActual === 1}
+            >
+              Anterior
+            </button>
+            
+            <div className="numeros-pagina">
+              {[...Array(Math.ceil(empleadosFiltrados.length / registrosPorPagina))].map((_, index) => (
+                <button
+                  key={index + 1}
+                  className={`btn-numero ${paginaActual === index + 1 ? 'activo' : ''}`}
+                  onClick={() => cambiarPagina(index + 1)}
+                >
+                  {index + 1}
+                </button>
+              ))}
+            </div>
+
+            <button 
+              className="btn-paginacion" 
+              onClick={() => cambiarPagina(paginaActual + 1)}
+              disabled={paginaActual === Math.ceil(empleadosFiltrados.length / registrosPorPagina)}
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )}
 
       {mostrarModal && (
         <div className="modal">
-          <div className="modal-contenido">
-            <h3>{modoEdicion ? 'Editar Empleado' : 'Nuevo Empleado'}</h3>
+          <div className="modal-contenido" ref={modalRef}>
+            <div className="modal-header">
+              <h3>{modoEdicion ? 'Editar Empleado' : 'Nuevo Empleado'}</h3>
+              <button className="btn-cerrar-modal" onClick={cerrarModal} type="button">
+                <FaTimes />
+              </button>
+            </div>
             <form onSubmit={guardarEmpleado}>
               <div className="form-row">
                 <div className="form-grupo">

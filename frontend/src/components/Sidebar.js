@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import './Sidebar.css';
+import { 
+    FaHome, FaUsers, FaUserTie, FaIdCard, FaCalendarAlt, 
+    FaClock, FaMoneyBillWave, FaFileInvoiceDollar, 
+    FaClipboardList, FaHistory, FaChevronDown, FaChevronRight 
+} from 'react-icons/fa';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
 const AVAILABLE_MODULES = ['dashboard', 'cargos', 'usuarios', 'empleados', 'hojas-vida', 'horarios', 'nomina', 'rubros', 'logs', 'permisos', 'asistencias'];
@@ -54,34 +59,121 @@ function Sidebar() {
         cargarPermisos();
     }, []);
 
-    const modulos = [
-        { id: 'dashboard', nombre: '🏠 Dashboard', ruta: '/dashboard' },
-        { id: 'cargos', nombre: 'Cargos', ruta: '/cargos' },
-        { id: 'usuarios', nombre: 'Usuarios', ruta: '/usuarios' },
-        { id: 'empleados', nombre: 'Empleados', ruta: '/empleados' },
-        { id: 'hojas-vida', nombre: 'Hojas de Vida', ruta: '/hojas-vida' },
-        { id: 'horarios', nombre: 'Horarios', ruta: '/horarios' },
-        { id: 'nomina', nombre: 'Nómina', ruta: '/nomina' },
-        { id: 'rubros', nombre: 'Rubros de pago', ruta: '/rubros' },
-        { id: 'permisos', nombre: 'Permisos', ruta: '/permisos' },
-        { id: 'asistencias', nombre: 'Asistencias', ruta: '/asistencias' },
-        { id: 'logs', nombre: 'Auditoría / Logs', ruta: '/logs' },
+    const [menuAbierto, setMenuAbierto] = useState({
+        personal: true,
+        tiempo: false,
+        financiero: false,
+        sistema: false
+    });
 
+    const toggleMenu = (categoria) => {
+        setMenuAbierto(prev => ({
+            ...prev,
+            [categoria]: !prev[categoria]
+        }));
+    };
+
+    const menuEstructura = [
+        {
+            categoria: 'dashboard',
+            icono: <FaHome />,
+            nombre: 'Dashboard',
+            ruta: '/dashboard',
+            simple: true
+        },
+        {
+            categoria: 'personal',
+            icono: <FaUsers />,
+            nombre: 'Gestión de Personal',
+            submodulos: [
+                { id: 'cargos', nombre: 'Cargos', ruta: '/cargos', icono: <FaIdCard /> },
+                { id: 'usuarios', nombre: 'Usuarios', ruta: '/usuarios', icono: <FaUserTie /> },
+                { id: 'empleados', nombre: 'Empleados', ruta: '/empleados', icono: <FaUsers /> },
+                { id: 'hojas-vida', nombre: 'Hojas de Vida', ruta: '/hojas-vida', icono: <FaClipboardList /> }
+            ]
+        },
+        {
+            categoria: 'tiempo',
+            icono: <FaClock />,
+            nombre: 'Control de Tiempo',
+            submodulos: [
+                { id: 'horarios', nombre: 'Horarios', ruta: '/horarios', icono: <FaCalendarAlt /> },
+                { id: 'asistencias', nombre: 'Asistencias', ruta: '/asistencias', icono: <FaClock /> },
+                { id: 'permisos', nombre: 'Permisos/Vacaciones', ruta: '/permisos', icono: <FaClipboardList /> }
+            ]
+        },
+        {
+            categoria: 'financiero',
+            icono: <FaMoneyBillWave />,
+            nombre: 'Gestión Financiera',
+            submodulos: [
+                { id: 'nomina', nombre: 'Nómina', ruta: '/nomina', icono: <FaMoneyBillWave /> },
+                { id: 'rubros', nombre: 'Rubros de Pago', ruta: '/rubros', icono: <FaFileInvoiceDollar /> }
+            ]
+        },
+        {
+            categoria: 'sistema',
+            icono: <FaHistory />,
+            nombre: 'Sistema',
+            submodulos: [
+                { id: 'logs', nombre: 'Auditoría / Logs', ruta: '/logs', icono: <FaHistory /> }
+            ]
+        }
     ];
+
+    const tienePermisoCategoria = (submodulos) => {
+        return submodulos.some(sub => permisos.includes(sub.id));
+    };
 
     return (
         <aside className="sidebar">
-            <h2>Módulos</h2>
-            <nav>
-                <ul>
-                    {modulos.map(modulo => (
-                        permisos.includes(modulo.id) && (
-                            <li key={modulo.id}>
-                                <a href={modulo.ruta}>{modulo.nombre}</a>
-                            </li>
-                        )
-                    ))}
-                </ul>
+            <div className="sidebar-header">
+                <h2>CHRISPAR HHRR</h2>
+            </div>
+            <nav className="sidebar-nav">
+                {menuEstructura.map((item) => {
+                    if (item.simple && permisos.includes(item.categoria)) {
+                        return (
+                            <a key={item.categoria} href={item.ruta} className="menu-item-simple">
+                                <span className="menu-icon">{item.icono}</span>
+                                <span className="menu-text">{item.nombre}</span>
+                            </a>
+                        );
+                    }
+
+                    if (!item.simple && tienePermisoCategoria(item.submodulos)) {
+                        return (
+                            <div key={item.categoria} className="menu-categoria">
+                                <div 
+                                    className="menu-categoria-header" 
+                                    onClick={() => toggleMenu(item.categoria)}
+                                >
+                                    <div className="menu-categoria-titulo">
+                                        <span className="menu-icon">{item.icono}</span>
+                                        <span className="menu-text">{item.nombre}</span>
+                                    </div>
+                                    <span className="menu-chevron">
+                                        {menuAbierto[item.categoria] ? <FaChevronDown /> : <FaChevronRight />}
+                                    </span>
+                                </div>
+                                {menuAbierto[item.categoria] && (
+                                    <div className="menu-submodulos">
+                                        {item.submodulos.map((sub) => (
+                                            permisos.includes(sub.id) && (
+                                                <a key={sub.id} href={sub.ruta} className="menu-subitem">
+                                                    <span className="submenu-icon">{sub.icono}</span>
+                                                    <span className="submenu-text">{sub.nombre}</span>
+                                                </a>
+                                            )
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    }
+
+                    return null;
+                })}
             </nav>
         </aside>
     );

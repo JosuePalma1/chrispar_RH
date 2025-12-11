@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
 import './Usuarios.css';
+import { FaEdit, FaTrash, FaEye, FaFilePdf, FaFileExcel, FaPlus, FaTimes, FaSave } from 'react-icons/fa';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
 
@@ -15,6 +19,9 @@ function Usuarios() {
   const [idUsuarioActual, setIdUsuarioActual] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const registrosPorPagina = 5;
+  const modalRef = useRef(null);
   const [usuarioActual, setUsuarioActual] = useState({
     id: null,
     username: '',
@@ -255,90 +262,225 @@ function Usuarios() {
     return resultado;
   };
 
+  // Paginación
+  const usuariosFiltrados = obtenerUsuariosFiltradosYOrdenados();
+  const totalPaginas = Math.ceil(usuariosFiltrados.length / registrosPorPagina);
+  const indiceInicio = (paginaActual - 1) * registrosPorPagina;
+  const indiceFin = indiceInicio + registrosPorPagina;
+  const usuariosPaginados = usuariosFiltrados.slice(indiceInicio, indiceFin);
+
+  const cambiarPagina = (numeroPagina) => {
+    setPaginaActual(numeroPagina);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Exportar a PDF
+  const exportarPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Reporte de Usuarios', 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 30);
+    
+    const datos = usuariosFiltrados.map(usuario => [
+      usuario.username,
+      usuario.rol,
+      new Date(usuario.fecha_creacion).toLocaleDateString()
+    ]);
+
+    autoTable(doc, {
+      head: [['Usuario', 'Rol', 'Fecha Creación']],
+      body: datos,
+      startY: 35,
+      styles: { fontSize: 10, cellPadding: 3 },
+      headStyles: { fillColor: [52, 73, 94], textColor: [255, 255, 255] }
+    });
+
+    doc.save(`usuarios_${new Date().getTime()}.pdf`);
+  };
+
+  // Exportar a Excel
+  const exportarExcel = () => {
+    const datos = usuariosFiltrados.map(usuario => ({
+      'Usuario': usuario.username,
+      'Rol': usuario.rol,
+      'Fecha Creación': new Date(usuario.fecha_creacion).toLocaleDateString()
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(datos);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Usuarios');
+    XLSX.writeFile(workbook, `usuarios_${new Date().getTime()}.xlsx`);
+  };
+
+  // Cerrar modal al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        cerrarModal();
+      }
+    };
+
+    if (mostrarModal) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [mostrarModal]);
+
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar />
       <div className="usuarios-container">
         <div className="usuarios-header">
           <h2>Gestión de Usuarios</h2>
-          {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') && (
-            <button className="btn-nuevo" onClick={() => abrirModal()}>+ Nuevo Usuario</button>
-          )}
+          <div className="header-actions">
+            <button className="btn-exportar btn-pdf" onClick={exportarPDF} title="Exportar a PDF">
+              <FaFilePdf /> PDF
+            </button>
+            <button className="btn-exportar btn-excel" onClick={exportarExcel} title="Exportar a Excel">
+              <FaFileExcel /> Excel
+            </button>
+            {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') && (
+              <button className="btn-nuevo" onClick={() => abrirModal()}>
+                <FaPlus /> Nuevo Usuario
+              </button>
+            )}
+          </div>
         </div>
 
         {error && <div className="error-banner">{error}</div>}
 
-        <div style={{marginBottom: '15px'}}>
-          <input
-            type="text"
-            placeholder="Buscar por username, rol o fecha..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            style={{padding: '8px 12px', width: '300px', borderRadius: '4px', border: '1px solid #ddd'}}
-          />
+        <div className="busqueda-seccion">
+          <div className="busqueda-wrapper">
+            <input
+              type="text"
+              placeholder="Buscar por username, rol o fecha..."
+              value={busqueda}
+              onChange={(e) => {setBusqueda(e.target.value); setPaginaActual(1);}}
+              className="input-busqueda"
+            />
+          </div>
+          <span className="resultados-info">
+            Mostrando <strong>{usuariosPaginados.length}</strong> de <strong>{usuariosFiltrados.length}</strong> registros
+          </span>
         </div>
 
-        <table className="usuarios-tabla">
-        <thead>
-          <tr>
-            <th onClick={() => ordenarPor('username')} style={{cursor: 'pointer'}}>
-              Username {ordenamiento.campo === 'username' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
-            </th>
-            <th onClick={() => ordenarPor('rol')} style={{cursor: 'pointer'}}>
-              Rol {ordenamiento.campo === 'rol' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
-            </th>
-            <th onClick={() => ordenarPor('fecha_creacion')} style={{cursor: 'pointer'}}>
-              Fecha Creación {ordenamiento.campo === 'fecha_creacion' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
-            </th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {obtenerUsuariosFiltradosYOrdenados().map(usuario => (
-            <tr key={usuario.id}>
-              <td>{usuario.username}</td>
-              <td>
-                <span className={`rol ${usuario.rol}`}>{usuario.rol}</span>
-              </td>
-              <td>{usuario.fecha_creacion ? new Date(usuario.fecha_creacion).toLocaleDateString() : 'N/A'}</td>
-              <td>
-                {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') ? (
-                  <>
-                    <button className="btn-editar" onClick={() => abrirModal(usuario)}>Editar</button>
-                    {(rolUsuario === 'admin' || rolUsuario === 'Administrador') && (
-                      <button className="btn-eliminar" onClick={() => eliminarUsuario(usuario.id)}>Eliminar</button>
-                    )}
-                  </>
-                ) : usuario.id === idUsuarioActual ? (
-                  <button className="btn-editar" onClick={() => abrirModal(usuario)}>Editar</button>
-                ) : (
-                  <span style={{color: '#999', fontSize: '14px'}}>-</span>
-                )}
-                {!verificarTieneEmpleado(usuario.id) ? (
-                  <button className="btn-guardar" onClick={() => irACrearEmpleado(usuario)} style={{marginLeft: '5px'}}>
-                    Completar Datos Empleado
-                  </button>
-                ) : (
-                  <button className="btn-editar" onClick={() => {
-                    const empleado = empleados.find(emp => emp.id_usuario === usuario.id);
-                    if (empleado) {
-                      sessionStorage.setItem('empleadoSeleccionado', JSON.stringify(empleado));
-                      window.location.href = '/empleados?ver=' + empleado.id;
-                    }
-                  }} style={{marginLeft: '5px', backgroundColor: '#2196F3'}}>
-                    Ver Empleado
-                  </button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
+        <div className="tabla-responsive">
+          <table className="usuarios-tabla">
+            <thead>
+              <tr>
+                <th onClick={() => ordenarPor('username')} className="th-sortable">
+                  Username {ordenamiento.campo === 'username' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
+                </th>
+                <th onClick={() => ordenarPor('rol')} className="th-sortable">
+                  Rol {ordenamiento.campo === 'rol' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
+                </th>
+                <th onClick={() => ordenarPor('fecha_creacion')} className="th-sortable">
+                  Fecha Creación {ordenamiento.campo === 'fecha_creacion' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
+                </th>
+                <th className="th-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usuariosPaginados.length === 0 ? (
+                <tr>
+                  <td colSpan="4" className="no-data">No hay usuarios que mostrar</td>
+                </tr>
+              ) : (
+                usuariosPaginados.map(usuario => (
+                  <tr key={usuario.id}>
+                    <td>{usuario.username}</td>
+                    <td>
+                      <span className={`rol ${usuario.rol}`}>{usuario.rol}</span>
+                    </td>
+                    <td className="td-center">{usuario.fecha_creacion ? new Date(usuario.fecha_creacion).toLocaleDateString() : 'N/A'}</td>
+                    <td className="td-center">
+                      <div className="acciones-grupo">
+                        {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') ? (
+                          <>
+                            <button className="btn-icono editar" onClick={() => abrirModal(usuario)} title="Editar">
+                              <FaEdit />
+                            </button>
+                            {(rolUsuario === 'admin' || rolUsuario === 'Administrador') && (
+                              <button className="btn-icono eliminar" onClick={() => eliminarUsuario(usuario.id)} title="Eliminar">
+                                <FaTrash />
+                              </button>
+                            )}
+                            {verificarTieneEmpleado(usuario.id) && (
+                              <button className="btn-icono ver" onClick={() => {
+                                const empleado = empleados.find(emp => emp.id_usuario === usuario.id);
+                                if (empleado) {
+                                  sessionStorage.setItem('empleadoSeleccionado', JSON.stringify(empleado));
+                                  window.location.href = '/empleados?ver=' + empleado.id;
+                                }
+                              }} title="Ver Empleado">
+                                <FaEye />
+                              </button>
+                            )}
+                          </>
+                        ) : usuario.id === idUsuarioActual ? (
+                          <button className="btn-icono editar" onClick={() => abrirModal(usuario)} title="Editar">
+                            <FaEdit />
+                          </button>
+                        ) : (
+                          <span style={{color: '#999'}}>-</span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
       </table>
+      </div>
+
+      {/* Paginación */}
+      {usuariosFiltrados.length > 0 && (
+        <div className="paginacion">
+          <div className="paginacion-controles">
+            <button 
+              className="btn-paginacion" 
+              onClick={() => cambiarPagina(paginaActual - 1)}
+              disabled={paginaActual === 1}
+            >
+              Anterior
+            </button>
+            
+            <div className="numeros-pagina">
+              {[...Array(Math.ceil(usuariosFiltrados.length / registrosPorPagina))].map((_, index) => (
+                <button
+                  key={index + 1}
+                  className={`btn-numero ${paginaActual === index + 1 ? 'activo' : ''}`}
+                  onClick={() => cambiarPagina(index + 1)}
+                >
+                  {index + 1}
+                </button>
+              ))}
+            </div>
+
+            <button 
+              className="btn-paginacion" 
+              onClick={() => cambiarPagina(paginaActual + 1)}
+              disabled={paginaActual === Math.ceil(usuariosFiltrados.length / registrosPorPagina)}
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )}
 
       {mostrarModal && (
         <div className="modal">
-          <div className="modal-contenido">
-            <h3>{modoEdicion ? 'Editar Usuario' : 'Nuevo Usuario'}</h3>
+          <div className="modal-contenido" ref={modalRef}>
+            <div className="modal-header">
+              <h3>{modoEdicion ? 'Editar Usuario' : 'Nuevo Usuario'}</h3>
+              <button className="btn-cerrar-modal" onClick={cerrarModal} type="button">
+                <FaTimes />
+              </button>
+            </div>
             <form onSubmit={guardarUsuario}>
               <div className="form-grupo">
                 <label>Username:</label>

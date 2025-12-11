@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
 import './Cargos.css';
+import { FaEdit, FaTrash, FaEye, FaFilePdf, FaFileExcel, FaPlus, FaTimes, FaSave } from 'react-icons/fa';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
 
@@ -12,6 +16,9 @@ function Cargos() {
   const [busqueda, setBusqueda] = useState('');
   const [ordenamiento, setOrdenamiento] = useState({ campo: null, direccion: 'asc' });
   const [rolUsuario, setRolUsuario] = useState('');
+  const [paginaActual, setPaginaActual] = useState(1);
+  const registrosPorPagina = 5;
+  const modalRef = useRef(null);
   const [cargoActual, setCargoActual] = useState({
     id: null,
     nombre_cargo: '',
@@ -224,69 +231,209 @@ function Cargos() {
     return resultado;
   };
 
+  // Paginación
+  const cargosFiltrados = obtenerCargosFiltradosYOrdenados();
+  const totalPaginas = Math.ceil(cargosFiltrados.length / registrosPorPagina);
+  const indiceInicio = (paginaActual - 1) * registrosPorPagina;
+  const indiceFin = indiceInicio + registrosPorPagina;
+  const cargosPaginados = cargosFiltrados.slice(indiceInicio, indiceFin);
+
+  const cambiarPagina = (numeroPagina) => {
+    setPaginaActual(numeroPagina);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Exportar a PDF
+  const exportarPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Reporte de Cargos', 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 30);
+    
+    const datos = cargosFiltrados.map(cargo => [
+      cargo.nombre_cargo,
+      `$${parseFloat(cargo.sueldo_base).toFixed(2)}`,
+      (cargo.permisos || []).length
+    ]);
+
+    autoTable(doc, {
+      head: [['Cargo', 'Sueldo Base (USD)', 'Permisos']],
+      body: datos,
+      startY: 35,
+      styles: { fontSize: 10, cellPadding: 3 },
+      headStyles: { fillColor: [52, 73, 94], textColor: [255, 255, 255] }
+    });
+
+    doc.save(`cargos_${new Date().getTime()}.pdf`);
+  };
+
+  // Exportar a Excel
+  const exportarExcel = () => {
+    const datos = cargosFiltrados.map(cargo => ({
+      'Cargo': cargo.nombre_cargo,
+      'Sueldo Base (USD)': parseFloat(cargo.sueldo_base).toFixed(2),
+      'Cantidad de Permisos': (cargo.permisos || []).length,
+      'Permisos': (cargo.permisos || []).join(', ')
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(datos);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Cargos');
+    XLSX.writeFile(workbook, `cargos_${new Date().getTime()}.xlsx`);
+  };
+
+  // Cerrar modal al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        cerrarModal();
+      }
+    };
+
+    if (mostrarModal) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [mostrarModal]);
+
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar />
       <div className="cargos-container">
         <div className="cargos-header">
           <h2>Gestión de Cargos</h2>
-          {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') && (
-            <button className="btn-nuevo" onClick={() => abrirModal()}>+ Nuevo Cargo</button>
-          )}
+          <div className="header-actions">
+            <button className="btn-exportar btn-pdf" onClick={exportarPDF} title="Exportar a PDF">
+              <FaFilePdf /> PDF
+            </button>
+            <button className="btn-exportar btn-excel" onClick={exportarExcel} title="Exportar a Excel">
+              <FaFileExcel /> Excel
+            </button>
+            {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') && (
+              <button className="btn-nuevo" onClick={() => abrirModal()}>
+                <FaPlus /> Nuevo Cargo
+              </button>
+            )}
+          </div>
         </div>
 
-        {error && <div className="error-banner" style={{padding: '10px', backgroundColor: '#ffebee', color: '#c62828', marginBottom: '15px', borderRadius: '4px'}}>{error}</div>}
+        {error && <div className="error-banner">{error}</div>}
 
-        <div style={{marginBottom: '15px'}}>
-          <input
-            type="text"
-            placeholder="Buscar por nombre del cargo..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            style={{padding: '8px 12px', width: '300px', borderRadius: '4px', border: '1px solid #ddd'}}
-          />
+        <div className="busqueda-seccion">
+          <div className="busqueda-wrapper">
+            <input
+              type="text"
+              placeholder="Buscar por nombre del cargo..."
+              value={busqueda}
+              onChange={(e) => {setBusqueda(e.target.value); setPaginaActual(1);}}
+              className="input-busqueda"
+            />
+          </div>
+          <span className="resultados-info">
+            Mostrando <strong>{cargosPaginados.length}</strong> de <strong>{cargosFiltrados.length}</strong> registros
+          </span>
         </div>
 
-        <table className="cargos-tabla">
-        <thead>
-          <tr>
-            <th onClick={() => ordenarPor('nombre_cargo')} style={{cursor: 'pointer'}}>
-              Nombre {ordenamiento.campo === 'nombre_cargo' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
-            </th>
-            <th onClick={() => ordenarPor('sueldo_base')} style={{cursor: 'pointer'}}>
-              Salario Base {ordenamiento.campo === 'sueldo_base' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
-            </th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {obtenerCargosFiltradosYOrdenados().map(cargo => (
-            <tr key={cargo.id}>
-              <td>{cargo.nombre_cargo}</td>
-              <td>{cargo.sueldo_base}</td>
-              <td>
-                {(rolUsuario === 'admin' || rolUsuario === 'Administrador') ? (
-                  <>
-                    <button className="btn-editar" onClick={() => abrirModal(cargo)}>Editar</button>
-                    <button className="btn-eliminar" onClick={() => eliminarCargo(cargo.id)}>Eliminar</button>
-                  </>
-                ) : (rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') ? (
-                  <>
-                    <button className="btn-editar" onClick={() => abrirModal(cargo)}>Editar</button>
-                  </>
-                ) : (
-                  <span style={{color: '#999', fontSize: '14px'}}>Solo lectura</span>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        <div className="tabla-responsive">
+          <table className="cargos-tabla">
+            <thead>
+              <tr>
+                <th onClick={() => ordenarPor('nombre_cargo')} className="th-sortable">
+                  Cargo {ordenamiento.campo === 'nombre_cargo' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
+                </th>
+                <th onClick={() => ordenarPor('sueldo_base')} className="th-sortable th-right">
+                  Salario Base (USD) {ordenamiento.campo === 'sueldo_base' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
+                </th>
+                <th className="th-center">Permisos</th>
+                <th className="th-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cargosPaginados.length === 0 ? (
+                <tr>
+                  <td colSpan="4" className="no-data">No hay cargos que mostrar</td>
+                </tr>
+              ) : (
+                cargosPaginados.map(cargo => (
+                  <tr key={cargo.id}>
+                    <td className="td-left">{cargo.nombre_cargo}</td>
+                    <td className="td-right">${parseFloat(cargo.sueldo_base).toFixed(2)}</td>
+                    <td className="td-center">{(cargo.permisos || []).length} módulos</td>
+                    <td className="td-center">
+                      <div className="acciones-grupo">
+                        {(rolUsuario === 'admin' || rolUsuario === 'Administrador') ? (
+                          <>
+                            <button className="btn-icono editar" onClick={() => abrirModal(cargo)} title="Editar">
+                              <FaEdit />
+                            </button>
+                            <button className="btn-icono eliminar" onClick={() => eliminarCargo(cargo.id)} title="Eliminar">
+                              <FaTrash />
+                            </button>
+                          </>
+                        ) : (rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') ? (
+                          <>
+                            <button className="btn-icono editar" onClick={() => abrirModal(cargo)} title="Editar">
+                              <FaEdit />
+                            </button>
+                          </>
+                        ) : (
+                          <button className="btn-icono btn-ver" onClick={() => abrirModal(cargo)} title="Ver">
+                            <FaEye />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Paginación */}
+        {totalPaginas > 1 && (
+          <div className="paginacion">
+            <button 
+              onClick={() => cambiarPagina(paginaActual - 1)} 
+              disabled={paginaActual === 1}
+              className="btn-paginacion"
+            >
+              Anterior
+            </button>
+            <div className="numeros-pagina">
+              {[...Array(totalPaginas)].map((_, index) => (
+                <button
+                  key={index + 1}
+                  onClick={() => cambiarPagina(index + 1)}
+                  className={`btn-numero ${paginaActual === index + 1 ? 'activo' : ''}`}
+                >
+                  {index + 1}
+                </button>
+              ))}
+            </div>
+            <button 
+              onClick={() => cambiarPagina(paginaActual + 1)} 
+              disabled={paginaActual === totalPaginas}
+              className="btn-paginacion"
+            >
+              Siguiente
+            </button>
+          </div>
+        )}
 
       {mostrarModal && (
-        <div className="modal">
-          <div className="modal-contenido">
-            <h3>{modoEdicion ? 'Editar Cargo' : 'Nuevo Cargo'}</h3>
+        <div className="modal-overlay">
+          <div className="modal-contenido" ref={modalRef}>
+            <div className="modal-header">
+              <h3>{modoEdicion ? 'Editar Cargo' : 'Nuevo Cargo'}</h3>
+              <button className="btn-cerrar-modal" onClick={cerrarModal}>
+                <FaTimes />
+              </button>
+            </div>
             <form onSubmit={guardarCargo}>
               <div className="form-grupo">
                 <label>Nombre del Cargo:</label>
@@ -352,8 +499,12 @@ function Cargos() {
               </div>
 
               <div className="form-botones">
-                <button type="submit" className="btn-guardar">Guardar</button>
-                <button type="button" className="btn-cancelar" onClick={cerrarModal}>Cancelar</button>
+                <button type="submit" className="btn-guardar">
+                  <FaSave /> Guardar
+                </button>
+                <button type="button" className="btn-cancelar" onClick={cerrarModal}>
+                  <FaTimes /> Cancelar
+                </button>
               </div>
             </form>
           </div>
