@@ -6,8 +6,14 @@ Bienvenido a la documentación técnica y arquitectónica del Sistema de Gestió
 
 ### 📊 [Diagramas de Arquitectura](./diagrams/)
 Diagramas del sistema utilizando el modelo C4:
+
+#### Nivel 1: Contexto del Sistema
 - **[C4 Nivel 1: Contexto del Sistema](./diagrams/c4-nivel1-contexto.puml)** - Vista general del sistema, actores externos y relaciones principales
 - **[C4 Nivel 1: Contexto Detallado](./diagrams/c4-nivel1-contexto-detallado.puml)** - Versión extendida con más información técnica
+
+#### Nivel 2: Contenedores
+- **[C4 Nivel 2: Contenedores](./diagrams/c4-nivel2-contenedores.puml)** - Estructura técnica del sistema (Frontend, Backend, Base de Datos)
+- **[C4 Nivel 2: Contenedores Detallado](./diagrams/c4-nivel2-contenedores-detallado.puml)** - Versión extendida con arquitectura de blueprints y tecnologías
 
 ## 🎯 Propósito de esta Documentación
 
@@ -31,7 +37,7 @@ Los diagramas utilizan el **Modelo C4** (Context, Containers, Components, Code),
 **Audiencia:** Desarrolladores y arquitectos  
 **Muestra:** Aplicaciones, almacenes de datos y cómo se comunican
 
-🔜 Próximamente
+✅ **Ya disponible** en este repositorio
 
 ### Nivel 3: Componentes
 **Audiencia:** Desarrolladores  
@@ -75,6 +81,52 @@ El **Sistema Chrispar HR** es una aplicación web full-stack que centraliza todo
 - 📋 Hojas de Vida
 - 📜 Logs de Auditoría
 
+### Vista de Contenedores (Nivel 2)
+
+El sistema está compuesto por tres contenedores principales que se comunican entre sí:
+
+#### 🌐 Contenedor 1: Single Page Application (Frontend)
+- **Tecnología:** React 19 + React Router 6
+- **Puerto:** 3000 (desarrollo) / 80-443 (producción)
+- **Responsabilidad:** Interfaz de usuario interactiva
+- **Características:**
+  - SPA con enrutamiento del lado del cliente
+  - Dashboard con métricas en tiempo real
+  - Formularios con validación
+  - Sidebar dinámico según permisos de usuario
+  - Comunicación con API vía Axios
+  - 20 tests automatizados
+
+#### ⚙️ Contenedor 2: API REST (Backend)
+- **Tecnología:** Flask 2.2.5 + Python 3.12
+- **Puerto:** 5000 (desarrollo) / configurable (producción)
+- **Responsabilidad:** Lógica de negocio y coordinación
+- **Arquitectura:** Blueprints modulares (10 módulos)
+- **Características:**
+  - Autenticación JWT con roles
+  - CORS para comunicación cross-origin
+  - SQLAlchemy ORM para abstracción de datos
+  - Validaciones de negocio
+  - Logs de auditoría automáticos
+  - 186 tests automatizados (88% cobertura)
+
+#### 💾 Contenedor 3: Base de Datos (Persistencia)
+- **Tecnología:** PostgreSQL 14+
+- **Puerto:** 5432
+- **Responsabilidad:** Almacenamiento persistente de datos
+- **Características:**
+  - 10+ tablas con relaciones
+  - Integridad referencial
+  - Migraciones versionadas (Alembic)
+  - Transacciones ACID
+
+#### 🔄 Flujo de Comunicación
+```
+Usuario → Navegador → [SPA React:3000] ↔ [API Flask:5000] ↔ [PostgreSQL:5432]
+                                              ↓
+                                    [Email Service SMTP]
+```
+
 ## 🛠️ Tecnologías y Herramientas
 
 ### Stack Tecnológico
@@ -115,6 +167,7 @@ CI/CD:     GitHub Actions
 
 | Fecha | Versión | Descripción |
 |-------|---------|-------------|
+| Dic 2025 | 1.1 | Diagramas C4 Nivel 2 - Contenedores (Frontend, Backend, BD) |
 | Dic 2025 | 1.0 | Diagramas C4 Nivel 1 - Contexto del Sistema |
 
 ---

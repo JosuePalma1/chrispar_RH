@@ -48,13 +48,15 @@ El proyecto incluye documentación arquitectónica completa con diagramas C4:
 
 ### 🏗️ Diagramas de Arquitectura
 - **[C4 Nivel 1: Contexto del Sistema](docs/diagrams/)** - Vista general del sistema, actores externos y sistemas relacionados
+- **[C4 Nivel 2: Contenedores](docs/diagrams/)** - Estructura técnica (Frontend React, Backend Flask, BD PostgreSQL)
 - **[Documentación Completa](docs/)** - Guías técnicas y arquitectónicas
 
 Los diagramas muestran:
-- Sistema principal (Chrispar HR)
-- Actores externos (Administrador RH, Gerentes, Empleados)
-- Sistemas externos (PostgreSQL, Email, JWT Auth)
-- Relaciones de comunicación principales
+- **Nivel 1:** Sistema principal, actores externos, sistemas relacionados
+- **Nivel 2:** Arquitectura de contenedores (SPA, API REST, Base de Datos, Email Service)
+- Tecnologías específicas (React 19, Flask 2.2.5, PostgreSQL 14+)
+- Flujo de comunicación entre componentes
+- Protocolos y puertos (HTTPS, SQL/TCP, SMTP)
 
 **Herramientas**: PlantUML con notación C4 Model
 

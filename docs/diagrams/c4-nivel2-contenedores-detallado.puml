@@ -1,0 +1,73 @@
+@startuml C4_Container_Diagram_Detailed
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+' Configuración del diagrama
+LAYOUT_WITH_LEGEND()
+
+title Diagrama C4 - Nivel 2: Contenedores (Detallado)\nSistema de Gestión de Recursos Humanos - Chrispar Market
+
+' ====================
+' ACTORES PRINCIPALES
+' ====================
+
+Person(admin_rh, "Administrador RH", "Usuario con acceso completo")
+Person(gerente, "Gerente/Supervisor", "Usuario con permisos de gestión")
+Person(empleado, "Empleado", "Usuario con acceso limitado")
+
+System_Boundary(chrispar_system, "Sistema Chrispar HR") {
+    
+    ' ====================
+    ' CAPA DE PRESENTACIÓN
+    ' ====================
+    
+    Container(web_app, "Single Page Application", "React 19 + React Router 6", "Aplicación web moderna SPA:\n\n**Componentes principales:**\n• Dashboard (métricas y estadísticas)\n• Login (autenticación)\n• Sidebar (navegación dinámica)\n• ProtectedRoute (control de acceso)\n\n**Módulos funcionales:**\n• Empleados, Usuarios, Cargos\n• Nóminas, Rubros, Horarios\n• Asistencias, Permisos\n• Hojas de Vida, Logs\n\n**Tecnologías:**\n• Axios (HTTP client)\n• React Testing Library (20 tests)")
+    
+    ' ====================
+    ' CAPA DE APLICACIÓN
+    ' ====================
+    
+    Container(api_rest, "API REST Backend", "Flask 2.2.5 + Python 3.12", "API RESTful con arquitectura de blueprints:\n\n**Blueprints (Rutas):**\n• /api/usuarios (login, CRUD)\n• /api/empleados (gestión)\n• /api/cargos (permisos por rol)\n• /api/nominas (procesamiento)\n• /api/rubros (devengos/deducciones)\n• /api/horarios (turnos)\n• /api/asistencias (control)\n• /api/permisos (solicitudes)\n• /api/hojas-vida (CVs)\n• /api/logs (auditoría)\n\n**Características:**\n• JWT authentication (tokens)\n• CORS habilitado\n• SQLAlchemy ORM\n• Flask-Migrate (Alembic)\n• 186 tests automatizados (88% coverage)")
+    
+    ' ====================
+    ' CAPA DE PERSISTENCIA
+    ' ====================
+    
+    ContainerDb(db_postgres, "Base de Datos Relacional", "PostgreSQL 14+", "Base de datos principal:\n\n**Tablas principales:**\n• usuarios (autenticación)\n• empleados (información personal)\n• cargos (roles y permisos)\n• nominas (pagos)\n• rubros (conceptos salariales)\n• horarios (turnos de trabajo)\n• asistencias (entrada/salida)\n• permisos (ausencias)\n• hojas_vida (CVs)\n• logs_transaccionales (auditoría)\n\n**Migraciones:**\n• Versionadas con Alembic\n• Control de cambios de esquema")
+}
+
+' ====================
+' SISTEMAS EXTERNOS
+' ====================
+
+System_Ext(email_service, "Servicio de Correo SMTP", "Sistema de notificaciones:\n• Nóminas procesadas\n• Permisos aprobados/rechazados\n• Alertas administrativas\n• Recordatorios")
+
+System_Ext(browser, "Navegador Web", "Cliente web (Chrome, Firefox, Edge, Safari)")
+
+' ====================
+' RELACIONES DETALLADAS
+' ====================
+
+' Usuarios → Navegador
+Rel(admin_rh, browser, "Accede vía navegador")
+Rel(gerente, browser, "Accede vía navegador")
+Rel(empleado, browser, "Accede vía navegador")
+
+' Navegador → SPA
+Rel(browser, web_app, "Carga la aplicación", "HTTPS\nPort 3000\nHTML/CSS/JavaScript")
+
+' SPA ↔ API REST
+Rel(web_app, api_rest, "Llamadas API REST", "HTTPS/JSON\nPort 5000\nAuthorization: Bearer <JWT>\n\n**Endpoints principales:**\nPOST /api/usuarios/login\nGET /api/empleados/\nPOST /api/nominas/\nGET /api/dashboard/metrics")
+
+' API REST ↔ PostgreSQL
+Rel(api_rest, db_postgres, "ORM Queries", "PostgreSQL Protocol\nPort 5432\nSQLAlchemy ORM\n\n**Operaciones:**\nSELECT, INSERT, UPDATE, DELETE\nTransacciones ACID\nConstraints FK")
+
+' API REST → Email
+Rel(api_rest, email_service, "Envía emails", "SMTP\nPorts 587 (TLS) / 465 (SSL)\n\n**Triggers:**\n• Nómina procesada\n• Permiso aprobado/rechazado\n• Nuevo usuario creado")
+
+' ====================
+' NOTAS TÉCNICAS
+' ====================
+
+SHOW_LEGEND()
+
+@enduml
