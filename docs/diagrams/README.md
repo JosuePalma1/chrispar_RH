@@ -57,10 +57,13 @@ Este diagrama muestra la estructura técnica del sistema en términos de contene
      - Axios (cliente HTTP)
      - React Testing Library (20 tests)
 
-2. **API REST - Backend**
+2. **API REST - Backend (Arquitectura en 3 Capas)**
    - **Tecnología:** Flask 2.2.5 + Python 3.12
    - **Puerto:** 5000
-   - **Arquitectura:** Blueprints (rutas modulares)
+   - **Arquitectura en 3 capas:**
+     - **Controladores (API Routes):** Endpoints REST para cada módulo
+     - **Servicios (Lógica de Negocio):** Validaciones, procesamiento de nóminas, control de permisos
+     - **DAL (Data Access Layer):** SQLAlchemy ORM para abstracción de base de datos
    - **Endpoints principales:**
      - `/api/usuarios` (login, CRUD)
      - `/api/empleados` (gestión de empleados)
@@ -79,9 +82,10 @@ Este diagrama muestra la estructura técnica del sistema en términos de contene
      - Flask-Migrate (Alembic)
      - 186 tests automatizados (88% cobertura)
 
-3. **Base de Datos - PostgreSQL**
-   - **Versión:** PostgreSQL 14+
+3. **BD Principal (Operacional) - PostgreSQL**
+   - **Versión:** PostgreSQL 14+ OLTP
    - **Puerto:** 5432
+   - **Tipo:** Base de datos operacional para escritura/lectura transaccional
    - **Tablas principales:**
      - usuarios (autenticación)
      - empleados (información personal)
@@ -96,6 +100,35 @@ Este diagrama muestra la estructura técnica del sistema en términos de contene
    - **Gestión:**
      - Migraciones versionadas con Alembic
      - Constraints de integridad referencial
+     - Transacciones ACID
+
+4. **BD Espejo (Réplica) - PostgreSQL**
+   - **Versión:** PostgreSQL (Solo Lectura)
+   - **Puerto:** 5432
+   - **Tipo:** Base de datos de réplica para consultas
+   - **Propósito:**
+     - Reportes pesados
+     - Consultas de lectura que no afectan el rendimiento operacional
+     - Datos estructurados (CRUD de solo lectura)
+     - Balance de carga
+   - **Configuración:**
+     - Streaming Replication desde BD Principal
+     - Read-only queries
+     - Sincronización automática y continua
+
+5. **Almacenamiento de Objetos - MinIO / S3**
+   - **Tecnología:** MinIO (compatible con S3 API)
+   - **Propósito:** Gestión de archivos binarios
+   - **Tipos de archivos:**
+     - Hojas de vida (PDF)
+     - Documentos adjuntos
+     - Fotos de empleados
+     - Archivos de respaldo
+   - **Funcionalidades:**
+     - Subir/Bajar archivos (Upload/Download)
+     - URL del Archivo
+     - Versionamiento de archivos
+     - Control de acceso
 
 #### 🔄 Flujo de Comunicación entre Contenedores
 
@@ -114,20 +147,51 @@ Este diagrama muestra la estructura técnica del sistema en términos de contene
    - **Autenticación:** JWT Bearer Token
    - **Operaciones:** GET, POST, PUT, DELETE
 
-4. **API REST → Base de Datos**
+4. **API REST → BD Principal (Escritura/Lectura Transaccional)**
    - **Protocolo:** PostgreSQL Protocol (SQL/TCP)
    - **Puerto:** 5432
    - **ORM:** SQLAlchemy
-   - **Operaciones:** SELECT, INSERT, UPDATE, DELETE
+   - **Operaciones:** INSERT, UPDATE, DELETE, SELECT (transaccionales)
    - **Transacciones:** ACID
 
-5. **API REST → Servicio de Email**
+5. **API REST → BD Espejo (Lectura de Reportes)**
+   - **Protocolo:** PostgreSQL Protocol (SQL/TCP)
+   - **Puerto:** 5432
+   - **ORM:** SQLAlchemy (read-only)
+   - **Operaciones:** SELECT (reportes, consultas pesadas)
+   - **Propósito:** No afectar rendimiento de BD Principal
+
+6. **BD Principal → BD Espejo (Replicación)**
+   - **Protocolo:** PostgreSQL Streaming Replication
+   - **Tipo:** Replicación asíncrona continua
+   - **Propósito:** Mantener BD Espejo sincronizada
+
+7. **API REST → Almacenamiento de Objetos**
+   - **Protocolo:** S3 API / MinIO
+   - **Operaciones:**
+     - PUT (subir archivos)
+     - GET (descargar archivos)
+     - DELETE (eliminar archivos)
+     - URL del Archivo (generar URLs de acceso)
+
+8. **API REST → Servicio de Email**
    - **Protocolo:** SMTP
    - **Puertos:** 587 (TLS) / 465 (SSL)
    - **Triggers:**
      - Nómina procesada
      - Permiso aprobado/rechazado
      - Nuevo usuario creado
+
+#### ✅ Coherencia con Arquitectura Ideal (Actividad 1)
+
+El diagrama C4 Nivel 2 es **coherente** con la arquitectura ideal desarrollada en Actividad 1:
+
+✓ **Frontend (React)** - Aplicación web SPA  
+✓ **Backend (Flask API - Python)** - Con 3 capas: Controladores → Servicios → DAL  
+✓ **BD Principal (PostgreSQL)** - Base de datos operacional OLTP  
+✓ **BD Espejo (Réplica)** - Solo lectura para reportes y replicación  
+✓ **Almacenamiento de Objetos (MinIO/S3)** - Para archivos binarios con URL del Archivo  
+✓ **Servicio de Email (SMTP)** - Notificaciones automáticas
 
 ---
 

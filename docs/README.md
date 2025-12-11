@@ -101,31 +101,61 @@ El sistema está compuesto por tres contenedores principales que se comunican en
 - **Tecnología:** Flask 2.2.5 + Python 3.12
 - **Puerto:** 5000 (desarrollo) / configurable (producción)
 - **Responsabilidad:** Lógica de negocio y coordinación
-- **Arquitectura:** Blueprints modulares (10 módulos)
+- **Arquitectura en 3 capas:**
+  - **Controladores (API Routes):** Endpoints REST para cada módulo
+  - **Servicios (Lógica de Negocio):** Validaciones, procesamiento, control de permisos
+  - **DAL (Data Access Layer):** SQLAlchemy ORM para abstracción de base de datos
 - **Características:**
   - Autenticación JWT con roles
   - CORS para comunicación cross-origin
-  - SQLAlchemy ORM para abstracción de datos
   - Validaciones de negocio
   - Logs de auditoría automáticos
   - 186 tests automatizados (88% cobertura)
 
-#### 💾 Contenedor 3: Base de Datos (Persistencia)
-- **Tecnología:** PostgreSQL 14+
+#### 💾 Contenedor 3: BD Principal (Operacional)
+- **Tecnología:** PostgreSQL 14+ OLTP
 - **Puerto:** 5432
-- **Responsabilidad:** Almacenamiento persistente de datos
+- **Responsabilidad:** Almacenamiento persistente para operaciones transaccionales
 - **Características:**
   - 10+ tablas con relaciones
   - Integridad referencial
   - Migraciones versionadas (Alembic)
   - Transacciones ACID
 
+#### 🔄 Contenedor 4: BD Espejo (Réplica)
+- **Tecnología:** PostgreSQL (Solo Lectura)
+- **Puerto:** 5432
+- **Responsabilidad:** Réplica para reportes y consultas pesadas
+- **Características:**
+  - Streaming Replication desde BD Principal
+  - Solo lectura (read-only queries)
+  - No afecta rendimiento operacional
+  - Sincronización automática
+
+#### 📦 Contenedor 5: Almacenamiento de Objetos
+- **Tecnología:** MinIO / Amazon S3
+- **Responsabilidad:** Gestión de archivos binarios
+- **Características:**
+  - Hojas de vida (PDF)
+  - Documentos adjuntos
+  - Fotos de empleados
+  - URL del Archivo
+  - Versionamiento
+
 #### 🔄 Flujo de Comunicación
 ```
-Usuario → Navegador → [SPA React:3000] ↔ [API Flask:5000] ↔ [PostgreSQL:5432]
-                                              ↓
+Usuario → Navegador → [SPA React:3000] ↔ [API Flask:5000] ↔ [BD Principal:5432]
+                                               ↓              ↓
+                                    [MinIO/S3 Storage]   [BD Espejo:5432]
+                                               ↓
                                     [Email Service SMTP]
 ```
+
+**Coherencia con Actividad 1:**  
+✅ Arquitectura 3 capas en Backend (Controladores → Servicios → DAL)  
+✅ BD Principal + BD Espejo (Replicación)  
+✅ Almacenamiento de objetos MinIO/S3  
+✅ Frontend React + Backend Flask + PostgreSQL
 
 ## 🛠️ Tecnologías y Herramientas
 

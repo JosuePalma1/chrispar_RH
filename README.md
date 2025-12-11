@@ -48,15 +48,22 @@ El proyecto incluye documentación arquitectónica completa con diagramas C4:
 
 ### 🏗️ Diagramas de Arquitectura
 - **[C4 Nivel 1: Contexto del Sistema](docs/diagrams/)** - Vista general del sistema, actores externos y sistemas relacionados
-- **[C4 Nivel 2: Contenedores](docs/diagrams/)** - Estructura técnica (Frontend React, Backend Flask, BD PostgreSQL)
+- **[C4 Nivel 2: Contenedores](docs/diagrams/)** - Estructura técnica completa coherente con Actividad 1
 - **[Documentación Completa](docs/)** - Guías técnicas y arquitectónicas
 
 Los diagramas muestran:
 - **Nivel 1:** Sistema principal, actores externos, sistemas relacionados
-- **Nivel 2:** Arquitectura de contenedores (SPA, API REST, Base de Datos, Email Service)
-- Tecnologías específicas (React 19, Flask 2.2.5, PostgreSQL 14+)
+- **Nivel 2:** Arquitectura de contenedores completa:
+  - Frontend: SPA React 19
+  - Backend: API Flask (3 capas: Controladores → Servicios → DAL)
+  - BD Principal PostgreSQL (Operacional OLTP)
+  - BD Espejo PostgreSQL (Réplica para reportes)
+  - Almacenamiento de Objetos MinIO/S3 (archivos binarios)
+  - Servicio de Email SMTP
 - Flujo de comunicación entre componentes
-- Protocolos y puertos (HTTPS, SQL/TCP, SMTP)
+- Protocolos y puertos (HTTPS, SQL/TCP, SMTP, S3 API)
+
+**Coherencia con Actividad 1:** ✅ Arquitectura ideal implementada
 
 **Herramientas**: PlantUML con notación C4 Model
 
