@@ -74,7 +74,7 @@ function Logs() {
   };
 
   const handleFiltrar = () => {
-    setPaginacion({ ...paginacion, page: 1 }); // Resetear a página 1
+    setPaginacion({ ...paginacion, page: 1 });
     fetchLogs();
   };
 
@@ -91,13 +91,14 @@ function Logs() {
 
   const handleCambiarPagina = (nuevaPagina) => {
     setPaginacion({ ...paginacion, page: nuevaPagina });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCambiarPerPage = (e) => {
     setPaginacion({ 
       ...paginacion, 
       per_page: parseInt(e.target.value),
-      page: 1 // Resetear a página 1
+      page: 1
     });
   };
 
@@ -178,8 +179,12 @@ function Logs() {
     <div style={{ display: 'flex' }}>
       <Sidebar />
       <div className="logs-container">
-        <h2 className="title">📊 Auditoría de Transacciones</h2>
+        {/* Header con botones de exportar */}
+        <div className="logs-header">
+          <h2>Auditoría de Transacciones</h2>
+        </div>
 
+        {/* Filtros */}
         <div className="logs-filtros">
           <select 
             value={filtros.tabla} 
@@ -235,7 +240,7 @@ function Logs() {
         </div>
 
         {/* Selector de registros por página */}
-        <div className="paginacion-controles">
+        <div className="paginacion-controles-superior">
           <label>
             Mostrar: 
             <select 
@@ -251,14 +256,14 @@ function Logs() {
             registros por página
           </label>
           <span className="total-registros">
-            Total: {paginacion.total} registros
+            Total: <strong>{paginacion.total}</strong> registros
           </span>
         </div>
 
         {loading ? (
-          <p>Cargando logs...</p>
+          <p style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>Cargando logs...</p>
         ) : error ? (
-          <p className="error">{error}</p>
+          <div className="error">{error}</div>
         ) : (
           <>
             <div className="table-wrapper">
@@ -270,8 +275,8 @@ function Logs() {
                     <th>Usuario</th>
                     <th>Tabla</th>
                     <th>Operación</th>
-                    <th>Registro</th>
-                    <th>Acciones</th>
+                    <th className="th-center">Registro</th>
+                    <th className="th-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -297,8 +302,8 @@ function Logs() {
                             {log.operacion}
                           </span>
                         </td>
-                        <td>{log.id_registro}</td>
-                        <td>
+                        <td className="td-center">{log.id_registro}</td>
+                        <td className="td-center">
                           <button 
                             className="btn-ver" 
                             onClick={() => handleVerDetalles(log)}
@@ -324,7 +329,9 @@ function Logs() {
                   ◀ Anterior
                 </button>
                 
-                {generarBotonesPaginacion()}
+                <div className="numeros-pagina">
+                  {generarBotonesPaginacion()}
+                </div>
                 
                 <button
                   onClick={() => handleCambiarPagina(paginacion.page + 1)}
@@ -337,11 +344,12 @@ function Logs() {
             )}
 
             <div className="info-paginacion">
-              Mostrando {logs.length > 0 ? ((paginacion.page - 1) * paginacion.per_page + 1) : 0} - {Math.min(paginacion.page * paginacion.per_page, paginacion.total)} de {paginacion.total} registros
+              Mostrando <strong>{logs.length > 0 ? ((paginacion.page - 1) * paginacion.per_page + 1) : 0}</strong> - <strong>{Math.min(paginacion.page * paginacion.per_page, paginacion.total)}</strong> de <strong>{paginacion.total}</strong> registros
             </div>
           </>
         )}
 
+        {/* Modal */}
         {modalVisible && logSeleccionado && (
           <div className="modal-overlay" onClick={handleCerrarModal}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
