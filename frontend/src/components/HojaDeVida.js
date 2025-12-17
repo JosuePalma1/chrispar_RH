@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Sidebar from './Sidebar';
-import './HojaDeVida.css';
+import './HojaDeVida.css'; // Ahora usa el CSS que es copia de Usuarios.css
+import { FaEdit, FaTrash, FaPlus, FaTimes } from 'react-icons/fa';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
 
@@ -10,6 +11,7 @@ function HojaDeVida() {
     const [empleados, setEmpleados] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [toast, setToast] = useState(null);
 
     const [mostrarModal, setMostrarModal] = useState(false);
     const [modoEdicion, setModoEdicion] = useState(false);
@@ -26,14 +28,44 @@ function HojaDeVida() {
     const [filteredEmployees, setFilteredEmployees] = useState([]);
     const [isEmployeeSearchFocused, setIsEmployeeSearchFocused] = useState(false);
 
+    // --- Nuevos estados para paginación, búsqueda y ordenamiento ---
+    const [busqueda, setBusqueda] = useState('');
+    const [ordenamiento, setOrdenamiento] = useState({ campo: null, direccion: 'asc' });
+    const [paginaActual, setPaginaActual] = useState(1);
+    const registrosPorPagina = 5;
+    const modalRef = useRef(null);
+
     useEffect(() => {
         cargarDatos();
     }, []);
+    
+    // Cerrar modal al hacer clic fuera
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+        if (modalRef.current && !modalRef.current.contains(event.target)) {
+            cerrarModal();
+        }
+        };
+
+        if (mostrarModal) {
+        document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [mostrarModal]);
+
 
     const formatDateForInput = (dateStr) => {
         if (!dateStr) return '';
         const date = new Date(dateStr);
         return date.toISOString().split('T')[0];
+    };
+    
+    const CargarEmpleados = async (token, config) => {
+        const resEmpleados = await axios.get(`${API_URL}/api/empleados/`, config)
+        setEmpleados(resEmpleados.data);
     };
 
     const cargarDatos = async () => {
@@ -61,6 +93,13 @@ function HojaDeVida() {
     };
 
     const abrirModal = (registro = null) => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setError('No se encontró token de autenticación.');
+            return;
+        }
+        const config = { headers: { 'Authorization': `Bearer ${token}` } };
+        CargarEmpleados(token, config);
         if (registro) {
             setModoEdicion(true);
             const employeeName = empleados.find(e => e.id === registro.id_empleado);
@@ -99,14 +138,35 @@ function HojaDeVida() {
     const handleEmployeeSearchChange = (e) => {
         const query = e.target.value;
         setEmployeeSearchQuery(query);
-        if (query.length > 1) {
-            const filtered = empleados.filter(emp => 
+
+        const sortedEmpleados = [...empleados].sort((a, b) => {
+            const nameA = `${a.nombres} ${a.apellidos}`.toLowerCase();
+            const nameB = `${b.nombres} ${b.apellidos}`.toLowerCase();
+            if (nameA < nameB) return -1;
+            if (nameA > nameB) return 1;
+            return 0;
+        });
+
+        if (query) {
+            const filtered = sortedEmpleados.filter(emp =>
                 `${emp.nombres} ${emp.apellidos}`.toLowerCase().includes(query.toLowerCase())
             );
             setFilteredEmployees(filtered);
         } else {
-            setFilteredEmployees([]);
+            setFilteredEmployees(sortedEmpleados);
         }
+    };
+
+    const handleEmployeeSearchFocus = () => {
+        setIsEmployeeSearchFocused(true);
+        const sortedEmpleados = [...empleados].sort((a, b) => {
+            const nameA = `${a.nombres} ${a.apellidos}`.toLowerCase();
+            const nameB = `${b.nombres} ${b.apellidos}`.toLowerCase();
+            if (nameA < nameB) return -1;
+            if (nameA > nameB) return 1;
+            return 0;
+        });
+        setFilteredEmployees(sortedEmpleados);
     };
 
     const handleSelectEmployee = (employee) => {
@@ -122,6 +182,17 @@ function HojaDeVida() {
         if (!registroActual.id_empleado) {
             setError("Debe seleccionar un empleado de la lista.");
             return;
+        }
+
+        // Validación de fechas
+        if (registroActual.fecha_inicio && registroActual.fecha_finalizacion) {
+            const inicio = new Date(registroActual.fecha_inicio);
+            const fin = new Date(registroActual.fecha_finalizacion);
+            if (fin < inicio) {
+                setToast("La fecha de finalización no puede ser anterior a\nla fecha de inicio.");
+                setTimeout(() => setToast(null), 5000); // Ocultar el toast después de 5 segundos
+                return;
+            }
         }
 
         const dataToSend = {
@@ -160,54 +231,198 @@ function HojaDeVida() {
         }
     };
 
-    if (loading) return <div className="hv-loading">Cargando...</div>;
-    if (error) return <div className="hv-error" onClick={() => setError(null)}>{error}</div>;
+    // --- Funciones de ordenamiento, filtrado y paginación ---
+    const ordenarPor = (campo) => {
+        const direccion = ordenamiento.campo === campo && ordenamiento.direccion === 'asc' ? 'desc' : 'asc';
+        setOrdenamiento({ campo, direccion });
+    };
+
+    const getNombreEmpleado = (id_empleado) => {
+        const empleado = empleados.find(e => e.id === id_empleado);
+        return empleado ? `${empleado.nombres} ${empleado.apellidos}` : 'Desconocido';
+    };
+
+    const filtrarYOrdenarHojasVida = () => {
+        let resultado = [...hojasVida];
+
+        // Filtrado por búsqueda
+        if (busqueda) {
+            const busquedaLower = busqueda.toLowerCase();
+            resultado = resultado.filter(registro => {
+                const nombreEmpleado = getNombreEmpleado(registro.id_empleado).toLowerCase();
+                return (
+                    nombreEmpleado.includes(busquedaLower) ||
+                    registro.nombre_documento.toLowerCase().includes(busquedaLower) ||
+                    registro.tipo.toLowerCase().includes(busquedaLower) ||
+                    (registro.institucion && registro.institucion.toLowerCase().includes(busquedaLower))
+                );
+            });
+        }
+
+        // Ordenamiento
+        if (ordenamiento.campo) {
+            resultado.sort((a, b) => {
+                let valorA, valorB;
+
+                if (ordenamiento.campo === 'empleado') {
+                    valorA = getNombreEmpleado(a.id_empleado).toLowerCase();
+                    valorB = getNombreEmpleado(b.id_empleado).toLowerCase();
+                } else {
+                    valorA = a[ordenamiento.campo];
+                    valorB = b[ordenamiento.campo];
+                }
+
+                if (valorA < valorB) return ordenamiento.direccion === 'asc' ? -1 : 1;
+                if (valorA > valorB) return ordenamiento.direccion === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        
+        return resultado;
+    };
+
+    const cambiarPagina = (numeroPagina) => {
+        setPaginaActual(numeroPagina);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    if (loading) return (
+        <div style={{ display: 'flex' }}>
+            <Sidebar />
+            <div className="usuarios-container">Cargando...</div>
+        </div>
+    );
+
+    const registrosFiltrados = filtrarYOrdenarHojasVida();
+    const totalPaginas = Math.ceil(registrosFiltrados.length / registrosPorPagina);
+    const indiceInicio = (paginaActual - 1) * registrosPorPagina;
+    const indiceFin = indiceInicio + registrosPorPagina;
+    const registrosPaginados = registrosFiltrados.slice(indiceInicio, indiceFin);
 
     return (
         <div style={{ display: 'flex' }}>
             <Sidebar />
-            <div className="hv-container">
-                <div className="hv-header">
-                    <h1>Registros de Hoja de Vida</h1>
-                    <button className="btn-nuevo" onClick={() => abrirModal()}>+ Nuevo Registro</button>
+            <div className="usuarios-container">
+                <div className="usuarios-header">
+                    <h2>Gestión de Hojas de Vida</h2>
+                    <div className="header-actions">
+                        <button className="btn-nuevo" onClick={() => abrirModal()}>
+                            <FaPlus /> 
+                        </button>
+                    </div>
                 </div>
 
-                <table className="hv-table">
-                    <thead>
-                        <tr>
-                            <th>Empleado</th>
-                            <th>Documento</th>
-                            <th>Tipo</th>
-                            <th>Institución</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {hojasVida.length > 0 ? hojasVida.map(registro => {
-                            const empleado = empleados.find(e => e.id === registro.id_empleado);
-                            return (
+                {error && <div className="error-banner" onClick={() => setError(null)}>{error}</div>}
+
+                <div className="busqueda-seccion">
+                    <div className="busqueda-wrapper">
+                        <input
+                            type="text"
+                            placeholder="Buscar por empleado, documento, tipo..."
+                            value={busqueda}
+                            onChange={(e) => { setBusqueda(e.target.value); setPaginaActual(1); }}
+                            className="input-busqueda"
+                        />
+                    </div>
+                    <span className="resultados-info">
+                        Mostrando <strong>{registrosPaginados.length}</strong> de <strong>{registrosFiltrados.length}</strong> registros
+                    </span>
+                </div>
+
+                <div className="tabla-responsive">
+                    <table className="usuarios-tabla">
+                        <thead>
+                            <tr>
+                                <th onClick={() => ordenarPor('empleado')} className="th-sortable">
+                                    Empleado {ordenamiento.campo === 'empleado' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
+                                </th>
+                                <th onClick={() => ordenarPor('nombre_documento')} className="th-sortable">
+                                    Documento {ordenamiento.campo === 'nombre_documento' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
+                                </th>
+                                <th onClick={() => ordenarPor('tipo')} className="th-sortable">
+                                    Tipo {ordenamiento.campo === 'tipo' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
+                                </th>
+                                <th onClick={() => ordenarPor('institucion')} className="th-sortable">
+                                    Institución {ordenamiento.campo === 'institucion' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
+                                </th>
+                                <th className="th-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {registrosPaginados.length > 0 ? registrosPaginados.map(registro => (
                                 <tr key={registro.id_hoja_vida}>
-                                    <td>{empleado ? `${empleado.nombres} ${empleado.apellidos}` : registro.id_empleado}</td>
+                                    <td>{getNombreEmpleado(registro.id_empleado)}</td>
                                     <td>{registro.nombre_documento}</td>
                                     <td>{registro.tipo}</td>
                                     <td>{registro.institucion}</td>
-                                    <td>
-                                        <button className="btn-editar" onClick={() => abrirModal(registro)}>Editar</button>
-                                        <button className="btn-eliminar" onClick={() => eliminarRegistro(registro.id_hoja_vida)}>Eliminar</button>
+                                    <td className="td-center">
+                                        <div className="acciones-grupo">
+                                            <button className="btn-icono editar" onClick={() => abrirModal(registro)} title="Editar">
+                                                <FaEdit />
+                                            </button>
+                                            <button className="btn-icono eliminar" onClick={() => eliminarRegistro(registro.id_hoja_vida)} title="Eliminar">
+                                                <FaTrash />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
-                            );
-                        }) : (
-                            <tr><td colSpan="5">No hay registros.</td></tr>
-                        )}
-                    </tbody>
-                </table>
+                            )) : (
+                                <tr>
+                                    <td colSpan="5" className="no-data">No hay registros que mostrar</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {registrosFiltrados.length > 0 && (
+                    <div className="paginacion">
+                        <div className="paginacion-controles">
+                            <button
+                                className="btn-paginacion"
+                                onClick={() => cambiarPagina(paginaActual - 1)}
+                                disabled={paginaActual === 1}
+                            >
+                                Anterior
+                            </button>
+                            <div className="numeros-pagina">
+                                {[...Array(totalPaginas)].map((_, index) => (
+                                    <button
+                                        key={index + 1}
+                                        className={`btn-numero ${paginaActual === index + 1 ? 'activo' : ''}`}
+                                        onClick={() => cambiarPagina(index + 1)}
+                                    >
+                                        {index + 1}
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                className="btn-paginacion"
+                                onClick={() => cambiarPagina(paginaActual + 1)}
+                                disabled={paginaActual === totalPaginas}
+                            >
+                                Siguiente
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
+
+            {toast && (
+                <div className="toast">
+                    {toast}
+                </div>
+            )}
 
             {mostrarModal && (
                 <div className="modal">
-                    <div className="modal-contenido">
-                        <h3>{modoEdicion ? 'Editar Registro' : 'Nuevo Registro'}</h3>
+                    <div className="modal-contenido" ref={modalRef}>
+                        <div className="modal-header">
+                            <h3>{modoEdicion ? 'Editar Registro' : 'Nuevo Registro'}</h3>
+                             <button className="btn-cerrar-modal" onClick={cerrarModal} type="button">
+                                <FaTimes />
+                            </button>
+                        </div>
                         <form onSubmit={guardarRegistro} autoComplete="off">
                             <div className="form-grupo">
                                 <label>Empleado</label>
@@ -219,18 +434,22 @@ function HojaDeVida() {
                                             type="text"
                                             value={employeeSearchQuery}
                                             onChange={handleEmployeeSearchChange}
-                                            onFocus={() => setIsEmployeeSearchFocused(true)}
+                                            onFocus={handleEmployeeSearchFocus}
                                             onBlur={() => setTimeout(() => setIsEmployeeSearchFocused(false), 200)}
-                                            placeholder="Buscar empleado..."
+                                            placeholder="Buscar empleado por nombre..."
                                             required={!registroActual.id_empleado}
                                         />
-                                        {isEmployeeSearchFocused && filteredEmployees.length > 0 && (
+                                        {isEmployeeSearchFocused && (
                                             <ul className="search-results">
-                                                {filteredEmployees.map(emp => (
-                                                    <li key={emp.id} onClick={() => handleSelectEmployee(emp)}>
-                                                        {emp.nombres} {emp.apellidos}
-                                                    </li>
-                                                ))}
+                                                {filteredEmployees.length > 0 ? (
+                                                    filteredEmployees.map(emp => (
+                                                        <li key={emp.id} onClick={() => handleSelectEmployee(emp)}>
+                                                            {emp.nombres} {emp.apellidos}
+                                                        </li>
+                                                    ))
+                                                ) : (
+                                                    <li className="no-results">No se encontraron empleados.</li>
+                                                )}
                                             </ul>
                                         )}
                                     </div>
