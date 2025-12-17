@@ -9,12 +9,44 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
+// Mock comprehensive para todas las llamadas de la API
+const mockFetchSuccess = (empleados = [], cargos = [], asistencias = [], nominas = []) => {
+  return jest.fn((url) => {
+    if (url.includes('/api/empleados')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(empleados),
+      });
+    }
+    if (url.includes('/api/cargos')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(cargos),
+      });
+    }
+    if (url.includes('/api/asistencias')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(asistencias),
+      });
+    }
+    if (url.includes('/api/nominas')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(nominas),
+      });
+    }
+    return Promise.resolve({ ok: false, status: 404 });
+  });
+};
+
 describe('Dashboard Component', () => {
   const originalFetch = global.fetch;
 
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    global.fetch = originalFetch; // Restaurar fetch original
   });
 
   afterEach(() => {
@@ -35,25 +67,10 @@ describe('Dashboard Component', () => {
     const token = buildFakeToken({ username: 'Admin', rol: 'Administrador', user_id: 1 });
     localStorage.setItem('token', token);
 
-    global.fetch = jest.fn((url) => {
-      if (url.includes('/api/empleados/')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve([
-            { id: 1, nombres: 'Juan', apellidos: 'Pérez', cargo_id: 1, estado: 'activo' }
-          ])
-        });
-      }
-      if (url.includes('/api/cargos/')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve([
-            { id: 1, nombre_cargo: 'Gerente' }
-          ])
-        });
-      }
-      return Promise.resolve({ ok: false });
-    });
+    global.fetch = mockFetchSuccess(
+      [{ id: 1, nombres: 'Juan', apellidos: 'Pérez', cargo_id: 1, estado: 'activo' }],
+      [{ id: 1, nombre_cargo: 'Gerente' }]
+    );
 
     render(
       <MemoryRouter>
@@ -80,21 +97,7 @@ describe('Dashboard Component', () => {
       { id: 3, nombre_cargo: 'Desarrollador' }
     ];
 
-    global.fetch = jest.fn((url) => {
-      if (url.includes('/api/empleados/')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockEmpleados)
-        });
-      }
-      if (url.includes('/api/cargos/')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockCargos)
-        });
-      }
-      return Promise.resolve({ ok: false });
-    });
+    global.fetch = mockFetchSuccess(mockEmpleados, mockCargos);
 
     render(
       <MemoryRouter>
@@ -136,13 +139,16 @@ describe('Dashboard Component', () => {
 
     const mockAlert = jest.spyOn(window, 'alert').mockImplementation(() => {});
 
-    global.fetch = jest.fn(() =>
-      Promise.resolve({
-        ok: false,
-        status: 401,
-        json: () => Promise.resolve({ error: 'Token expirado' })
-      })
-    );
+    global.fetch = jest.fn((url) => {
+        if (url.includes('/api/empleados/')) {
+            return Promise.resolve({
+                ok: false,
+                status: 401,
+                json: () => Promise.resolve({ error: 'Token expirado' })
+            });
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+    });
 
     render(
       <MemoryRouter>
@@ -176,9 +182,14 @@ describe('Dashboard Component', () => {
     );
 
     expect(screen.getByText(/Cargando/i)).toBeInTheDocument();
+    
+    // Esperar a que la carga finalice para evitar el error de handle abierto
+    await waitFor(() => {
+        expect(screen.queryByText(/Cargando/i)).not.toBeInTheDocument();
+    }, { timeout: 200 });
   });
 
-  test('redirects to login with invalid token', () => {
+  test('redirects to login with invalid token', async () => {
     localStorage.setItem('token', 'invalid-token');
 
     render(
@@ -187,7 +198,9 @@ describe('Dashboard Component', () => {
       </MemoryRouter>
     );
 
-    expect(mockNavigate).toHaveBeenCalledWith('/');
-    expect(localStorage.getItem('token')).toBeNull();
+    await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/');
+        expect(localStorage.getItem('token')).toBeNull();
+    });
   });
 });

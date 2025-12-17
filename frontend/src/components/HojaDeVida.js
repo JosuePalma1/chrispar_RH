@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Sidebar from './Sidebar';
-import './HojaDeVida.css'; // Ahora usa el CSS que es copia de Usuarios.css
+import './HojaDeVida.css';
 import { FaEdit, FaTrash, FaPlus, FaTimes } from 'react-icons/fa';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
@@ -189,7 +189,7 @@ function HojaDeVida() {
             const inicio = new Date(registroActual.fecha_inicio);
             const fin = new Date(registroActual.fecha_finalizacion);
             if (fin < inicio) {
-                setToast("La fecha de finalización no puede ser anterior a\nla fecha de inicio.");
+                setToast("La fecha de finalización no puede ser anterior a la fecha de inicio.");
                 setTimeout(() => setToast(null), 5000); // Ocultar el toast después de 5 segundos
                 return;
             }
@@ -417,11 +417,11 @@ function HojaDeVida() {
             {mostrarModal && (
                 <div className="modal">
                     <div className="modal-contenido" ref={modalRef}>
+                        <button className="btn-cerrar-modal" onClick={cerrarModal} type="button">
+                            <FaTimes />
+                        </button>
                         <div className="modal-header">
-                            <h3>{modoEdicion ? 'Editar Registro' : 'Nuevo Registro'}</h3>
-                             <button className="btn-cerrar-modal" onClick={cerrarModal} type="button">
-                                <FaTimes />
-                            </button>
+                            <h3>{modoEdicion ? 'Editar Hoja de Vida' : 'Nueva Hoja de Vida'}</h3>
                         </div>
                         <form onSubmit={guardarRegistro} autoComplete="off">
                             <div className="form-grupo">
@@ -455,30 +455,34 @@ function HojaDeVida() {
                                     </div>
                                 )}
                             </div>
-                            <div className="form-grupo">
-                                <label>Tipo de Registro</label>
-                                <select name="tipo" value={registroActual.tipo} onChange={handleChange}>
-                                    <option value="Educacion">Educación</option>
-                                    <option value="Experiencia">Experiencia Laboral</option>
-                                    <option value="Certificacion">Certificación</option>
-                                    <option value="Otro">Otro</option>
-                                </select>
-                            </div>
-                            <div className="form-grupo">
-                                <label>Nombre del Documento/Título</label>
-                                <input type="text" name="nombre_documento" value={registroActual.nombre_documento} onChange={handleChange} required />
+                            <div className="form-row">
+                                <div className="form-grupo">
+                                    <label>Tipo de Registro</label>
+                                    <select name="tipo" value={registroActual.tipo} onChange={handleChange}>
+                                        <option value="Educacion">Educación</option>
+                                        <option value="Experiencia">Experiencia Laboral</option>
+                                        <option value="Certificacion">Certificación</option>
+                                        <option value="Otro">Otro</option>
+                                    </select>
+                                </div>
+                                <div className="form-grupo">
+                                    <label>Nombre del Documento/Título</label>
+                                    <input type="text" name="nombre_documento" value={registroActual.nombre_documento} onChange={handleChange} required />
+                                </div>
                             </div>
                             <div className="form-grupo">
                                 <label>Institución o Empresa</label>
                                 <input type="text" name="institucion" value={registroActual.institucion} onChange={handleChange} />
                             </div>
-                            <div className="form-grupo">
-                                <label>Fecha de Inicio</label>
-                                <input type="date" name="fecha_inicio" value={registroActual.fecha_inicio} onChange={handleChange} />
-                            </div>
-                            <div className="form-grupo">
-                                <label>Fecha de Finalización</label>
-                                <input type="date" name="fecha_finalizacion" value={registroActual.fecha_finalizacion} onChange={handleChange} />
+                            <div className="form-row">
+                                <div className="form-grupo">
+                                    <label>Fecha de Inicio</label>
+                                    <input type="date" name="fecha_inicio" value={registroActual.fecha_inicio} onChange={handleChange} />
+                                </div>
+                                <div className="form-grupo">
+                                    <label>Fecha de Finalización</label>
+                                    <input type="date" name="fecha_finalizacion" value={registroActual.fecha_finalizacion} onChange={handleChange} />
+                                </div>
                             </div>
                             <div className="form-botones">
                                 <button type="submit" className="btn-guardar">Guardar</button>

@@ -1,8 +1,8 @@
-"""Migracion inicial
+"""Versión inicial de la BD
 
-Revision ID: 89dc3d096235
+Revision ID: 937c54b404e8
 Revises: 
-Create Date: 2025-11-30 18:30:36.870441
+Create Date: 2025-12-17 12:31:06.796098
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '89dc3d096235'
+revision = '937c54b404e8'
 down_revision = None
 branch_labels = None
 depends_on = None
