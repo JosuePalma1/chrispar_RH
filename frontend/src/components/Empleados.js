@@ -1,10 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { FaEdit, FaTrash, FaEye, FaFilePdf, FaFileExcel, FaPlus, FaTimes, FaSave } from 'react-icons/fa';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { FaEdit, FaTrash, FaFilePdf, FaFileExcel, FaPlus, FaTimes, FaSave } from 'react-icons/fa';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import Sidebar from './Sidebar';
 import './Empleados.css';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  flexRender
+} from '@tanstack/react-table';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
 
@@ -13,14 +21,15 @@ function Empleados() {
   const [cargos, setCargos] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
   const [busqueda, setBusqueda] = useState('');
-  const [ordenamiento, setOrdenamiento] = useState({ campo: null, direccion: 'asc' });
   const [rolUsuario, setRolUsuario] = useState('');
   const [idUsuarioActual, setIdUsuarioActual] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [usuarioPendiente, setUsuarioPendiente] = useState(null);
-  const [paginaActual, setPaginaActual] = useState(1);
-  const registrosPorPagina = 5;
+  const [toast, setToast] = useState(null);
+  const [toastType, setToastType] = useState('success');
+  const [modalConfirmacion, setModalConfirmacion] = useState(false);
+  const [empleadoAEliminar, setEmpleadoAEliminar] = useState(null);
   const modalRef = useRef(null);
   const [empleadoActual, setEmpleadoActual] = useState({
     id: null,
@@ -136,7 +145,7 @@ function Empleados() {
     }
   };
 
-  const abrirModal = (empleado = null) => {
+  const abrirModal = useCallback((empleado = null) => {
     if (empleado) {
       // Convertir fechas de YYYY-MM-DD a formato input date
       const formatearFecha = (fecha) => {
@@ -189,10 +198,16 @@ function Empleados() {
       setModoEdicion(false);
     }
     setMostrarModal(true);
-  };
+  }, []);
 
   const cerrarModal = () => {
     setMostrarModal(false);
+  };
+
+  const mostrarToast = (mensaje, tipo = 'success') => {
+    setToast(mensaje);
+    setToastType(tipo);
+    setTimeout(() => setToast(null), 5000);
   };
 
   const abrirModalConUsuario = (usuario) => {
@@ -244,12 +259,15 @@ function Empleados() {
         });
       } else {
         // Usuario sin cargo correspondiente, mantener el cargo actual
-        alert(`El usuario tiene el rol "${usuarioSeleccionado.rol}" pero no existe un cargo con ese nombre. Por favor, selecciona el cargo manualmente.`);
+        mostrarToast(
+          `El usuario tiene el rol "${usuarioSeleccionado.rol}" pero no existe un cargo con ese nombre. Por favor, selecciona el cargo manualmente.`,
+          'error'
+        );
         setEmpleadoActual({...empleadoActual, id_usuario: idUsuario});
       }
     } else {
       // Usuario sin rol definido, mantener el cargo actual
-      alert('El usuario no tiene un rol asignado. Por favor, selecciona el cargo manualmente.');
+      mostrarToast('El usuario no tiene un rol asignado. Por favor, selecciona el cargo manualmente.', 'error');
       setEmpleadoActual({...empleadoActual, id_usuario: idUsuario});
     }
   };
@@ -289,7 +307,7 @@ function Empleados() {
     
     // Validar que cargo_id tenga valor
     if (!empleadoActual.cargo_id) {
-      alert('Debe seleccionar un cargo');
+      mostrarToast('Debe seleccionar un cargo', 'error');
       return;
     }
     
@@ -299,7 +317,7 @@ function Empleados() {
         emp => emp.id_usuario === parseInt(empleadoActual.id_usuario) && emp.id !== empleadoActual.id
       );
       if (usuarioYaAsignado) {
-        alert('Este usuario ya está asignado a otro empleado');
+        mostrarToast('Este usuario ya está asignado a otro empleado', 'error');
         return;
       }
     }
@@ -307,20 +325,20 @@ function Empleados() {
     // Validar fecha de ingreso no sea anterior a fecha de nacimiento
     if (empleadoActual.fecha_nacimiento && empleadoActual.fecha_ingreso) {
       if (new Date(empleadoActual.fecha_ingreso) < new Date(empleadoActual.fecha_nacimiento)) {
-        alert('La fecha de ingreso no puede ser anterior a la fecha de nacimiento');
+        mostrarToast('La fecha de ingreso no puede ser anterior a la fecha de nacimiento', 'error');
         return;
       }
     }
     
     // Validar cédula
     if (empleadoActual.cedula.length !== 10) {
-      alert('La cédula debe tener exactamente 10 dígitos');
+      mostrarToast('La cédula debe tener exactamente 10 dígitos', 'error');
       return;
     }
     
     // Validar número de cuenta si se ingresó
     if (empleadoActual.numero_cuenta_bancaria && empleadoActual.numero_cuenta_bancaria.length !== 10) {
-      alert('El número de cuenta debe tener exactamente 10 dígitos');
+      mostrarToast('El número de cuenta debe tener exactamente 10 dígitos', 'error');
       return;
     }
     
@@ -354,133 +372,181 @@ function Empleados() {
       });
 
       if (response.ok) {
-        alert('Empleado guardado exitosamente');
+        mostrarToast('Empleado guardado exitosamente', 'success');
         cargarEmpleados();
         cerrarModal();
       } else {
         const error = await response.json();
-        alert(`Error: ${error.error || 'No se pudo guardar el empleado'}`);
+        mostrarToast(`Error: ${error.error || 'No se pudo guardar el empleado'}`, 'error');
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al guardar el empleado');
+      mostrarToast('Error al guardar el empleado', 'error');
     }
   };
 
-  const eliminarEmpleado = async (id) => {
-    if (window.confirm('¿Estás seguro de eliminar este empleado?')) {
-      const token = localStorage.getItem('token');
-      try {
-        const response = await fetch(`${API_URL}/api/empleados/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (response.ok) {
-          alert('Empleado eliminado exitosamente');
-          cargarEmpleados();
-        } else {
-          const error = await response.json();
-          alert(`Error: ${error.error || 'No se pudo eliminar el empleado'}`);
+  const confirmarEliminarEmpleado = useCallback((id) => {
+    setEmpleadoAEliminar(id);
+    setModalConfirmacion(true);
+  }, []);
+
+  const eliminarEmpleado = useCallback(async () => {
+    if (!empleadoAEliminar) return;
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`${API_URL}/api/empleados/${empleadoAEliminar}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Error al eliminar el empleado');
+      });
+      
+      if (response.ok) {
+        // Eliminación es acción destructiva: mantenerlo en rojo
+        mostrarToast('Empleado eliminado exitosamente', 'error');
+        cargarEmpleados();
+      } else {
+        const error = await response.json();
+        mostrarToast(`Error: ${error.error || 'No se pudo eliminar el empleado'}`, 'error');
       }
+    } catch (error) {
+      console.error('Error:', error);
+      mostrarToast('Error al eliminar el empleado', 'error');
     }
-  };
+    setModalConfirmacion(false);
+    setEmpleadoAEliminar(null);
+  }, [empleadoAEliminar]);
 
-  const getNombreCargo = (cargo_id) => {
+  const getNombreCargo = useCallback((cargo_id) => {
     const cargo = cargos.find(c => c.id === cargo_id);
     return cargo ? cargo.nombre_cargo : 'N/A';
-  };
+  }, [cargos]);
 
-  const ordenarPor = (campo) => {
-    const direccion = ordenamiento.campo === campo && ordenamiento.direccion === 'asc' ? 'desc' : 'asc';
-    setOrdenamiento({ campo, direccion });
-  };
-
-  const filtrarEmpleados = () => {
+  // Filtrar datos según permisos del usuario
+  const datosVisibles = useMemo(() => {
     if (!Array.isArray(empleados)) return [];
-    return empleados.filter(empleado => {
-      const busquedaLower = busqueda.toLowerCase();
-      const usuario = Array.isArray(usuarios) ? usuarios.find(u => u.id === empleado.id_usuario) : null;
-      const nombreUsuario = usuario?.username || '';
-      const nombreCargo = getNombreCargo(empleado.cargo_id);
-      
-      return (
-        (empleado.cedula || '').includes(busquedaLower) ||
-        (empleado.nombres || '').toLowerCase().includes(busquedaLower) ||
-        (empleado.apellidos || '').toLowerCase().includes(busquedaLower) ||
-        nombreUsuario.toLowerCase().includes(busquedaLower) ||
-        nombreCargo.toLowerCase().includes(busquedaLower) ||
-        (empleado.fecha_ingreso || '').includes(busquedaLower)
-      );
-    });
-  };
-
-  const obtenerEmpleadosFiltradosYOrdenados = () => {
-    let resultado = filtrarEmpleados();
-
-    // Filtrar visualmente si no es admin o supervisor
     const esAdminOSupervisor = rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor';
     if (!esAdminOSupervisor) {
-      resultado = resultado.filter(emp => emp.id_usuario === idUsuarioActual);
+      return empleados.filter(emp => emp.id_usuario === idUsuarioActual);
     }
+    return empleados;
+  }, [empleados, rolUsuario, idUsuarioActual]);
 
-    if (ordenamiento.campo) {
-      resultado.sort((a, b) => {
-        let valorA, valorB;
+  // Definir columnas para TanStack Table
+  const columns = useMemo(
+    () => [
+      {
+        accessorKey: 'cedula',
+        header: 'Cédula',
+        cell: info => info.getValue(),
+        enableGlobalFilter: true,
+      },
+      {
+        accessorKey: 'nombres',
+        header: 'Nombres',
+        cell: info => info.getValue(),
+        enableGlobalFilter: true,
+      },
+      {
+        accessorKey: 'apellidos',
+        header: 'Apellidos',
+        cell: info => info.getValue(),
+        enableGlobalFilter: true,
+      },
+      {
+        id: 'usuario',
+        header: 'Usuario',
+        accessorFn: row => {
+          const usuario = Array.isArray(usuarios) ? usuarios.find(u => u.id === row.id_usuario) : null;
+          return usuario?.username || 'Sin usuario';
+        },
+        cell: info => info.getValue(),
+        enableGlobalFilter: true,
+      },
+      {
+        id: 'cargo',
+        header: 'Cargo',
+        accessorFn: row => getNombreCargo(row.cargo_id),
+        cell: info => info.getValue(),
+        enableGlobalFilter: true,
+      },
+      {
+        accessorKey: 'estado',
+        header: 'Estado',
+        cell: info => <span className={`estado ${info.getValue()}`}>{info.getValue()}</span>,
+        enableGlobalFilter: true,
+      },
+      {
+        accessorKey: 'fecha_ingreso',
+        header: 'Fecha Ingreso',
+        cell: info => <span className="td-center">{info.getValue()}</span>,
+        enableGlobalFilter: true,
+      },
+      {
+        id: 'acciones',
+        header: 'Acciones',
+        cell: ({ row }) => {
+          const empleado = row.original;
+          return (
+            <div className="acciones-grupo">
+              {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') ? (
+                <>
+                  <button className="btn-icono editar" onClick={() => abrirModal(empleado)} title="Editar">
+                    <FaEdit />
+                  </button>
+                  {(rolUsuario === 'admin' || rolUsuario === 'Administrador') && (
+                    <button className="btn-icono eliminar" onClick={() => confirmarEliminarEmpleado(empleado.id)} title="Eliminar">
+                      <FaTrash />
+                    </button>
+                  )}
+                </>
+              ) : empleado.id_usuario === idUsuarioActual ? (
+                <button className="btn-icono editar" onClick={() => abrirModal(empleado)} title="Editar">
+                  <FaEdit />
+                </button>
+              ) : (
+                <span style={{color: '#999'}}>-</span>
+              )}
+            </div>
+          );
+        },
+        enableSorting: false,
+        enableGlobalFilter: false,
+      },
+    ],
+    [rolUsuario, idUsuarioActual, usuarios, getNombreCargo, confirmarEliminarEmpleado, abrirModal]
+  );
 
-        if (ordenamiento.campo === 'usuario') {
-          const usuarioA = usuarios.find(u => u.id === a.id_usuario);
-          const usuarioB = usuarios.find(u => u.id === b.id_usuario);
-          valorA = (usuarioA?.username || '').toLowerCase();
-          valorB = (usuarioB?.username || '').toLowerCase();
-        } else if (ordenamiento.campo === 'cargo') {
-          valorA = getNombreCargo(a.cargo_id).toLowerCase();
-          valorB = getNombreCargo(b.cargo_id).toLowerCase();
-        } else if (ordenamiento.campo === 'fecha_ingreso') {
-          valorA = new Date(a.fecha_ingreso || '1900-01-01');
-          valorB = new Date(b.fecha_ingreso || '1900-01-01');
-        } else {
-          valorA = (a[ordenamiento.campo] || '').toString().toLowerCase();
-          valorB = (b[ordenamiento.campo] || '').toString().toLowerCase();
-        }
-
-        if (valorA < valorB) return ordenamiento.direccion === 'asc' ? -1 : 1;
-        if (valorA > valorB) return ordenamiento.direccion === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-
-    return resultado;
-  };
-
-  // Paginación
-  const empleadosFiltrados = obtenerEmpleadosFiltradosYOrdenados();
-  const indiceInicio = (paginaActual - 1) * registrosPorPagina;
-  const indiceFin = indiceInicio + registrosPorPagina;
-  const empleadosPaginados = empleadosFiltrados.slice(indiceInicio, indiceFin);
-
-  const cambiarPagina = (numeroPagina) => {
-    setPaginaActual(numeroPagina);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  // Configurar la tabla con TanStack Table
+  const table = useReactTable({
+    data: datosVisibles,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    state: {
+      globalFilter: busqueda,
+    },
+    onGlobalFilterChange: setBusqueda,
+    initialState: {
+      pagination: {
+        pageSize: 5,
+      },
+    },
+  });
 
   // Exportar a PDF
   const exportarPDF = () => {
     const doc = new jsPDF();
     doc.text('Listado de Empleados', 14, 15);
     
-    const datos = empleadosFiltrados.map(empleado => [
-      empleado.cedula,
-      `${empleado.nombres} ${empleado.apellidos}`,
-      getNombreCargo(empleado.cargo_id),
-      empleado.fecha_ingreso ? new Date(empleado.fecha_ingreso).toLocaleDateString() : 'N/A',
-      empleado.estado
+    const datos = table.getFilteredRowModel().rows.map(row => [
+      row.original.cedula,
+      `${row.original.nombres} ${row.original.apellidos}`,
+      getNombreCargo(row.original.cargo_id),
+      row.original.fecha_ingreso ? new Date(row.original.fecha_ingreso).toLocaleDateString() : 'N/A',
+      row.original.estado
     ]);
 
     autoTable(doc, {
@@ -494,14 +560,14 @@ function Empleados() {
 
   // Exportar a Excel
   const exportarExcel = () => {
-    const datos = empleadosFiltrados.map(empleado => ({
-      'Cédula': empleado.cedula,
-      'Nombres': empleado.nombres,
-      'Apellidos': empleado.apellidos,
-      'Cargo': getNombreCargo(empleado.cargo_id),
-      'Fecha Nacimiento': empleado.fecha_nacimiento ? new Date(empleado.fecha_nacimiento).toLocaleDateString() : 'N/A',
-      'Fecha Ingreso': empleado.fecha_ingreso ? new Date(empleado.fecha_ingreso).toLocaleDateString() : 'N/A',
-      'Estado': empleado.estado
+    const datos = table.getFilteredRowModel().rows.map(row => ({
+      'Cédula': row.original.cedula,
+      'Nombres': row.original.nombres,
+      'Apellidos': row.original.apellidos,
+      'Cargo': getNombreCargo(row.original.cargo_id),
+      'Fecha Nacimiento': row.original.fecha_nacimiento ? new Date(row.original.fecha_nacimiento).toLocaleDateString() : 'N/A',
+      'Fecha Ingreso': row.original.fecha_ingreso ? new Date(row.original.fecha_ingreso).toLocaleDateString() : 'N/A',
+      'Estado': row.original.estado
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(datos);
@@ -541,8 +607,8 @@ function Empleados() {
               <FaFileExcel /> Excel
             </button>
             {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') && (
-              <button className="btn-nuevo" onClick={() => abrirModal()}>
-                <FaPlus /> Nuevo Empleado
+              <button className="btn-nuevo" onClick={() => abrirModal()} title="Nuevo Empleado">
+                <FaPlus />
               </button>
             )}
           </div>
@@ -559,102 +625,72 @@ function Empleados() {
             />
           </div>
           <span className="resultados-info">
-            Mostrando <strong>{empleadosPaginados.length}</strong> de <strong>{empleadosFiltrados.length}</strong> registros
+            Mostrando <strong>{table.getRowModel().rows.length}</strong> de <strong>{table.getFilteredRowModel().rows.length}</strong> registros
           </span>
         </div>
 
         <div className="tabla-responsive">
-        <table className="empleados-tabla">
-        <thead>
-          <tr>
-            <th className="th-sortable" onClick={() => ordenarPor('cedula')}>
-              Cédula {ordenamiento.campo === 'cedula' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
-            </th>
-            <th className="th-sortable" onClick={() => ordenarPor('nombres')}>
-              Nombres {ordenamiento.campo === 'nombres' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
-            </th>
-            <th className="th-sortable" onClick={() => ordenarPor('apellidos')}>
-              Apellidos {ordenamiento.campo === 'apellidos' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
-            </th>
-            <th className="th-sortable" onClick={() => ordenarPor('usuario')}>
-              Usuario {ordenamiento.campo === 'usuario' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
-            </th>
-            <th className="th-sortable" onClick={() => ordenarPor('cargo')}>
-              Cargo {ordenamiento.campo === 'cargo' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
-            </th>
-            <th className="th-sortable th-center" onClick={() => ordenarPor('estado')}>
-              Estado {ordenamiento.campo === 'estado' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
-            </th>
-            <th className="th-sortable th-center" onClick={() => ordenarPor('fecha_ingreso')}>
-              Fecha Ingreso {ordenamiento.campo === 'fecha_ingreso' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
-            </th>
-            <th className="th-center">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {empleadosPaginados.length === 0 ? (
-            <tr>
-              <td colSpan="8" className="no-data">No se encontraron empleados</td>
-            </tr>
-          ) : (
-            empleadosPaginados.map(empleado => (
-            <tr key={empleado.id}>
-              <td>{empleado.cedula}</td>
-              <td>{empleado.nombres}</td>
-              <td>{empleado.apellidos}</td>
-              <td>{Array.isArray(usuarios) ? (usuarios.find(u => u.id === empleado.id_usuario)?.username || 'Sin usuario') : 'Cargando...'}</td>
-              <td>{getNombreCargo(empleado.cargo_id)}</td>
-              <td className="td-center">
-                <span className={`estado ${empleado.estado}`}>{empleado.estado}</span>
-              </td>
-              <td className="td-center">{empleado.fecha_ingreso}</td>
-              <td className="td-center">
-                <div className="acciones-grupo">
-                  {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') ? (
-                    <>
-                      <button className="btn-icono editar" onClick={() => abrirModal(empleado)} title="Editar">
-                        <FaEdit />
-                      </button>
-                      {(rolUsuario === 'admin' || rolUsuario === 'Administrador') && (
-                        <button className="btn-icono eliminar" onClick={() => eliminarEmpleado(empleado.id)} title="Eliminar">
-                          <FaTrash />
-                        </button>
+          <table className="empleados-tabla">
+            <thead>
+              {table.getHeaderGroups().map(headerGroup => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map(header => (
+                    <th 
+                      key={header.id}
+                      onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
+                      className={header.column.getCanSort() ? 'th-sortable' : ''}
+                      style={{ cursor: header.column.getCanSort() ? 'pointer' : 'default' }}
+                    >
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.column.getCanSort() && (
+                        <span>
+                          {header.column.getIsSorted() === 'asc' && ' ▲'}
+                          {header.column.getIsSorted() === 'desc' && ' ▼'}
+                        </span>
                       )}
-                    </>
-                  ) : empleado.id_usuario === idUsuarioActual ? (
-                    <button className="btn-icono editar" onClick={() => abrirModal(empleado)} title="Editar">
-                      <FaEdit />
-                    </button>
-                  ) : (
-                    <span style={{color: '#999'}}>-</span>
-                  )}
-                </div>
-              </td>
-            </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-      </div>
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody>
+              {table.getRowModel().rows.length === 0 ? (
+                <tr>
+                  <td colSpan={columns.length} className="no-data">No se encontraron empleados</td>
+                </tr>
+              ) : (
+                table.getRowModel().rows.map(row => (
+                  <tr key={row.id}>
+                    {row.getVisibleCells().map(cell => (
+                      <td key={cell.id} className="td-center">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
       {/* Paginación */}
-      {empleadosFiltrados.length > 0 && (
+      {table.getPageCount() > 1 && (
         <div className="paginacion">
           <div className="paginacion-controles">
             <button 
               className="btn-paginacion" 
-              onClick={() => cambiarPagina(paginaActual - 1)}
-              disabled={paginaActual === 1}
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
             >
               Anterior
             </button>
             
             <div className="numeros-pagina">
-              {[...Array(Math.ceil(empleadosFiltrados.length / registrosPorPagina))].map((_, index) => (
+              {[...Array(table.getPageCount())].map((_, index) => (
                 <button
                   key={index + 1}
-                  className={`btn-numero ${paginaActual === index + 1 ? 'activo' : ''}`}
-                  onClick={() => cambiarPagina(index + 1)}
+                  className={`btn-numero ${table.getState().pagination.pageIndex === index ? 'activo' : ''}`}
+                  onClick={() => table.setPageIndex(index)}
                 >
                   {index + 1}
                 </button>
@@ -663,8 +699,8 @@ function Empleados() {
 
             <button 
               className="btn-paginacion" 
-              onClick={() => cambiarPagina(paginaActual + 1)}
-              disabled={paginaActual === Math.ceil(empleadosFiltrados.length / registrosPorPagina)}
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
             >
               Siguiente
             </button>
@@ -862,6 +898,36 @@ function Empleados() {
                 <button type="button" className="btn-cancelar" onClick={cerrarModal}>Cancelar</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className={`toast toast-${toastType}`}>
+          {toast}
+        </div>
+      )}
+
+      {modalConfirmacion && (
+        <div className="modal">
+          <div className="modal-contenido-confirmacion">
+            <h3>Confirmar eliminación</h3>
+            <p>
+              ¿Estás seguro de eliminar este empleado:{' '}
+              <strong>
+                "{empleados.find(e => e.id === empleadoAEliminar)
+                  ? `${empleados.find(e => e.id === empleadoAEliminar)?.nombres || ''} ${empleados.find(e => e.id === empleadoAEliminar)?.apellidos || ''}`.trim()
+                  : ''}"
+              </strong>?
+            </p>
+            <div className="form-botones">
+              <button className="btn-eliminar" onClick={eliminarEmpleado}>
+                Eliminar
+              </button>
+              <button className="btn-cancelar" onClick={() => { setModalConfirmacion(false); setEmpleadoAEliminar(null); }}>
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -148,6 +148,28 @@
   border-collapse: collapse;
   font-size: 14px;
   background-color: white;
+  table-layout: fixed;
+}
+
+/* Ajuste de anchos para evitar “huecos” excesivos entre columnas */
+.cargos-tabla th:nth-child(1),
+.cargos-tabla td:nth-child(1) {
+  width: 45%;
+}
+
+.cargos-tabla th:nth-child(2),
+.cargos-tabla td:nth-child(2) {
+  width: 15%;
+}
+
+.cargos-tabla th:nth-child(3),
+.cargos-tabla td:nth-child(3) {
+  width: 20%;
+}
+
+.cargos-tabla th:nth-child(4),
+.cargos-tabla td:nth-child(4) {
+  width: 20%;
 }
 
 .cargos-tabla thead {
@@ -160,7 +182,7 @@
 }
 
 .cargos-tabla th {
-  padding: 15px 20px;
+  padding: 14px 12px;
   text-align: left;
   font-weight: 600;
   cursor: pointer;
@@ -168,6 +190,7 @@
   background-color: #34495e !important;
   color: white !important;
   transition: opacity 0.2s;
+  white-space: nowrap;
 }
 
 .cargos-tabla th:hover {
@@ -176,6 +199,10 @@
 
 .cargos-tabla th.th-sortable {
   position: relative;
+}
+
+.th-left {
+  text-align: left !important;
 }
 
 .th-center {
@@ -187,9 +214,10 @@
 }
 
 .cargos-tabla td {
-  padding: 15px 20px;
+  padding: 14px 12px;
   text-align: left;
   border-bottom: 1px solid #ecf0f1;
+  vertical-align: middle;
 }
 
 .td-left {
@@ -608,4 +636,86 @@
     flex-direction: column;
     gap: 15px;
   }
+}
+
+/* Toast Notifications */
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  padding: 15px 25px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  z-index: 1001;
+  font-size: 16px;
+  opacity: 0;
+  animation: toast-in 0.5s forwards;
+  white-space: pre-wrap;
+  text-align: center;
+  min-width: 300px;
+}
+
+.toast.toast-success {
+  background-color: #27ae60 !important;
+}
+
+.toast.toast-error {
+  background-color: #e74c3c !important;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* Modal de Confirmación */
+.modal-contenido-confirmacion {
+  background-color: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  max-width: 450px;
+  width: 90%;
+  text-align: center;
+}
+
+.modal-contenido-confirmacion h3 {
+  margin: 0 0 15px 0;
+  color: #2c3e50;
+  font-size: 1.5rem;
+}
+
+.modal-contenido-confirmacion p {
+  margin-bottom: 25px;
+  color: #555;
+  font-size: 1.1rem;
+}
+
+.modal-contenido-confirmacion .btn-eliminar {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  background-color: #e74c3c !important;
+  color: white !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-contenido-confirmacion .btn-eliminar:hover {
+  background-color: #c0392b !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
 }

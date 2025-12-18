@@ -89,7 +89,7 @@ def crear_empleado(current_user):
 @token_required
 def listar_empleados(current_user):
     try:
-        empleados = Empleado.query.all()
+        empleados = Empleado.query.order_by(Empleado.id.asc()).all()
         result = []
         for e in empleados:
             result.append({

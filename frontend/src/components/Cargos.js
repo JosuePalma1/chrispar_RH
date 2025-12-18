@@ -1,10 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Sidebar from './Sidebar';
 import './Cargos.css';
 import { FaEdit, FaTrash, FaEye, FaFilePdf, FaFileExcel, FaPlus, FaTimes, FaSave } from 'react-icons/fa';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  flexRender
+} from '@tanstack/react-table';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
 
@@ -14,10 +22,11 @@ function Cargos() {
   const [modoEdicion, setModoEdicion] = useState(false);
   const [error, setError] = useState('');
   const [busqueda, setBusqueda] = useState('');
-  const [ordenamiento, setOrdenamiento] = useState({ campo: null, direccion: 'asc' });
   const [rolUsuario, setRolUsuario] = useState('');
-  const [paginaActual, setPaginaActual] = useState(1);
-  const registrosPorPagina = 5;
+  const [toast, setToast] = useState(null);
+  const [toastType, setToastType] = useState('success');
+  const [modalConfirmacion, setModalConfirmacion] = useState(false);
+  const [cargoAEliminar, setCargoAEliminar] = useState(null);
   const modalRef = useRef(null);
   const [cargoActual, setCargoActual] = useState({
     id: null,
@@ -77,7 +86,7 @@ function Cargos() {
     }
   };
 
-  const abrirModal = (cargo = null) => {
+  const abrirModal = useCallback((cargo = null) => {
     if (cargo) {
       setCargoActual({
         ...cargo,
@@ -94,7 +103,7 @@ function Cargos() {
       setModoEdicion(false);
     }
     setMostrarModal(true);
-  };
+  }, []);
 
   const togglePermiso = (moduloId) => {
     const permisosActuales = [...cargoActual.permisos];
@@ -140,9 +149,22 @@ function Cargos() {
     });
   };
 
+  const mostrarToast = (mensaje, tipo = 'success') => {
+    setToast(mensaje);
+    setToastType(tipo);
+    setTimeout(() => setToast(null), 5000);
+  };
+
   const guardarCargo = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
+
+    const payload = {
+      ...cargoActual,
+      sueldo_base: cargoActual.sueldo_base === '' || cargoActual.sueldo_base === null
+        ? 0
+        : Number(cargoActual.sueldo_base)
+    };
     
     try {
       const url = modoEdicion 
@@ -157,91 +179,146 @@ function Cargos() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(cargoActual)
+        body: JSON.stringify(payload)
       });
 
       if (response.ok) {
-        alert(`Cargo ${modoEdicion ? 'actualizado' : 'creado'} exitosamente`);
+        mostrarToast(`Cargo ${modoEdicion ? 'actualizado' : 'creado'} exitosamente`, 'success');
         cargarCargos();
         cerrarModal();
       } else {
         const errorData = await response.json();
-        alert(`Error: ${errorData.error || 'No se pudo guardar el cargo'}`);
+        mostrarToast(`Error: ${errorData.error || 'No se pudo guardar el cargo'}`, 'error');
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error de conexión al guardar el cargo');
+      mostrarToast('Error de conexión al guardar el cargo', 'error');
     }
   };
 
-  const eliminarCargo = async (id) => {
-    if (window.confirm('¿Estás seguro de eliminar este cargo?')) {
-      const token = localStorage.getItem('token');
-      try {
-        const response = await fetch(`${API_URL}/api/cargos/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (response.ok) {
-          alert('Cargo eliminado exitosamente');
-          cargarCargos();
-        } else {
-          const error = await response.json();
-          alert(`Error: ${error.error || 'No se pudo eliminar el cargo'}`);
+  const confirmarEliminarCargo = useCallback((id) => {
+    setCargoAEliminar(id);
+    setModalConfirmacion(true);
+  }, []);
+
+  const eliminarCargo = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`${API_URL}/api/cargos/${cargoAEliminar}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Error al eliminar el cargo');
-      }
-    }
-  };
-
-  const ordenarPor = (campo) => {
-    const direccion = ordenamiento.campo === campo && ordenamiento.direccion === 'asc' ? 'desc' : 'asc';
-    setOrdenamiento({ campo, direccion });
-  };
-
-  const obtenerCargosFiltradosYOrdenados = () => {
-    let resultado = cargos.filter(cargo => 
-      cargo.nombre_cargo.toLowerCase().includes(busqueda.toLowerCase())
-    );
-
-    if (ordenamiento.campo) {
-      resultado.sort((a, b) => {
-        let valorA = a[ordenamiento.campo];
-        let valorB = b[ordenamiento.campo];
-
-        if (ordenamiento.campo === 'sueldo_base') {
-          valorA = parseFloat(valorA);
-          valorB = parseFloat(valorB);
-        } else if (typeof valorA === 'string') {
-          valorA = valorA.toLowerCase();
-          valorB = valorB.toLowerCase();
-        }
-
-        if (valorA < valorB) return ordenamiento.direccion === 'asc' ? -1 : 1;
-        if (valorA > valorB) return ordenamiento.direccion === 'asc' ? 1 : -1;
-        return 0;
       });
+      
+      if (response.ok) {
+        mostrarToast('Cargo eliminado exitosamente', 'error');
+        cargarCargos();
+      } else {
+        const error = await response.json();
+        mostrarToast(`Error: ${error.error || 'No se pudo eliminar el cargo'}`, 'error');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      mostrarToast('Error al eliminar el cargo', 'error');
     }
+    setModalConfirmacion(false);
+    setCargoAEliminar(null);
+  }, [cargoAEliminar]);
 
-    return resultado;
-  };
+  // Definir columnas para TanStack Table
+  const columns = useMemo(
+    () => [
+      {
+        accessorKey: 'nombre_cargo',
+        header: 'Cargo',
+        cell: info => <span className="td-left">{info.getValue()}</span>,
+        enableGlobalFilter: true,
+        meta: { headerClassName: 'th-left', cellClassName: 'td-left' }
+      },
+      {
+        accessorKey: 'sueldo_base',
+        header: 'Salario Base (USD)',
+        cell: info => <span className="td-left">${parseFloat(info.getValue()).toFixed(2)}</span>,
+        enableGlobalFilter: false,
+        meta: { headerClassName: 'th-left', cellClassName: 'td-left' }
+      },
+      {
+        accessorKey: 'permisos',
+        header: 'Permisos',
+        cell: info => <span className="td-center">{(info.getValue() || []).length} módulos</span>,
+        enableSorting: false,
+        enableGlobalFilter: false,
+        meta: { headerClassName: 'th-center', cellClassName: 'td-center' }
+      },
+      {
+        id: 'acciones',
+        header: 'Acciones',
+        cell: ({ row }) => (
+          <div className="acciones-grupo">
+            {(rolUsuario === 'admin' || rolUsuario === 'Administrador') ? (
+              <>
+                <button className="btn-icono editar" onClick={() => abrirModal(row.original)} title="Editar">
+                  <FaEdit />
+                </button>
+                <button className="btn-icono eliminar" onClick={() => confirmarEliminarCargo(row.original.id)} title="Eliminar">
+                  <FaTrash />
+                </button>
+              </>
+            ) : (rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') ? (
+              <>
+                <button className="btn-icono editar" onClick={() => abrirModal(row.original)} title="Editar">
+                  <FaEdit />
+                </button>
+              </>
+            ) : (
+              <button className="btn-icono btn-ver" onClick={() => abrirModal(row.original)} title="Ver">
+                <FaEye />
+              </button>
+            )}
+          </div>
+        ),
+        enableSorting: false,
+        enableGlobalFilter: false,
+        meta: { headerClassName: 'th-center', cellClassName: 'td-center' }
+      },
+    ],
+    [rolUsuario, abrirModal, confirmarEliminarCargo]
+  );
 
-  // Paginación
-  const cargosFiltrados = obtenerCargosFiltradosYOrdenados();
-  const totalPaginas = Math.ceil(cargosFiltrados.length / registrosPorPagina);
-  const indiceInicio = (paginaActual - 1) * registrosPorPagina;
-  const indiceFin = indiceInicio + registrosPorPagina;
-  const cargosPaginados = cargosFiltrados.slice(indiceInicio, indiceFin);
+  // Configurar la tabla con TanStack Table
+  const table = useReactTable({
+    data: cargos,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    autoResetPageIndex: false,
+    state: {
+      globalFilter: busqueda,
+    },
+    onGlobalFilterChange: setBusqueda,
+    initialState: {
+      pagination: {
+        pageSize: 5,
+      },
+    },
+  });
 
-  const cambiarPagina = (numeroPagina) => {
-    setPaginaActual(numeroPagina);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  // Cuando cambia la búsqueda, volver a la primera página
+  useEffect(() => {
+    table.setPageIndex(0);
+  }, [busqueda, table]);
+
+  // Si al eliminar/regargar datos quedamos fuera de rango, ajustar página
+  const pageCount = table.getPageCount();
+  const pageIndex = table.getState().pagination.pageIndex;
+  useEffect(() => {
+    if (pageCount > 0 && pageIndex > pageCount - 1) {
+      table.setPageIndex(Math.max(pageCount - 1, 0));
+    }
+  }, [pageCount, pageIndex, table]);
 
   // Exportar a PDF
   const exportarPDF = () => {
@@ -251,10 +328,10 @@ function Cargos() {
     doc.setFontSize(11);
     doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 30);
     
-    const datos = cargosFiltrados.map(cargo => [
-      cargo.nombre_cargo,
-      `$${parseFloat(cargo.sueldo_base).toFixed(2)}`,
-      (cargo.permisos || []).length
+    const datos = table.getFilteredRowModel().rows.map(row => [
+      row.original.nombre_cargo,
+      `$${parseFloat(row.original.sueldo_base).toFixed(2)}`,
+      (row.original.permisos || []).length
     ]);
 
     autoTable(doc, {
@@ -270,11 +347,11 @@ function Cargos() {
 
   // Exportar a Excel
   const exportarExcel = () => {
-    const datos = cargosFiltrados.map(cargo => ({
-      'Cargo': cargo.nombre_cargo,
-      'Sueldo Base (USD)': parseFloat(cargo.sueldo_base).toFixed(2),
-      'Cantidad de Permisos': (cargo.permisos || []).length,
-      'Permisos': (cargo.permisos || []).join(', ')
+    const datos = table.getFilteredRowModel().rows.map(row => ({
+      'Cargo': row.original.nombre_cargo,
+      'Sueldo Base (USD)': parseFloat(row.original.sueldo_base).toFixed(2),
+      'Cantidad de Permisos': (row.original.permisos || []).length,
+      'Permisos': (row.original.permisos || []).join(', ')
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(datos);
@@ -314,8 +391,8 @@ function Cargos() {
               <FaFileExcel /> Excel
             </button>
             {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') && (
-              <button className="btn-nuevo" onClick={() => abrirModal()}>
-                <FaPlus /> Nuevo Cargo
+              <button className="btn-nuevo" onClick={() => abrirModal()} title="Nuevo Cargo">
+                <FaPlus />
               </button>
             )}
           </div>
@@ -329,64 +406,58 @@ function Cargos() {
               type="text"
               placeholder="Buscar por nombre del cargo..."
               value={busqueda}
-              onChange={(e) => {setBusqueda(e.target.value); setPaginaActual(1);}}
+              onChange={(e) => setBusqueda(e.target.value)}
               className="input-busqueda"
             />
           </div>
           <span className="resultados-info">
-            Mostrando <strong>{cargosPaginados.length}</strong> de <strong>{cargosFiltrados.length}</strong> registros
+            Mostrando <strong>{table.getRowModel().rows.length}</strong> de <strong>{table.getFilteredRowModel().rows.length}</strong> registros
           </span>
         </div>
 
         <div className="tabla-responsive">
           <table className="cargos-tabla">
             <thead>
-              <tr>
-                <th onClick={() => ordenarPor('nombre_cargo')} className="th-sortable">
-                  Cargo {ordenamiento.campo === 'nombre_cargo' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
-                </th>
-                <th onClick={() => ordenarPor('sueldo_base')} className="th-sortable th-right">
-                  Salario Base (USD) {ordenamiento.campo === 'sueldo_base' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
-                </th>
-                <th className="th-center">Permisos</th>
-                <th className="th-center">Acciones</th>
-              </tr>
+              {table.getHeaderGroups().map(headerGroup => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map(header => (
+                    <th 
+                      key={header.id}
+                      onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
+                      className={`
+                        ${header.column.getCanSort() ? 'th-sortable' : ''} 
+                        ${header.column.columnDef.meta?.headerClassName || ''}
+                      `.trim()}
+                      style={{ cursor: header.column.getCanSort() ? 'pointer' : 'default' }}
+                    >
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.column.getCanSort() && (
+                        <span>
+                          {header.column.getIsSorted() === 'asc' && ' ▲'}
+                          {header.column.getIsSorted() === 'desc' && ' ▼'}
+                        </span>
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              ))}
             </thead>
             <tbody>
-              {cargosPaginados.length === 0 ? (
+              {table.getRowModel().rows.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="no-data">No hay cargos que mostrar</td>
+                  <td colSpan={columns.length} className="no-data">No hay cargos que mostrar</td>
                 </tr>
               ) : (
-                cargosPaginados.map(cargo => (
-                  <tr key={cargo.id}>
-                    <td className="td-left">{cargo.nombre_cargo}</td>
-                    <td className="td-right">${parseFloat(cargo.sueldo_base).toFixed(2)}</td>
-                    <td className="td-center">{(cargo.permisos || []).length} módulos</td>
-                    <td className="td-center">
-                      <div className="acciones-grupo">
-                        {(rolUsuario === 'admin' || rolUsuario === 'Administrador') ? (
-                          <>
-                            <button className="btn-icono editar" onClick={() => abrirModal(cargo)} title="Editar">
-                              <FaEdit />
-                            </button>
-                            <button className="btn-icono eliminar" onClick={() => eliminarCargo(cargo.id)} title="Eliminar">
-                              <FaTrash />
-                            </button>
-                          </>
-                        ) : (rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') ? (
-                          <>
-                            <button className="btn-icono editar" onClick={() => abrirModal(cargo)} title="Editar">
-                              <FaEdit />
-                            </button>
-                          </>
-                        ) : (
-                          <button className="btn-icono btn-ver" onClick={() => abrirModal(cargo)} title="Ver">
-                            <FaEye />
-                          </button>
-                        )}
-                      </div>
-                    </td>
+                table.getRowModel().rows.map(row => (
+                  <tr key={row.id}>
+                    {row.getVisibleCells().map(cell => (
+                      <td
+                        key={cell.id}
+                        className={cell.column.columnDef.meta?.cellClassName || ''}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
                   </tr>
                 ))
               )}
@@ -395,29 +466,29 @@ function Cargos() {
         </div>
 
         {/* Paginación */}
-        {totalPaginas > 1 && (
+        {table.getPageCount() > 1 && (
           <div className="paginacion">
             <button 
-              onClick={() => cambiarPagina(paginaActual - 1)} 
-              disabled={paginaActual === 1}
+              onClick={() => table.previousPage()} 
+              disabled={!table.getCanPreviousPage()}
               className="btn-paginacion"
             >
               Anterior
             </button>
             <div className="numeros-pagina">
-              {[...Array(totalPaginas)].map((_, index) => (
+              {[...Array(table.getPageCount())].map((_, index) => (
                 <button
                   key={index + 1}
-                  onClick={() => cambiarPagina(index + 1)}
-                  className={`btn-numero ${paginaActual === index + 1 ? 'activo' : ''}`}
+                  onClick={() => table.setPageIndex(index)}
+                  className={`btn-numero ${table.getState().pagination.pageIndex === index ? 'activo' : ''}`}
                 >
                   {index + 1}
                 </button>
               ))}
             </div>
             <button 
-              onClick={() => cambiarPagina(paginaActual + 1)} 
-              disabled={paginaActual === totalPaginas}
+              onClick={() => table.nextPage()} 
+              disabled={!table.getCanNextPage()}
               className="btn-paginacion"
             >
               Siguiente
@@ -507,6 +578,29 @@ function Cargos() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className={`toast toast-${toastType}`}>
+          {toast}
+        </div>
+      )}
+
+      {modalConfirmacion && (
+        <div className="modal">
+          <div className="modal-contenido-confirmacion">
+            <h3>Confirmar eliminación</h3>
+            <p>¿Estás seguro de eliminar este cargo: <strong>"{cargos.find(c => c.id === cargoAEliminar)?.nombre_cargo}"</strong>?</p>
+            <div className="form-botones">
+              <button className="btn-eliminar" onClick={eliminarCargo}>
+                Eliminar
+              </button>
+              <button className="btn-cancelar" onClick={() => setModalConfirmacion(false)}>
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}

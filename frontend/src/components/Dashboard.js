@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import './Dashboard.css';
@@ -14,7 +14,7 @@ import {
     PointElement,
     LineElement
 } from 'chart.js';
-import { Bar, Doughnut, Line } from 'react-chartjs-2';
+import { Bar, Doughnut } from 'react-chartjs-2';
 
 ChartJS.register(
     CategoryScale,
@@ -33,10 +33,21 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
 function Dashboard() {
     const navigate = useNavigate();
     const [usuario, setUsuario] = useState(null);
+    const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+    const [profileMenuView, setProfileMenuView] = useState('main');
+    const profileMenuRef = useRef(null);
+
+    const [toast, setToast] = useState(null);
+    const [toastType, setToastType] = useState('success');
+
+    const [perfilUsername, setPerfilUsername] = useState('');
+    const [passwordActual, setPasswordActual] = useState('');
+    const [passwordNueva, setPasswordNueva] = useState('');
+    const [passwordConfirmacion, setPasswordConfirmacion] = useState('');
     const [empleados, setEmpleados] = useState([]);
+    const [empleadosPageIndex, setEmpleadosPageIndex] = useState(0);
     const [cargos, setCargos] = useState([]);
     const [asistencias, setAsistencias] = useState([]);
-    const [nominas, setNominas] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState(null);
     const [estadisticas, setEstadisticas] = useState({
@@ -63,6 +74,7 @@ function Dashboard() {
                 rol: payload.rol,
                 id: payload.user_id
             });
+            setPerfilUsername(payload.username || '');
         } catch (error) {
             console.error('Error al decodificar token:', error);
             localStorage.removeItem('token');
@@ -73,12 +85,99 @@ function Dashboard() {
         cargarDatos(token);
     }, [navigate]);
 
+    const mostrarToast = (mensaje, tipo = 'success') => {
+        setToast(mensaje);
+        setToastType(tipo);
+        setTimeout(() => setToast(null), 5000);
+    };
+
+    const getTokenPayload = () => {
+        const token = localStorage.getItem('token');
+        if (!token) return null;
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload;
+        } catch {
+            return null;
+        }
+    };
+
+    const [sessionRemainingSeconds, setSessionRemainingSeconds] = useState(null);
+
+    useEffect(() => {
+        const update = () => {
+            const exp = getTokenPayload()?.exp;
+            if (!exp) {
+                setSessionRemainingSeconds(null);
+                return;
+            }
+            const remaining = Math.max(0, Math.floor(exp - Date.now() / 1000));
+            setSessionRemainingSeconds(remaining);
+        };
+
+        update();
+        const id = setInterval(update, 30_000);
+        return () => clearInterval(id);
+    }, []);
+
+    const sessionStatus = useMemo(() => {
+        if (sessionRemainingSeconds == null) {
+            return { label: 'Sesión activa', variant: 'ok' };
+        }
+
+        const minutes = Math.ceil(sessionRemainingSeconds / 60);
+        if (sessionRemainingSeconds <= 5 * 60) {
+            return { label: `Sesión por expirar (${minutes} min)`, variant: 'warn' };
+        }
+        return { label: `Sesión activa (${minutes} min)`, variant: 'ok' };
+    }, [sessionRemainingSeconds]);
+
+    useEffect(() => {
+        if (!profileMenuOpen) return;
+
+        const onMouseDown = (event) => {
+            if (!profileMenuRef.current) return;
+            if (!profileMenuRef.current.contains(event.target)) {
+                setProfileMenuOpen(false);
+                setProfileMenuView('main');
+            }
+        };
+
+        const onKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                setProfileMenuOpen(false);
+                setProfileMenuView('main');
+            }
+        };
+
+        document.addEventListener('mousedown', onMouseDown);
+        document.addEventListener('keydown', onKeyDown);
+        return () => {
+            document.removeEventListener('mousedown', onMouseDown);
+            document.removeEventListener('keydown', onKeyDown);
+        };
+    }, [profileMenuOpen]);
+
+    const EMPLEADOS_PAGE_SIZE = 8;
+    const empleadosTotalPages = Math.max(1, Math.ceil(empleados.length / EMPLEADOS_PAGE_SIZE));
+    const empleadosPageStart = empleadosPageIndex * EMPLEADOS_PAGE_SIZE;
+    const empleadosPageEndExclusive = Math.min(empleadosPageStart + EMPLEADOS_PAGE_SIZE, empleados.length);
+    const empleadosPaginaActual = empleados.slice(empleadosPageStart, empleadosPageEndExclusive);
+
+    useEffect(() => {
+        if (empleadosPageIndex > empleadosTotalPages - 1) {
+            setEmpleadosPageIndex(Math.max(empleadosTotalPages - 1, 0));
+        }
+        if (empleados.length > 0 && empleadosPageIndex < 0) {
+            setEmpleadosPageIndex(0);
+        }
+    }, [empleados.length, empleadosPageIndex, empleadosTotalPages]);
+
     const cargarDatos = async (token) => {
         await Promise.all([
             cargarEmpleados(token),
             cargarCargos(token),
-            cargarAsistencias(token),
-            cargarNominas(token)
+            cargarAsistencias(token)
         ]);
     };
 
@@ -121,25 +220,6 @@ function Dashboard() {
         }
     };
 
-    const cargarNominas = async (token) => {
-        try {
-            const respuesta = await fetch(`${API_URL}/api/nominas/`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            
-            if (respuesta.ok) {
-                const data = await respuesta.json();
-                setNominas(data);
-            }
-        } catch (err) {
-            console.error('Error al cargar nóminas:', err);
-        }
-    };
-
     const cargarEmpleados = async (token) => {
         try {
             setCargando(true);
@@ -165,6 +245,7 @@ function Dashboard() {
 
             const data = await respuesta.json();
             setEmpleados(data);
+            setEmpleadosPageIndex(0);
             setError(null);
             calcularEstadisticas(data, cargos);
             
@@ -202,6 +283,106 @@ function Dashboard() {
     const handleLogout = () => {
         localStorage.removeItem('token');
         navigate('/');
+    };
+
+    const guardarPerfil = async (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('token');
+        if (!token) {
+            handleLogout();
+            return;
+        }
+
+        const username = (perfilUsername || '').trim();
+        if (!username) {
+            mostrarToast('El username es requerido.', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/api/usuarios/me`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ username })
+            });
+
+            const body = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                mostrarToast(`Error: ${body.error || 'No se pudo actualizar el perfil'}`, 'error');
+                return;
+            }
+
+            if (body.token) {
+                localStorage.setItem('token', body.token);
+            }
+
+            setUsuario((prev) => prev ? ({ ...prev, username: body.usuario?.username || username }) : prev);
+            mostrarToast('Perfil actualizado exitosamente.', 'success');
+            setProfileMenuView('main');
+            setProfileMenuOpen(false);
+        } catch (err) {
+            console.error(err);
+            mostrarToast('Error al actualizar el perfil.', 'error');
+        }
+    };
+
+    const cambiarPassword = async (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('token');
+        if (!token) {
+            handleLogout();
+            return;
+        }
+
+        if (!passwordActual || !passwordNueva || !passwordConfirmacion) {
+            mostrarToast('Completa todos los campos.', 'error');
+            return;
+        }
+
+        if (passwordNueva !== passwordConfirmacion) {
+            mostrarToast('La confirmación no coincide con la nueva contraseña.', 'error');
+            return;
+        }
+
+        if (passwordNueva.length < 4) {
+            mostrarToast('La nueva contraseña debe tener al menos 4 caracteres.', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/api/usuarios/me/password`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    current_password: passwordActual,
+                    new_password: passwordNueva
+                })
+            });
+
+            const body = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                mostrarToast(`Error: ${body.error || 'No se pudo cambiar la contraseña'}`, 'error');
+                return;
+            }
+
+            mostrarToast('Contraseña actualizada exitosamente.', 'success');
+            setPasswordActual('');
+            setPasswordNueva('');
+            setPasswordConfirmacion('');
+            setProfileMenuView('main');
+            setProfileMenuOpen(false);
+        } catch (err) {
+            console.error(err);
+            mostrarToast('Error al cambiar la contraseña.', 'error');
+        }
     };
 
     const getNombreCargo = (cargo_id) => {
@@ -353,12 +534,135 @@ function Dashboard() {
                     <div className="user-info">
                         <h1>Bienvenido, {usuario.username}</h1>
                         <p className="user-role">Rol: {usuario.rol}</p>
-                        <p className="session-status">✅ Sesión activa</p>
+                        <p className={`session-status session-status-${sessionStatus.variant}`}>● {sessionStatus.label}</p>
                     </div>
-                    <button onClick={handleLogout} className="btn-logout">
-                        Cerrar Sesión
-                    </button>
+                    <div className="profile-menu" ref={profileMenuRef}>
+                        <button
+                            type="button"
+                            className="btn-profile"
+                            aria-haspopup="menu"
+                            aria-expanded={profileMenuOpen}
+                            onClick={() => {
+                                setProfileMenuOpen((v) => !v);
+                                setProfileMenuView('main');
+                            }}
+                        >
+                            {usuario.username} ▾
+                        </button>
+
+                        {profileMenuOpen && (
+                            <div className="profile-dropdown" role="menu">
+                                {profileMenuView === 'main' && (
+                                    <>
+                                        <div className="profile-dropdown-header">
+                                            <div className="profile-dropdown-user">
+                                                <div className="profile-dropdown-name">{usuario.username}</div>
+                                                <div className="profile-dropdown-role">{usuario.rol}</div>
+                                            </div>
+                                            <div className={`profile-session profile-session-${sessionStatus.variant}`}>
+                                                ● {sessionStatus.label}
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            className="profile-item"
+                                            onClick={() => setProfileMenuView('profile')}
+                                            role="menuitem"
+                                        >
+                                            Mi perfil
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="profile-item"
+                                            onClick={() => setProfileMenuView('password')}
+                                            role="menuitem"
+                                        >
+                                            Cambiar contraseña
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="profile-item profile-item-danger"
+                                            onClick={handleLogout}
+                                            role="menuitem"
+                                        >
+                                            Cerrar sesión
+                                        </button>
+                                    </>
+                                )}
+
+                                {profileMenuView === 'profile' && (
+                                    <form className="profile-form" onSubmit={guardarPerfil}>
+                                        <div className="profile-form-title">Mi perfil</div>
+                                        <label className="profile-label">
+                                            Username
+                                            <input
+                                                className="profile-input"
+                                                value={perfilUsername}
+                                                onChange={(e) => setPerfilUsername(e.target.value)}
+                                            />
+                                        </label>
+                                        <div className="profile-actions">
+                                            <button type="button" className="profile-btn" onClick={() => setProfileMenuView('main')}>
+                                                Volver
+                                            </button>
+                                            <button type="submit" className="profile-btn profile-btn-primary">
+                                                Guardar
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
+
+                                {profileMenuView === 'password' && (
+                                    <form className="profile-form" onSubmit={cambiarPassword}>
+                                        <div className="profile-form-title">Cambiar contraseña</div>
+                                        <label className="profile-label">
+                                            Contraseña actual
+                                            <input
+                                                className="profile-input"
+                                                type="password"
+                                                value={passwordActual}
+                                                onChange={(e) => setPasswordActual(e.target.value)}
+                                            />
+                                        </label>
+                                        <label className="profile-label">
+                                            Nueva contraseña
+                                            <input
+                                                className="profile-input"
+                                                type="password"
+                                                value={passwordNueva}
+                                                onChange={(e) => setPasswordNueva(e.target.value)}
+                                            />
+                                        </label>
+                                        <label className="profile-label">
+                                            Confirmar nueva contraseña
+                                            <input
+                                                className="profile-input"
+                                                type="password"
+                                                value={passwordConfirmacion}
+                                                onChange={(e) => setPasswordConfirmacion(e.target.value)}
+                                            />
+                                        </label>
+                                        <div className="profile-actions">
+                                            <button type="button" className="profile-btn" onClick={() => setProfileMenuView('main')}>
+                                                Volver
+                                            </button>
+                                            <button type="submit" className="profile-btn profile-btn-primary">
+                                                Guardar
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </header>
+
+                {toast && (
+                    <div className={`toast toast-${toastType}`}>
+                        {toast}
+                    </div>
+                )}
 
                 {cargando && (
                     <div className="loading">
@@ -462,7 +766,7 @@ function Dashboard() {
                                                 </td>
                                             </tr>
                                         ) : (
-                                            empleados.map(empleado => (
+                                            empleadosPaginaActual.map(empleado => (
                                                 <tr key={empleado.id}>
                                                     <td>{empleado.id}</td>
                                                     <td>{empleado.nombres} {empleado.apellidos}</td>
@@ -478,6 +782,43 @@ function Dashboard() {
                                     </tbody>
                                 </table>
                             </div>
+
+                            {empleados.length > EMPLEADOS_PAGE_SIZE && (
+                                <div className="dashboard-pagination">
+                                    <div className="dashboard-pagination-info">
+                                        Mostrando <strong>{empleadosPageStart + 1}</strong>–<strong>{empleadosPageEndExclusive}</strong> de <strong>{empleados.length}</strong>
+                                    </div>
+                                    <div className="dashboard-pagination-controls">
+                                        <button
+                                            className="dashboard-page-nav"
+                                            onClick={() => setEmpleadosPageIndex((prev) => Math.max(prev - 1, 0))}
+                                            disabled={empleadosPageIndex === 0}
+                                        >
+                                            Anterior
+                                        </button>
+
+                                        <div className="dashboard-page-numbers">
+                                            {[...Array(empleadosTotalPages)].map((_, index) => (
+                                                <button
+                                                    key={index}
+                                                    className={`dashboard-page-number ${empleadosPageIndex === index ? 'active' : ''}`}
+                                                    onClick={() => setEmpleadosPageIndex(index)}
+                                                >
+                                                    {index + 1}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <button
+                                            className="dashboard-page-nav"
+                                            onClick={() => setEmpleadosPageIndex((prev) => Math.min(prev + 1, empleadosTotalPages - 1))}
+                                            disabled={empleadosPageIndex >= empleadosTotalPages - 1}
+                                        >
+                                            Siguiente
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </section>
                     </>
                 )}

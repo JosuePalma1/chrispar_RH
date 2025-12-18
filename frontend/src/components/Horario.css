@@ -641,7 +641,6 @@
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background-color: #e74c3c;
     color: white;
     padding: 15px 25px;
     border-radius: 8px;
@@ -652,12 +651,21 @@
     animation: toast-in 0.5s forwards;
     white-space: pre-wrap;
     text-align: center;
+    min-width: 300px;
+}
+
+.toast.toast-success {
+  background-color: #27ae60 !important;
+}
+
+.toast.toast-error {
+  background-color: #e74c3c !important;
 }
 
 @keyframes toast-in {
     from {
         opacity: 0;
-        transform: translate(-50%, 20px);
+    transform: translate(-50%, -20px);
     }
     to {
         opacity: 1;

@@ -5,7 +5,7 @@ from models.log_transaccional import LogTransaccional
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import json
-from utils.auth import generate_token, admin_required
+from utils.auth import generate_token, admin_required, token_required
 
 usuario_bp = Blueprint('usuario', __name__, url_prefix='/api/usuarios')
 
@@ -88,7 +88,7 @@ def crear_usuario(current_user):
 @admin_required
 def obtener_usuarios(current_user):
     try:
-        usuarios = Usuario.query.all()
+        usuarios = Usuario.query.order_by(Usuario.id.asc()).all()
         
         resultado = []
         for usuario in usuarios:
@@ -325,3 +325,126 @@ def obtener_usuarios_por_rol(current_user, rol):
         
     except Exception as e:
         return jsonify({"error": f"Error al obtener usuarios: {str(e)}"}), 500
+
+
+# PERFIL - Obtener mi perfil
+@usuario_bp.route('/me', methods=['GET'])
+@token_required
+def obtener_mi_perfil(current_user):
+    return jsonify({
+        "id": current_user.id,
+        "username": current_user.username,
+        "rol": current_user.rol,
+        "fecha_creacion": current_user.fecha_creacion.isoformat() if current_user.fecha_creacion else None,
+        "fecha_actualizacion": current_user.fecha_actualizacion.isoformat() if current_user.fecha_actualizacion else None
+    }), 200
+
+
+# PERFIL - Actualizar mi perfil (solo username)
+@usuario_bp.route('/me', methods=['PUT'])
+@token_required
+def actualizar_mi_perfil(current_user):
+    try:
+        data = request.get_json() or {}
+
+        if 'username' not in data:
+            return jsonify({"error": "No hay cambios para guardar"}), 400
+
+        nuevo_username = (data.get('username') or '').strip()
+        if not nuevo_username:
+            return jsonify({"error": "El username es requerido"}), 400
+
+        # Verificar unicidad (si cambió)
+        if nuevo_username != current_user.username:
+            usuario_existente = Usuario.query.filter_by(username=nuevo_username).first()
+            if usuario_existente:
+                return jsonify({"error": "El nombre de usuario ya existe"}), 400
+            current_user.username = nuevo_username
+
+        current_user.fecha_actualizacion = datetime.utcnow()
+        db.session.commit()
+
+        # Emitir token actualizado (username en payload)
+        token = generate_token(current_user.id, current_user.username, current_user.rol)
+
+        # REGISTRAR LOG
+        try:
+            log = LogTransaccional(
+                tabla_afectada='usuarios',
+                operacion='UPDATE_PROFILE',
+                id_registro=current_user.id,
+                usuario=current_user.username,
+                datos_nuevos=json.dumps({
+                    'evento': 'perfil_actualizado',
+                    'username': current_user.username,
+                    'timestamp': datetime.utcnow().isoformat()
+                })
+            )
+            db.session.add(log)
+            db.session.commit()
+        except Exception as log_error:
+            print(f" Error al registrar log: {log_error}")
+
+        return jsonify({
+            "mensaje": "Perfil actualizado exitosamente",
+            "token": token,
+            "usuario": {
+                "id": current_user.id,
+                "username": current_user.username,
+                "rol": current_user.rol
+            }
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Error al actualizar perfil: {str(e)}"}), 500
+
+
+# SEGURIDAD - Cambiar mi contraseña
+@usuario_bp.route('/me/password', methods=['PUT'])
+@token_required
+def cambiar_mi_contrasena(current_user):
+    try:
+        data = request.get_json() or {}
+        current_password = data.get('current_password')
+        new_password = data.get('new_password')
+
+        if not current_password or not new_password:
+            return jsonify({"error": "current_password y new_password son requeridos"}), 400
+
+        if not check_password_hash(current_user.password, current_password):
+            return jsonify({"error": "La contraseña actual no es correcta"}), 400
+
+        if current_password == new_password:
+            return jsonify({"error": "La nueva contraseña debe ser diferente a la actual"}), 400
+
+        # Validación mínima (mantener simple)
+        if len(str(new_password)) < 4:
+            return jsonify({"error": "La nueva contraseña debe tener al menos 4 caracteres"}), 400
+
+        current_user.password = generate_password_hash(new_password)
+        current_user.fecha_actualizacion = datetime.utcnow()
+        db.session.commit()
+
+        # REGISTRAR LOG (sin incluir password)
+        try:
+            log = LogTransaccional(
+                tabla_afectada='usuarios',
+                operacion='UPDATE_PASSWORD',
+                id_registro=current_user.id,
+                usuario=current_user.username,
+                datos_nuevos=json.dumps({
+                    'evento': 'password_actualizado',
+                    'timestamp': datetime.utcnow().isoformat()
+                })
+            )
+            db.session.add(log)
+            db.session.commit()
+        except Exception as log_error:
+            print(f" Error al registrar log: {log_error}")
+
+        return jsonify({"mensaje": "Contraseña actualizada exitosamente"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Error al cambiar contraseña: {str(e)}"}), 500

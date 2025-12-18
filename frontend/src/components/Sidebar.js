@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import './Sidebar.css';
 import { 
     FaHome, FaUsers, FaUserTie, FaIdCard, FaCalendarAlt, 
@@ -8,8 +9,12 @@ import {
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
 const AVAILABLE_MODULES = ['dashboard', 'cargos', 'usuarios', 'empleados', 'hojas-vida', 'horarios', 'nomina', 'rubros', 'logs', 'permisos', 'asistencias'];
+const SIDEBAR_MENU_STATE_KEY = 'sidebar.menuAbierto';
 
 function Sidebar() {
+    const location = useLocation();
+    const isDashboardRoute = location.pathname === '/dashboard';
+
     const [permisos, setPermisos] = useState(['dashboard']);
 
     useEffect(() => {
@@ -59,15 +64,50 @@ function Sidebar() {
         cargarPermisos();
     }, []);
 
-    const [menuAbierto, setMenuAbierto] = useState({
-        personal: true,
-        tiempo: false,
-        financiero: false,
-        sistema: false
+    const [menuAbiertoUser, setMenuAbiertoUser] = useState(() => {
+        const defaults = {
+            personal: false,
+            tiempo: false,
+            financiero: false,
+            sistema: false,
+        };
+
+        try {
+            const raw = localStorage.getItem(SIDEBAR_MENU_STATE_KEY);
+            if (!raw) return defaults;
+            const parsed = JSON.parse(raw);
+            return {
+                ...defaults,
+                ...Object.fromEntries(
+                    Object.entries(parsed || {}).filter(([key]) => key in defaults)
+                ),
+            };
+        } catch {
+            return defaults;
+        }
     });
 
+    // Estado efectivo: "personal" se mantiene abierto en dashboard.
+    const menuAbierto = useMemo(() => {
+        return {
+            ...menuAbiertoUser,
+            personal: isDashboardRoute ? true : menuAbiertoUser.personal,
+        };
+    }, [menuAbiertoUser, isDashboardRoute]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(SIDEBAR_MENU_STATE_KEY, JSON.stringify(menuAbiertoUser));
+        } catch {
+            // Ignorar errores (p.ej. storage lleno o bloqueado)
+        }
+    }, [menuAbiertoUser]);
+
     const toggleMenu = (categoria) => {
-        setMenuAbierto(prev => ({
+        // En dashboard, "Gestión de Personal" se muestra siempre desplegado.
+        if (categoria === 'personal' && isDashboardRoute) return;
+
+        setMenuAbiertoUser(prev => ({
             ...prev,
             [categoria]: !prev[categoria]
         }));

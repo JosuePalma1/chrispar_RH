@@ -12,6 +12,7 @@ function Horario() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [toast, setToast] = useState(null);
+    const [toastType, setToastType] = useState('success');
 
     const [mostrarModal, setMostrarModal] = useState(false);
     const [modoEdicion, setModoEdicion] = useState(false);
@@ -40,6 +41,12 @@ function Horario() {
     useEffect(() => {
         cargarDatos();
     }, []);
+
+    const mostrarToast = (mensaje, tipo = 'success') => {
+        setToast(mensaje);
+        setToastType(tipo);
+        setTimeout(() => setToast(null), 5000);
+    };
 
     // Cerrar modal al hacer clic fuera
     useEffect(() => {
@@ -202,7 +209,17 @@ function Horario() {
         e.preventDefault();
 
         if (!horarioActual.id_empleado) {
-            setError("Debe seleccionar un empleado de la lista.");
+            mostrarToast('Debe seleccionar un empleado de la lista.', 'error');
+            return;
+        }
+
+        if (!horarioActual.hora_entrada || !horarioActual.hora_salida) {
+            mostrarToast('Las horas de entrada y salida son requeridas.', 'error');
+            return;
+        }
+
+        if (horarioActual.hora_entrada === horarioActual.hora_salida) {
+            mostrarToast('La hora de entrada y la hora de salida no pueden ser iguales.', 'error');
             return;
         }
 
@@ -211,8 +228,7 @@ function Horario() {
             const inicio = new Date(horarioActual.inicio_vigencia);
             const fin = new Date(horarioActual.fin_vigencia);
             if (fin < inicio) {
-                setToast("La fecha de fin de vigencia no puede ser anterior a la fecha de inicio.");
-                setTimeout(() => setToast(null), 5000); // Ocultar el toast después de 5 segundos
+                mostrarToast('La fecha de fin de vigencia no puede ser anterior a la fecha de inicio.', 'error');
                 return;
             }
         }
@@ -234,14 +250,15 @@ function Horario() {
             await axios[method](url, dataToSend, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
+            mostrarToast(modoEdicion ? 'Horario actualizado exitosamente.' : 'Horario creado exitosamente.', 'success');
             cargarDatos();
             cerrarModal();
         } catch (error) {
             console.error('Error al guardar el horario:', error);
             if (error.response && error.response.data && error.response.data.error) {
-                setError(`Error: ${error.response.data.error}`);
+                mostrarToast(`Error: ${error.response.data.error}`, 'error');
             } else {
-                setError('No se pudo guardar el horario. Verifique los datos o contacte al administrador.');
+                mostrarToast('No se pudo guardar el horario. Verifique los datos o contacte al administrador.', 'error');
             }
         }
     };
@@ -455,7 +472,7 @@ function Horario() {
             </div>
 
             {toast && (
-                <div className="toast">
+                <div className={`toast toast-${toastType}`}>
                     {toast}
                 </div>
             )}

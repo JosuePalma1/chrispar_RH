@@ -6,6 +6,13 @@ from utils.auth import token_required, admin_required
 import json
 from decimal import Decimal
 
+
+def _to_money_2(value):
+    try:
+        return float(Decimal(str(value)).quantize(Decimal('0.01')))
+    except Exception:
+        raise ValueError('sueldo_base inválido')
+
 cargo_bp = Blueprint('cargo', __name__, url_prefix='/api/cargos')
 
 # CREATE - Crear un nuevo cargo
@@ -23,9 +30,10 @@ def crear_cargo(current_user):
             return jsonify({"error": "El nombre del cargo es requerido"}), 400
         
         # Crear nuevo cargo
+        sueldo_base = _to_money_2(data.get('sueldo_base', 0.0))
         nuevo_cargo = Cargo(
             nombre_cargo=nombre,
-            sueldo_base=data.get('sueldo_base', 0.0),
+            sueldo_base=sueldo_base,
             permisos=json.dumps(data.get('permisos', [])),  # Guardar como JSON string
             creado_por=data.get('creado_por')
         )
@@ -80,14 +88,14 @@ def crear_cargo(current_user):
 @token_required
 def listar_cargos(current_user):
     try:
-        cargos = Cargo.query.all()
+        cargos = Cargo.query.order_by(Cargo.id_cargo.asc()).all()
         
         resultado = []
         for cargo in cargos:
             resultado.append({
                 "id": cargo.id_cargo,
                 "nombre_cargo": cargo.nombre_cargo,
-                "sueldo_base": cargo.sueldo_base,
+                "sueldo_base": _to_money_2(cargo.sueldo_base),
                 "permisos": json.loads(cargo.permisos) if cargo.permisos else [],
                 "fecha_creacion": cargo.fecha_creacion.isoformat() if cargo.fecha_creacion else None
             })
@@ -111,7 +119,7 @@ def obtener_cargo(current_user, id):
         return jsonify({
             "id": cargo.id_cargo,
             "nombre_cargo": cargo.nombre_cargo,
-            "sueldo_base": cargo.sueldo_base,
+            "sueldo_base": _to_money_2(cargo.sueldo_base),
             "permisos": json.loads(cargo.permisos) if cargo.permisos else [],
             "fecha_creacion": cargo.fecha_creacion.isoformat() if cargo.fecha_creacion else None,
             "fecha_actualizacion": cargo.fecha_actualizacion.isoformat() if cargo.fecha_actualizacion else None,
@@ -148,7 +156,7 @@ def actualizar_cargo(current_user, id):
             cargo.nombre_cargo = data['nombre_cargo']
         
         if 'sueldo_base' in data:
-            cargo.sueldo_base = data['sueldo_base']
+            cargo.sueldo_base = _to_money_2(data['sueldo_base'])
         
         if 'permisos' in data:
             cargo.permisos = json.dumps(data['permisos'])
@@ -185,10 +193,13 @@ def actualizar_cargo(current_user, id):
             "cargo": {
                 "id": cargo.id_cargo,
                 "nombre_cargo": cargo.nombre_cargo,
-                "sueldo_base": cargo.sueldo_base
+                "sueldo_base": _to_money_2(cargo.sueldo_base)
             }
         }), 200
         
+    except ValueError as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Error al actualizar cargo: {str(e)}"}), 500

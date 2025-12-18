@@ -1,10 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Sidebar from './Sidebar';
 import './Usuarios.css';
-import { FaEdit, FaTrash, FaEye, FaFilePdf, FaFileExcel, FaPlus, FaTimes, FaSave } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaEye, FaFilePdf, FaFileExcel, FaPlus, FaTimes } from 'react-icons/fa';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  flexRender
+} from '@tanstack/react-table';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
 
@@ -14,13 +22,14 @@ function Usuarios() {
   const [empleados, setEmpleados] = useState([]);
   const [cargos, setCargos] = useState([]);
   const [busqueda, setBusqueda] = useState('');
-  const [ordenamiento, setOrdenamiento] = useState({ campo: null, direccion: 'asc' });
   const [rolUsuario, setRolUsuario] = useState('');
   const [idUsuarioActual, setIdUsuarioActual] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
-  const [paginaActual, setPaginaActual] = useState(1);
-  const registrosPorPagina = 5;
+  const [toast, setToast] = useState(null);
+  const [toastType, setToastType] = useState('success');
+  const [modalConfirmacion, setModalConfirmacion] = useState(false);
+  const [usuarioAEliminar, setUsuarioAEliminar] = useState(null);
   const modalRef = useRef(null);
   const [usuarioActual, setUsuarioActual] = useState({
     id: null,
@@ -107,9 +116,9 @@ function Usuarios() {
     }
   };
 
-  const verificarTieneEmpleado = (idUsuario) => {
+  const verificarTieneEmpleado = useCallback((idUsuario) => {
     return empleados.some(emp => emp.id_usuario === idUsuario);
-  };
+  }, [empleados]);
 
   const irACrearEmpleado = (usuario) => {
     // Guardar datos del usuario en sessionStorage para prellenar el formulario de empleado
@@ -117,7 +126,7 @@ function Usuarios() {
     window.location.href = '/empleados?crear=true';
   };
 
-  const abrirModal = (usuario = null) => {
+  const abrirModal = useCallback((usuario = null) => {
     if (usuario) {
       setUsuarioActual({
         id: usuario.id,
@@ -136,10 +145,16 @@ function Usuarios() {
       setModoEdicion(false);
     }
     setMostrarModal(true);
-  };
+  }, []);
 
   const cerrarModal = () => {
     setMostrarModal(false);
+  };
+
+  const mostrarToast = (mensaje, tipo = 'success') => {
+    setToast(mensaje);
+    setToastType(tipo);
+    setTimeout(() => setToast(null), 5000);
   };
 
   const guardarUsuario = async (e) => {
@@ -174,105 +189,177 @@ function Usuarios() {
       });
 
       if (response.ok) {
-        alert('Usuario guardado exitosamente');
+        mostrarToast('Usuario guardado exitosamente', 'success');
         cargarUsuarios();
         cerrarModal();
       } else {
         const error = await response.json();
-        alert(`Error: ${error.error || 'No se pudo guardar el usuario'}`);
+        mostrarToast(`Error: ${error.error || 'No se pudo guardar el usuario'}`, 'error');
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al guardar el usuario');
+      mostrarToast('Error al guardar el usuario', 'error');
     }
   };
 
-  const eliminarUsuario = async (id) => {
-    if (window.confirm('¿Estás seguro de eliminar este usuario?')) {
-      const token = localStorage.getItem('token');
-      try {
-        const response = await fetch(`${API_URL}/api/usuarios/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (response.ok) {
-          alert('Usuario eliminado exitosamente');
-          cargarUsuarios();
-        } else {
-          const error = await response.json();
-          alert(`Error: ${error.error || 'No se pudo eliminar el usuario'}`);
+  const confirmarEliminarUsuario = useCallback((id) => {
+    setUsuarioAEliminar(id);
+    setModalConfirmacion(true);
+  }, []);
+
+  const eliminarUsuario = useCallback(async () => {
+    if (!usuarioAEliminar) return;
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`${API_URL}/api/usuarios/${usuarioAEliminar}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Error al eliminar el usuario');
-      }
-    }
-  };
-
-  const ordenarPor = (campo) => {
-    const direccion = ordenamiento.campo === campo && ordenamiento.direccion === 'asc' ? 'desc' : 'asc';
-    setOrdenamiento({ campo, direccion });
-  };
-
-  const filtrarUsuarios = () => {
-    return usuarios.filter(usuario => {
-      const busquedaLower = busqueda.toLowerCase();
-      const fechaCreacion = new Date(usuario.fecha_creacion).toLocaleDateString();
+      });
       
-      return (
-        usuario.username.toLowerCase().includes(busquedaLower) ||
-        usuario.rol.toLowerCase().includes(busquedaLower) ||
-        fechaCreacion.includes(busquedaLower)
-      );
-    });
-  };
+      if (response.ok) {
+        // Eliminación es acción destructiva: mantenerlo en rojo
+        mostrarToast('Usuario eliminado exitosamente', 'error');
+        cargarUsuarios();
+      } else {
+        const error = await response.json();
+        mostrarToast(`Error: ${error.error || 'No se pudo eliminar el usuario'}`, 'error');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      mostrarToast('Error al eliminar el usuario', 'error');
+    }
+    setModalConfirmacion(false);
+    setUsuarioAEliminar(null);
+  }, [usuarioAEliminar]);
 
-  const obtenerUsuariosFiltradosYOrdenados = () => {
+  // Filtrar datos según permisos del usuario
+  const datosVisibles = useMemo(() => {
     if (!Array.isArray(usuarios)) return [];
-    let resultado = filtrarUsuarios();
-
-    // Filtrar visualmente si no es admin o supervisor
     const esAdminOSupervisor = rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor';
     if (!esAdminOSupervisor) {
-      resultado = resultado.filter(u => u.id === idUsuarioActual);
+      return usuarios.filter(u => u.id === idUsuarioActual);
     }
+    return usuarios;
+  }, [usuarios, rolUsuario, idUsuarioActual]);
 
-    if (ordenamiento.campo) {
-      resultado.sort((a, b) => {
-        let valorA = a[ordenamiento.campo];
-        let valorB = b[ordenamiento.campo];
+  // Definir columnas para TanStack Table
+  const columns = useMemo(
+    () => [
+      {
+        accessorKey: 'username',
+        header: 'Username',
+        cell: info => info.getValue(),
+        enableGlobalFilter: true,
+      },
+      {
+        accessorKey: 'rol',
+        header: 'Rol',
+        cell: info => <span className={`rol ${info.getValue()}`}>{info.getValue()}</span>,
+        enableGlobalFilter: true,
+      },
+      {
+        accessorKey: 'fecha_creacion',
+        header: 'Fecha Creación',
+        cell: info => {
+          const fecha = info.getValue();
+          return <span className="td-center">{fecha ? new Date(fecha).toLocaleDateString() : 'N/A'}</span>;
+        },
+        enableGlobalFilter: true,
+      },
+      {
+        id: 'acciones',
+        header: 'Acciones',
+        cell: ({ row }) => {
+          const usuario = row.original;
+          const tieneEmpleado = verificarTieneEmpleado(usuario.id);
+          return (
+            <div className="acciones-grupo">
+              {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') ? (
+                <>
+                  <button className="btn-icono editar" onClick={() => abrirModal(usuario)} title="Editar">
+                    <FaEdit />
+                  </button>
+                  {(rolUsuario === 'admin' || rolUsuario === 'Administrador') && (
+                    <button className="btn-icono eliminar" onClick={() => confirmarEliminarUsuario(usuario.id)} title="Eliminar">
+                      <FaTrash />
+                    </button>
+                  )}
+                  {!tieneEmpleado && (
+                    <button
+                      className="btn-completar-empleado"
+                      onClick={() => irACrearEmpleado(usuario)}
+                      title="Completar datos del empleado"
+                      aria-label="Completar datos del empleado"
+                      type="button"
+                    >
+                      <FaPlus />
+                    </button>
+                  )}
 
-        if (ordenamiento.campo === 'fecha_creacion') {
-          valorA = new Date(valorA);
-          valorB = new Date(valorB);
-        } else if (typeof valorA === 'string') {
-          valorA = valorA.toLowerCase();
-          valorB = valorB.toLowerCase();
-        }
+                  {tieneEmpleado && (
+                    <button className="btn-icono ver" onClick={() => {
+                      const empleado = empleados.find(emp => emp.id_usuario === usuario.id);
+                      if (empleado) {
+                        sessionStorage.setItem('empleadoSeleccionado', JSON.stringify(empleado));
+                        window.location.href = '/empleados?ver=' + empleado.id;
+                      }
+                    }} title="Ver Empleado">
+                      <FaEye />
+                    </button>
+                  )}
+                </>
+              ) : usuario.id === idUsuarioActual ? (
+                <button className="btn-icono editar" onClick={() => abrirModal(usuario)} title="Editar">
+                  <FaEdit />
+                </button>
+              ) : (
+                <span style={{color: '#999'}}>-</span>
+              )}
+            </div>
+          );
+        },
+        enableSorting: false,
+        enableGlobalFilter: false,
+      },
+    ],
+    [rolUsuario, idUsuarioActual, empleados, verificarTieneEmpleado, confirmarEliminarUsuario, abrirModal]
+  );
 
-        if (valorA < valorB) return ordenamiento.direccion === 'asc' ? -1 : 1;
-        if (valorA > valorB) return ordenamiento.direccion === 'asc' ? 1 : -1;
-        return 0;
-      });
+  // Configurar la tabla con TanStack Table
+  const table = useReactTable({
+    data: datosVisibles,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    autoResetPageIndex: false,
+    state: {
+      globalFilter: busqueda,
+    },
+    onGlobalFilterChange: setBusqueda,
+    initialState: {
+      pagination: {
+        pageSize: 5,
+      },
+    },
+  });
+
+  // Cuando cambia la búsqueda, volver a la primera página
+  useEffect(() => {
+    table.setPageIndex(0);
+  }, [busqueda, table]);
+
+  // Si al eliminar/regargar datos quedamos fuera de rango, ajustar página
+  const pageCount = table.getPageCount();
+  const pageIndex = table.getState().pagination.pageIndex;
+  useEffect(() => {
+    if (pageCount > 0 && pageIndex > pageCount - 1) {
+      table.setPageIndex(Math.max(pageCount - 1, 0));
     }
-
-    return resultado;
-  };
-
-  // Paginación
-  const usuariosFiltrados = obtenerUsuariosFiltradosYOrdenados();
-  const totalPaginas = Math.ceil(usuariosFiltrados.length / registrosPorPagina);
-  const indiceInicio = (paginaActual - 1) * registrosPorPagina;
-  const indiceFin = indiceInicio + registrosPorPagina;
-  const usuariosPaginados = usuariosFiltrados.slice(indiceInicio, indiceFin);
-
-  const cambiarPagina = (numeroPagina) => {
-    setPaginaActual(numeroPagina);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, [pageCount, pageIndex, table]);
 
   // Exportar a PDF
   const exportarPDF = () => {
@@ -282,10 +369,10 @@ function Usuarios() {
     doc.setFontSize(11);
     doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 30);
     
-    const datos = usuariosFiltrados.map(usuario => [
-      usuario.username,
-      usuario.rol,
-      new Date(usuario.fecha_creacion).toLocaleDateString()
+    const datos = table.getFilteredRowModel().rows.map(row => [
+      row.original.username,
+      row.original.rol,
+      new Date(row.original.fecha_creacion).toLocaleDateString()
     ]);
 
     autoTable(doc, {
@@ -301,10 +388,10 @@ function Usuarios() {
 
   // Exportar a Excel
   const exportarExcel = () => {
-    const datos = usuariosFiltrados.map(usuario => ({
-      'Usuario': usuario.username,
-      'Rol': usuario.rol,
-      'Fecha Creación': new Date(usuario.fecha_creacion).toLocaleDateString()
+    const datos = table.getFilteredRowModel().rows.map(row => ({
+      'Usuario': row.original.username,
+      'Rol': row.original.rol,
+      'Fecha Creación': new Date(row.original.fecha_creacion).toLocaleDateString()
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(datos);
@@ -344,8 +431,8 @@ function Usuarios() {
               <FaFileExcel /> Excel
             </button>
             {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') && (
-              <button className="btn-nuevo" onClick={() => abrirModal()}>
-                <FaPlus /> Nuevo Usuario
+              <button className="btn-nuevo" onClick={() => abrirModal()} title="Nuevo Usuario">
+                <FaPlus />
               </button>
             )}
           </div>
@@ -359,118 +446,93 @@ function Usuarios() {
               type="text"
               placeholder="Buscar por username, rol o fecha..."
               value={busqueda}
-              onChange={(e) => {setBusqueda(e.target.value); setPaginaActual(1);}}
+              onChange={(e) => setBusqueda(e.target.value)}
               className="input-busqueda"
             />
           </div>
           <span className="resultados-info">
-            Mostrando <strong>{usuariosPaginados.length}</strong> de <strong>{usuariosFiltrados.length}</strong> registros
+            Mostrando <strong>{table.getRowModel().rows.length}</strong> de <strong>{table.getFilteredRowModel().rows.length}</strong> registros
           </span>
         </div>
 
         <div className="tabla-responsive">
           <table className="usuarios-tabla">
             <thead>
-              <tr>
-                <th onClick={() => ordenarPor('username')} className="th-sortable">
-                  Username {ordenamiento.campo === 'username' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
-                </th>
-                <th onClick={() => ordenarPor('rol')} className="th-sortable">
-                  Rol {ordenamiento.campo === 'rol' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
-                </th>
-                <th onClick={() => ordenarPor('fecha_creacion')} className="th-sortable">
-                  Fecha Creación {ordenamiento.campo === 'fecha_creacion' && (ordenamiento.direccion === 'asc' ? '▲' : '▼')}
-                </th>
-                <th className="th-center">Acciones</th>
-              </tr>
+              {table.getHeaderGroups().map(headerGroup => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map(header => (
+                    <th 
+                      key={header.id}
+                      onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
+                      className={header.column.getCanSort() ? 'th-sortable' : ''}
+                      style={{ cursor: header.column.getCanSort() ? 'pointer' : 'default' }}
+                    >
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.column.getCanSort() && (
+                        <span>
+                          {header.column.getIsSorted() === 'asc' && ' ▲'}
+                          {header.column.getIsSorted() === 'desc' && ' ▼'}
+                        </span>
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              ))}
             </thead>
             <tbody>
-              {usuariosPaginados.length === 0 ? (
+              {table.getRowModel().rows.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="no-data">No hay usuarios que mostrar</td>
+                  <td colSpan={columns.length} className="no-data">No hay usuarios que mostrar</td>
                 </tr>
               ) : (
-                usuariosPaginados.map(usuario => (
-                  <tr key={usuario.id}>
-                    <td>{usuario.username}</td>
-                    <td>
-                      <span className={`rol ${usuario.rol}`}>{usuario.rol}</span>
-                    </td>
-                    <td className="td-center">{usuario.fecha_creacion ? new Date(usuario.fecha_creacion).toLocaleDateString() : 'N/A'}</td>
-                    <td className="td-center">
-                      <div className="acciones-grupo">
-                        {(rolUsuario === 'admin' || rolUsuario === 'Administrador' || rolUsuario === 'Supervisor' || rolUsuario === 'supervisor') ? (
-                          <>
-                            <button className="btn-icono editar" onClick={() => abrirModal(usuario)} title="Editar">
-                              <FaEdit />
-                            </button>
-                            {(rolUsuario === 'admin' || rolUsuario === 'Administrador') && (
-                              <button className="btn-icono eliminar" onClick={() => eliminarUsuario(usuario.id)} title="Eliminar">
-                                <FaTrash />
-                              </button>
-                            )}
-                            {verificarTieneEmpleado(usuario.id) && (
-                              <button className="btn-icono ver" onClick={() => {
-                                const empleado = empleados.find(emp => emp.id_usuario === usuario.id);
-                                if (empleado) {
-                                  sessionStorage.setItem('empleadoSeleccionado', JSON.stringify(empleado));
-                                  window.location.href = '/empleados?ver=' + empleado.id;
-                                }
-                              }} title="Ver Empleado">
-                                <FaEye />
-                              </button>
-                            )}
-                          </>
-                        ) : usuario.id === idUsuarioActual ? (
-                          <button className="btn-icono editar" onClick={() => abrirModal(usuario)} title="Editar">
-                            <FaEdit />
-                          </button>
-                        ) : (
-                          <span style={{color: '#999'}}>-</span>
-                        )}
-                      </div>
-                    </td>
+                table.getRowModel().rows.map(row => (
+                  <tr key={row.id}>
+                    {row.getVisibleCells().map(cell => (
+                      <td key={cell.id} className="td-center">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
                   </tr>
                 ))
               )}
             </tbody>
-      </table>
-      </div>
-
-      {/* Paginación */}
-      {usuariosFiltrados.length > 0 && (
-        <div className="paginacion">
-          <div className="paginacion-controles">
-            <button 
-              className="btn-paginacion" 
-              onClick={() => cambiarPagina(paginaActual - 1)}
-              disabled={paginaActual === 1}
-            >
-              Anterior
-            </button>
-            
-            <div className="numeros-pagina">
-              {[...Array(Math.ceil(usuariosFiltrados.length / registrosPorPagina))].map((_, index) => (
-                <button
-                  key={index + 1}
-                  className={`btn-numero ${paginaActual === index + 1 ? 'activo' : ''}`}
-                  onClick={() => cambiarPagina(index + 1)}
-                >
-                  {index + 1}
-                </button>
-              ))}
-            </div>
-
-            <button 
-              className="btn-paginacion" 
-              onClick={() => cambiarPagina(paginaActual + 1)}
-              disabled={paginaActual === Math.ceil(usuariosFiltrados.length / registrosPorPagina)}
-            >
-              Siguiente
-            </button>
-          </div>
+          </table>
         </div>
-      )}
+
+        {/* Paginación */}
+        {table.getPageCount() > 1 && (
+          <div className="paginacion">
+            <div className="paginacion-controles">
+              <button 
+                className="btn-paginacion" 
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                Anterior
+              </button>
+              
+              <div className="numeros-pagina">
+                {[...Array(table.getPageCount())].map((_, index) => (
+                  <button
+                    key={index + 1}
+                    className={`btn-numero ${table.getState().pagination.pageIndex === index ? 'activo' : ''}`}
+                    onClick={() => table.setPageIndex(index)}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+              </div>
+
+              <button 
+                className="btn-paginacion" 
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        )}
 
       {mostrarModal && (
         <div className="modal">
@@ -528,6 +590,31 @@ function Usuarios() {
                 <button type="button" className="btn-cancelar" onClick={cerrarModal}>Cancelar</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className={`toast toast-${toastType}`}>
+          {toast}
+        </div>
+      )}
+
+      {modalConfirmacion && (
+        <div className="modal">
+          <div className="modal-contenido-confirmacion">
+            <h3>Confirmar eliminación</h3>
+            <p>
+              ¿Estás seguro de eliminar este usuario: <strong>"{usuarios.find(u => u.id === usuarioAEliminar)?.username}"</strong>?
+            </p>
+            <div className="form-botones">
+              <button className="btn-eliminar" onClick={eliminarUsuario}>
+                Eliminar
+              </button>
+              <button className="btn-cancelar" onClick={() => { setModalConfirmacion(false); setUsuarioAEliminar(null); }}>
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}

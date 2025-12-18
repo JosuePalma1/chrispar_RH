@@ -9,6 +9,7 @@ describe('Sidebar Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    window.history.pushState({}, '', '/');
   });
 
   afterEach(() => {
@@ -29,6 +30,9 @@ describe('Sidebar Component', () => {
     const token = buildFakeToken({ username: 'Admin', rol: 'Administrador', user_id: 1 });
     localStorage.setItem('token', token);
 
+    // En /dashboard el menú de "Gestión de Personal" se despliega por defecto
+    window.history.pushState({}, '', '/dashboard');
+
     render(
       <BrowserRouter>
         <Sidebar />
@@ -46,6 +50,9 @@ describe('Sidebar Component', () => {
   test('shows limited modules for regular user based on cargo permissions', async () => {
     const token = buildFakeToken({ username: 'user1', rol: 'Analista', user_id: 2 });
     localStorage.setItem('token', token);
+
+    // En /dashboard el menú de "Gestión de Personal" se despliega por defecto
+    window.history.pushState({}, '', '/dashboard');
 
     const mockCargos = [
       {
@@ -80,6 +87,9 @@ describe('Sidebar Component', () => {
   test('handles admin role case-insensitive', async () => {
     const token = buildFakeToken({ username: 'Admin', rol: 'admin', user_id: 1 });
     localStorage.setItem('token', token);
+
+    // En /dashboard el menú de "Gestión de Personal" se despliega por defecto
+    window.history.pushState({}, '', '/dashboard');
 
     render(
       <BrowserRouter>
@@ -150,6 +160,9 @@ describe('Sidebar Component', () => {
   test('filters out invalid permissions', async () => {
     const token = buildFakeToken({ username: 'user1', rol: 'Gerente', user_id: 2 });
     localStorage.setItem('token', token);
+
+    // En /dashboard el menú de "Gestión de Personal" se despliega por defecto
+    window.history.pushState({}, '', '/dashboard');
 
     const mockCargos = [
       {

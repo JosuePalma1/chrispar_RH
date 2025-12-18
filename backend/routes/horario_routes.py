@@ -22,12 +22,19 @@ def crear_horario(current_user):
         if not data.get("hora_entrada") or not data.get("hora_salida"):
             return jsonify({"error": "Las horas de entrada y salida son requeridas"}), 400
 
+        hora_entrada = parse_time(data.get("hora_entrada"))
+        hora_salida = parse_time(data.get("hora_salida"))
+        if hora_entrada is None or hora_salida is None:
+            return jsonify({"error": "Formato de hora inválido. Use HH:MM"}), 400
+        if hora_entrada == hora_salida:
+            return jsonify({"error": "La hora de entrada y la hora de salida no pueden ser iguales"}), 400
+
         nuevo_horario = Horario(
             id_empleado=data["id_empleado"],
             dia_laborables=data.get("dia_laborables"),
             fecha_inicio=parse_date(data.get("fecha_inicio")),
-            hora_entrada=parse_time(data.get("hora_entrada")),
-            hora_salida=parse_time(data.get("hora_salida")),
+            hora_entrada=hora_entrada,
+            hora_salida=hora_salida,
             descanso_minutos=data.get("descanso_minutos"),
             turno=data.get("turno"),
             inicio_vigencia=parse_date(data.get("inicio_vigencia")),
@@ -104,6 +111,13 @@ def actualizar_horario(current_user, id_horario):
     horario = Horario.query.get_or_404(id_horario)
     data = request.get_json()
 
+    hora_entrada_nueva = parse_time(data.get("hora_entrada", horario.hora_entrada))
+    hora_salida_nueva = parse_time(data.get("hora_salida", horario.hora_salida))
+    if hora_entrada_nueva is None or hora_salida_nueva is None:
+        return jsonify({"error": "Formato de hora inválido. Use HH:MM"}), 400
+    if hora_entrada_nueva == hora_salida_nueva:
+        return jsonify({"error": "La hora de entrada y la hora de salida no pueden ser iguales"}), 400
+
     # Guardar datos anteriores para el log
     datos_anteriores = {
         'dia_laborables': horario.dia_laborables,
@@ -113,8 +127,8 @@ def actualizar_horario(current_user, id_horario):
     }
     horario.dia_laborables = data.get("dia_laborables", horario.dia_laborables)
     horario.fecha_inicio = parse_date(data.get("fecha_inicio", horario.fecha_inicio))
-    horario.hora_entrada = parse_time(data.get("hora_entrada", horario.hora_entrada))
-    horario.hora_salida = parse_time(data.get("hora_salida", horario.hora_salida))
+    horario.hora_entrada = hora_entrada_nueva
+    horario.hora_salida = hora_salida_nueva
     horario.descanso_minutos = data.get("descanso_minutos", horario.descanso_minutos)
     horario.turno = data.get("turno", horario.turno)
     horario.inicio_vigencia = parse_date(data.get("inicio_vigencia", horario.inicio_vigencia))
