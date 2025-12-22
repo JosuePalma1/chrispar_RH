@@ -237,6 +237,33 @@ class TestHorarioRoutes:
         assert response.status_code == 201
         assert response.json["horario"]["turno"] == "nocturno"
 
+    def test_crear_horario_hora_salida_antes_de_entrada_no_nocturno(self, client, auth_headers, cargo_fixture):
+        """Test: No permitir hora_salida < hora_entrada si el turno no es nocturno"""
+        empleado_data = {
+            "nombre": "Carlos",
+            "apellido": "Pérez",
+            "email": "carlos.perez@test.com",
+            "telefono": "101010101",
+            "direccion": "Calle Validaciones 123",
+            "fecha_nacimiento": "1993-02-02",
+            "fecha_contratacion": "2021-01-01",
+            "id_cargo": cargo_fixture
+        }
+        emp_response = client.post("/api/empleados/", json=empleado_data, headers=auth_headers)
+        empleado_id = emp_response.json["id"]
+
+        horario_data = {
+            "id_empleado": empleado_id,
+            "dia_laborables": "Lunes a Viernes",
+            "hora_entrada": "10:00:00",
+            "hora_salida": "09:00:00",
+            "turno": "matutino"
+        }
+        response = client.post("/api/horarios/", json=horario_data, headers=auth_headers)
+
+        assert response.status_code == 400
+        assert "salida" in response.json["error"].lower()
+
     def test_crear_horario_con_vigencia(self, client, auth_headers, cargo_fixture):
         """Test: Crear horario con fechas de vigencia"""
         # Crear empleado

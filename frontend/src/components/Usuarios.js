@@ -219,8 +219,7 @@ function Usuarios() {
       });
       
       if (response.ok) {
-        // Eliminación es acción destructiva: mantenerlo en rojo
-        mostrarToast('Usuario eliminado exitosamente', 'error');
+        mostrarToast('Usuario eliminado exitosamente', 'success');
         cargarUsuarios();
       } else {
         const error = await response.json();
@@ -595,7 +594,7 @@ function Usuarios() {
       )}
 
       {toast && (
-        <div className={`toast toast-${toastType}`}>
+        <div className={`usuarios-toast toast-${toastType}`}>
           {toast}
         </div>
       )}

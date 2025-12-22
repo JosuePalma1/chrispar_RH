@@ -212,7 +212,7 @@ function Cargos() {
       });
       
       if (response.ok) {
-        mostrarToast('Cargo eliminado exitosamente', 'error');
+        mostrarToast('Cargo eliminado exitosamente', 'success');
         cargarCargos();
       } else {
         const error = await response.json();
@@ -583,7 +583,7 @@ function Cargos() {
       )}
 
       {toast && (
-        <div className={`toast toast-${toastType}`}>
+        <div className={`cargos-toast toast-${toastType}`}>
           {toast}
         </div>
       )}

@@ -445,12 +445,11 @@
   font-style: italic;
 }
 
-.toast {
+.hoja-vida-toast {
     position: fixed;
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background-color: #e74c3c;
     color: white;
     padding: 15px 25px;
     border-radius: 8px;
@@ -458,12 +457,23 @@
     z-index: 1001;
     font-size: 16px;
     opacity: 0;
-    animation: toast-in 0.5s forwards;
+  animation: hoja-vida-toast-in 0.5s forwards;
     white-space: pre-wrap;
     text-align: center;
+  min-width: 300px;
+  max-width: 520px;
+  overflow-wrap: anywhere;
 }
 
-@keyframes toast-in {
+.hoja-vida-toast.toast-success {
+  background-color: #27ae60 !important;
+}
+
+.hoja-vida-toast.toast-error {
+  background-color: #e74c3c !important;
+}
+
+@keyframes hoja-vida-toast-in {
     from {
         opacity: 0;
         transform: translate(-50%, 20px);

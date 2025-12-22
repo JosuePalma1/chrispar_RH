@@ -48,6 +48,25 @@ function Horario() {
         setTimeout(() => setToast(null), 5000);
     };
 
+    const parseTimeToMinutes = (timeValue) => {
+        if (!timeValue) return NaN;
+        const parts = String(timeValue).split(':');
+        if (parts.length < 2) return NaN;
+        const hours = Number(parts[0]);
+        const minutes = Number(parts[1]);
+        if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return NaN;
+        return hours * 60 + minutes;
+    };
+
+    const getAxiosErrorMessage = (err, fallback) => {
+        return (
+            err?.response?.data?.error ||
+            err?.response?.data?.message ||
+            err?.message ||
+            fallback
+        );
+    };
+
     // Cerrar modal al hacer clic fuera
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -208,6 +227,14 @@ function Horario() {
     const guardarHorario = async (e) => {
         e.preventDefault();
 
+        const timeToMinutes = (value) => {
+            if (!value) return null;
+            const parts = String(value).split(':');
+            const h = parseInt(parts[0] || '0', 10);
+            const m = parseInt(parts[1] || '0', 10);
+            return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+        };
+
         if (!horarioActual.id_empleado) {
             mostrarToast('Debe seleccionar un empleado de la lista.', 'error');
             return;
@@ -220,6 +247,23 @@ function Horario() {
 
         if (horarioActual.hora_entrada === horarioActual.hora_salida) {
             mostrarToast('La hora de entrada y la hora de salida no pueden ser iguales.', 'error');
+            return;
+        }
+
+        // Validación de orden de horas (excepto turno nocturno)
+        const turnoLower = (horarioActual.turno || '').trim().toLowerCase();
+        const entradaMin = parseTimeToMinutes(horarioActual.hora_entrada);
+        const salidaMin = parseTimeToMinutes(horarioActual.hora_salida);
+        if (turnoLower !== 'nocturno' && Number.isFinite(entradaMin) && Number.isFinite(salidaMin) && salidaMin < entradaMin) {
+            mostrarToast('La hora de salida no puede ser anterior a la hora de entrada', 'error');
+            return;
+        }
+
+        const turno = String(horarioActual.turno || '').trim().toLowerCase();
+        const entradaMin = timeToMinutes(horarioActual.hora_entrada);
+        const salidaMin = timeToMinutes(horarioActual.hora_salida);
+        if (turno !== 'nocturno' && entradaMin !== null && salidaMin !== null && salidaMin < entradaMin) {
+            mostrarToast('La hora de salida no puede ser anterior a la hora de entrada.', 'error');
             return;
         }
 
@@ -270,10 +314,11 @@ function Horario() {
                 await axios.delete(`${API_URL}/api/horarios/${id}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+                mostrarToast('Horario eliminado exitosamente.', 'success');
                 cargarDatos();
             } catch (error) {
                 console.error('Error al eliminar el horario:', error);
-                setError('No se pudo eliminar el horario.');
+                mostrarToast(`Error: ${getAxiosErrorMessage(error, 'No se pudo eliminar el horario.')}`, 'error');
             }
         }
     };
@@ -472,7 +517,7 @@ function Horario() {
             </div>
 
             {toast && (
-                <div className={`toast toast-${toastType}`}>
+                <div className={`horario-toast toast-${toastType}`}>
                     {toast}
                 </div>
             )}

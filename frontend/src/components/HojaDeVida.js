@@ -12,6 +12,7 @@ function HojaDeVida() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [toast, setToast] = useState(null);
+    const [toastType, setToastType] = useState('success');
 
     const [mostrarModal, setMostrarModal] = useState(false);
     const [modoEdicion, setModoEdicion] = useState(false);
@@ -38,6 +39,21 @@ function HojaDeVida() {
     useEffect(() => {
         cargarDatos();
     }, []);
+
+    const mostrarToast = (mensaje, tipo = 'success') => {
+        setToast(mensaje);
+        setToastType(tipo);
+        setTimeout(() => setToast(null), 5000);
+    };
+
+    const getAxiosErrorMessage = (err, fallback) => {
+        return (
+            err?.response?.data?.error ||
+            err?.response?.data?.message ||
+            err?.message ||
+            fallback
+        );
+    };
     
     // Cerrar modal al hacer clic fuera
     useEffect(() => {
@@ -180,7 +196,7 @@ function HojaDeVida() {
         e.preventDefault();
 
         if (!registroActual.id_empleado) {
-            setError("Debe seleccionar un empleado de la lista.");
+            mostrarToast('Debe seleccionar un empleado de la lista.', 'error');
             return;
         }
 
@@ -189,8 +205,7 @@ function HojaDeVida() {
             const inicio = new Date(registroActual.fecha_inicio);
             const fin = new Date(registroActual.fecha_finalizacion);
             if (fin < inicio) {
-                setToast("La fecha de finalización no puede ser anterior a la fecha de inicio.");
-                setTimeout(() => setToast(null), 5000); // Ocultar el toast después de 5 segundos
+                mostrarToast('La fecha de finalización no puede ser anterior a la fecha de inicio.', 'error');
                 return;
             }
         }
@@ -210,11 +225,12 @@ function HojaDeVida() {
 
         try {
             await axios[method](url, dataToSend, { headers: { 'Authorization': `Bearer ${token}` } });
+            mostrarToast(modoEdicion ? 'Hoja de vida actualizada exitosamente.' : 'Hoja de vida creada exitosamente.', 'success');
             cargarDatos();
             cerrarModal();
         } catch (error) {
             console.error('Error guardando registro:', error);
-            setError('No se pudo guardar el registro.');
+            mostrarToast(`Error: ${getAxiosErrorMessage(error, 'No se pudo guardar el registro.')}`, 'error');
         }
     };
 
@@ -223,10 +239,11 @@ function HojaDeVida() {
             try {
                 const token = localStorage.getItem('token');
                 await axios.delete(`${API_URL}/api/hojas-vida/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                mostrarToast('Hoja de vida eliminada exitosamente.', 'success');
                 cargarDatos();
             } catch (error) {
                 console.error('Error eliminando registro:', error);
-                setError('No se pudo eliminar el registro.');
+                mostrarToast(`Error: ${getAxiosErrorMessage(error, 'No se pudo eliminar el registro.')}`, 'error');
             }
         }
     };
@@ -409,7 +426,7 @@ function HojaDeVida() {
             </div>
 
             {toast && (
-                <div className="toast">
+                <div className={`hoja-vida-toast toast-${toastType}`}>
                     {toast}
                 </div>
             )}

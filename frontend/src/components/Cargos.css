@@ -639,7 +639,7 @@
 }
 
 /* Toast Notifications */
-.toast {
+.cargos-toast {
   position: fixed;
   top: 20px;
   left: 50%;
@@ -651,21 +651,23 @@
   z-index: 1001;
   font-size: 16px;
   opacity: 0;
-  animation: toast-in 0.5s forwards;
+  animation: cargos-toast-in 0.5s forwards;
   white-space: pre-wrap;
   text-align: center;
   min-width: 300px;
+  max-width: 520px;
+  overflow-wrap: anywhere;
 }
 
-.toast.toast-success {
+.cargos-toast.toast-success {
   background-color: #27ae60 !important;
 }
 
-.toast.toast-error {
+.cargos-toast.toast-error {
   background-color: #e74c3c !important;
 }
 
-@keyframes toast-in {
+@keyframes cargos-toast-in {
   from {
     opacity: 0;
     transform: translate(-50%, -20px);

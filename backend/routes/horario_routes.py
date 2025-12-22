@@ -29,6 +29,10 @@ def crear_horario(current_user):
         if hora_entrada == hora_salida:
             return jsonify({"error": "La hora de entrada y la hora de salida no pueden ser iguales"}), 400
 
+        turno = (data.get("turno") or "").strip().lower()
+        if turno != "nocturno" and hora_salida < hora_entrada:
+            return jsonify({"error": "La hora de salida no puede ser anterior a la hora de entrada"}), 400
+
         nuevo_horario = Horario(
             id_empleado=data["id_empleado"],
             dia_laborables=data.get("dia_laborables"),
@@ -117,6 +121,10 @@ def actualizar_horario(current_user, id_horario):
         return jsonify({"error": "Formato de hora inválido. Use HH:MM"}), 400
     if hora_entrada_nueva == hora_salida_nueva:
         return jsonify({"error": "La hora de entrada y la hora de salida no pueden ser iguales"}), 400
+
+    turno_nuevo = (data.get("turno", horario.turno) or "").strip().lower()
+    if turno_nuevo != "nocturno" and hora_salida_nueva < hora_entrada_nueva:
+        return jsonify({"error": "La hora de salida no puede ser anterior a la hora de entrada"}), 400
 
     # Guardar datos anteriores para el log
     datos_anteriores = {

@@ -5,6 +5,7 @@ from models.log_transaccional import LogTransaccional
 from utils.auth import token_required, admin_required
 from utils.parsers import parse_date
 import json
+from sqlalchemy.exc import IntegrityError
 
 empleado_bp = Blueprint("empleado", __name__, url_prefix="/api/empleados")
 
@@ -141,7 +142,7 @@ def obtener_empleado(current_user, id):
 @admin_required
 def actualizar_empleado(current_user, id):
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         e = Empleado.query.get_or_404(id)
         
         # Guardar datos anteriores para el log
@@ -210,10 +211,38 @@ def actualizar_empleado(current_user, id):
             print(f" Error al registrar log: {log_error}")
         
         return jsonify({"mensaje": "Empleado actualizado"}), 200
-        
+
+    except IntegrityError as error:
+        db.session.rollback()
+        orig_text = str(getattr(error, "orig", error))
+
+        # PostgreSQL: duplicate key value violates unique constraint "empleados_cedula_key"
+        if "empleados_cedula_key" in orig_text or "cedula" in orig_text.lower():
+            cedula = data.get("cedula")
+            if cedula:
+                return jsonify({"error": f"Ya existe un empleado con la cédula {cedula}."}), 400
+            return jsonify({"error": "Ya existe un empleado con esa cédula."}), 400
+
+        return jsonify({"error": "Conflicto de datos: ya existe un registro con valores únicos."}), 400
+
+    except (KeyError, ValueError) as error:
+        db.session.rollback()
+        return jsonify({"error": f"Datos inválidos: {str(error)}"}), 400
+
     except Exception as error:
         db.session.rollback()
-        return jsonify({"error": f"Error al actualizar empleado: {str(error)}"}), 500
+        error_msg = str(error)
+        if 'foreign key constraint' in error_msg.lower():
+            return jsonify({"error": "El cargo especificado no existe"}), 400
+        elif 'not null constraint' in error_msg.lower():
+            return jsonify({"error": "Faltan campos obligatorios en el formulario"}), 400
+        elif 'unique constraint' in error_msg.lower() or 'duplicate key value' in error_msg.lower():
+            cedula = data.get("cedula")
+            if cedula:
+                return jsonify({"error": f"Ya existe un empleado con la cédula {cedula}."}), 400
+            return jsonify({"error": "Ya existe un empleado con esa cédula."}), 400
+        else:
+            return jsonify({"error": "Error al actualizar el empleado. Verifica los datos ingresados"}), 500
 
 
 @empleado_bp.route("/<int:id>", methods=["DELETE"])

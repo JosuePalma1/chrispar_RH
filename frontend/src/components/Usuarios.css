@@ -598,7 +598,7 @@
 
 
 /* Toast Notifications */
-.toast {
+.usuarios-toast {
   position: fixed;
   top: 20px;
   left: 50%;
@@ -610,21 +610,23 @@
   z-index: 1001;
   font-size: 16px;
   opacity: 0;
-  animation: toast-in 0.5s forwards;
+  animation: usuarios-toast-in 0.5s forwards;
   white-space: pre-wrap;
   text-align: center;
   min-width: 300px;
+  max-width: 520px;
+  overflow-wrap: anywhere;
 }
 
-.toast.toast-success {
+.usuarios-toast.toast-success {
   background-color: #27ae60 !important;
 }
 
-.toast.toast-error {
+.usuarios-toast.toast-error {
   background-color: #e74c3c !important;
 }
 
-@keyframes toast-in {
+@keyframes usuarios-toast-in {
   from {
     opacity: 0;
     transform: translate(-50%, -20px);

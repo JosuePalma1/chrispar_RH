@@ -402,8 +402,7 @@ function Empleados() {
       });
       
       if (response.ok) {
-        // Eliminación es acción destructiva: mantenerlo en rojo
-        mostrarToast('Empleado eliminado exitosamente', 'error');
+        mostrarToast('Empleado eliminado exitosamente', 'success');
         cargarEmpleados();
       } else {
         const error = await response.json();
@@ -903,7 +902,7 @@ function Empleados() {
       )}
 
       {toast && (
-        <div className={`toast toast-${toastType}`}>
+        <div className={`empleados-toast toast-${toastType}`}>
           {toast}
         </div>
       )}
