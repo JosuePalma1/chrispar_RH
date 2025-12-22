@@ -2,10 +2,9 @@ from flask import Blueprint, request, jsonify
 from extensions import db
 from models.empleado import Empleado
 from models.log_transaccional import LogTransaccional
-from utils.auth import token_required, admin_required
+from utils.auth import token_required, admin_required, module_permission_required
 from utils.parsers import parse_date
 import json
-from sqlalchemy.exc import IntegrityError
 
 empleado_bp = Blueprint("empleado", __name__, url_prefix="/api/empleados")
 
@@ -64,6 +63,7 @@ def crear_empleado(current_user):
             db.session.commit()
         except Exception as log_error:
             print(f" Error al registrar log: {log_error}")
+            db.session.rollback()
         
         return jsonify({"mensaje": "Empleado creado", "id": nuevo.id}), 201
         
@@ -88,6 +88,7 @@ def crear_empleado(current_user):
 
 @empleado_bp.route("/", methods=["GET"])
 @token_required
+@module_permission_required('empleados')
 def listar_empleados(current_user):
     try:
         empleados = Empleado.query.order_by(Empleado.id.asc()).all()
@@ -116,6 +117,7 @@ def listar_empleados(current_user):
 
 @empleado_bp.route("/<int:id>", methods=["GET"])
 @token_required
+@module_permission_required('empleados')
 def obtener_empleado(current_user, id):
     try:
         e = Empleado.query.get_or_404(id)
@@ -140,9 +142,10 @@ def obtener_empleado(current_user, id):
 
 @empleado_bp.route("/<int:id>", methods=["PUT"])
 @admin_required
+@module_permission_required('empleados')
 def actualizar_empleado(current_user, id):
     try:
-        data = request.get_json() or {}
+        data = request.get_json()
         e = Empleado.query.get_or_404(id)
         
         # Guardar datos anteriores para el log
@@ -209,44 +212,18 @@ def actualizar_empleado(current_user, id):
             db.session.commit()
         except Exception as log_error:
             print(f" Error al registrar log: {log_error}")
+            db.session.rollback()
         
         return jsonify({"mensaje": "Empleado actualizado"}), 200
-
-    except IntegrityError as error:
-        db.session.rollback()
-        orig_text = str(getattr(error, "orig", error))
-
-        # PostgreSQL: duplicate key value violates unique constraint "empleados_cedula_key"
-        if "empleados_cedula_key" in orig_text or "cedula" in orig_text.lower():
-            cedula = data.get("cedula")
-            if cedula:
-                return jsonify({"error": f"Ya existe un empleado con la cédula {cedula}."}), 400
-            return jsonify({"error": "Ya existe un empleado con esa cédula."}), 400
-
-        return jsonify({"error": "Conflicto de datos: ya existe un registro con valores únicos."}), 400
-
-    except (KeyError, ValueError) as error:
-        db.session.rollback()
-        return jsonify({"error": f"Datos inválidos: {str(error)}"}), 400
-
+        
     except Exception as error:
         db.session.rollback()
-        error_msg = str(error)
-        if 'foreign key constraint' in error_msg.lower():
-            return jsonify({"error": "El cargo especificado no existe"}), 400
-        elif 'not null constraint' in error_msg.lower():
-            return jsonify({"error": "Faltan campos obligatorios en el formulario"}), 400
-        elif 'unique constraint' in error_msg.lower() or 'duplicate key value' in error_msg.lower():
-            cedula = data.get("cedula")
-            if cedula:
-                return jsonify({"error": f"Ya existe un empleado con la cédula {cedula}."}), 400
-            return jsonify({"error": "Ya existe un empleado con esa cédula."}), 400
-        else:
-            return jsonify({"error": "Error al actualizar el empleado. Verifica los datos ingresados"}), 500
+        return jsonify({"error": f"Error al actualizar empleado: {str(error)}"}), 500
 
 
 @empleado_bp.route("/<int:id>", methods=["DELETE"])
 @admin_required
+@module_permission_required('empleados')
 def eliminar_empleado(current_user, id):
     try:
         e = Empleado.query.get_or_404(id)
@@ -283,6 +260,7 @@ def eliminar_empleado(current_user, id):
             db.session.commit()
         except Exception as log_error:
             print(f" Error al registrar log: {log_error}")
+            db.session.rollback()
         
         return jsonify({"mensaje": "Empleado eliminado"}), 200
         

@@ -1,0 +1,57 @@
+services:
+  postgres_primary:
+    image: postgres:16
+    container_name: chrispar_postgres_primary
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123
+      POSTGRES_DB: chrispar
+    ports:
+      - "5432:5432"
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "max_replication_slots=10"
+    volumes:
+      - pg_primary_data:/var/lib/postgresql/data
+
+  postgres_mirror:
+    image: postgres:16
+    container_name: chrispar_postgres_mirror
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123
+      POSTGRES_DB: chrispar
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_mirror_data:/var/lib/postgresql/data
+
+  replication_setup:
+    image: postgres:16
+    container_name: chrispar_replication_setup
+    profiles: ["replication"]
+    depends_on:
+      - postgres_primary
+      - postgres_mirror
+    restart: "no"
+    volumes:
+      - ./docker/replication/setup_replication.sh:/setup_replication.sh:ro
+    entrypoint: ["bash", "/setup_replication.sh"]
+    environment:
+      PRIMARY_HOST: postgres_primary
+      MIRROR_HOST: postgres_mirror
+      DB_NAME: chrispar
+      REPL_USER: replicator
+      REPL_PASSWORD: replicatorpass
+      PUBLICATION_NAME: chrispar_pub
+      SUBSCRIPTION_NAME: chrispar_sub
+      SLOT_NAME: chrispar_slot
+
+volumes:
+  pg_primary_data:
+  pg_mirror_data:

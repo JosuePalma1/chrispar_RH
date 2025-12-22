@@ -12,6 +12,7 @@ import Rubros from './components/Rubros';
 import Logs from './components/Logs';
 import Permisos from './components/Permisos';
 import Asistencias from './components/Asistencias';
+import MirrorDB from './components/MirrorDB';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
@@ -32,6 +33,7 @@ function App() {
           <Route path="/permisos" element={<ProtectedRoute><Permisos /></ProtectedRoute>} />
           <Route path="/asistencias" element={<ProtectedRoute><Asistencias /></ProtectedRoute>} />
           <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} />
+          <Route path="/mirror" element={<ProtectedRoute><MirrorDB /></ProtectedRoute>} />
         </Routes>
       </div>
     </Router>

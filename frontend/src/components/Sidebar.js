@@ -4,11 +4,11 @@ import './Sidebar.css';
 import { 
     FaHome, FaUsers, FaUserTie, FaIdCard, FaCalendarAlt, 
     FaClock, FaMoneyBillWave, FaFileInvoiceDollar, 
-    FaClipboardList, FaHistory, FaChevronDown, FaChevronRight 
+    FaClipboardList, FaHistory, FaChevronDown, FaChevronRight, FaDatabase 
 } from 'react-icons/fa';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
-const AVAILABLE_MODULES = ['dashboard', 'cargos', 'usuarios', 'empleados', 'hojas-vida', 'horarios', 'nomina', 'rubros', 'logs', 'permisos', 'asistencias'];
+const AVAILABLE_MODULES = ['dashboard', 'cargos', 'usuarios', 'empleados', 'hojas-vida', 'horarios', 'nomina', 'rubros', 'logs', 'permisos', 'asistencias', 'mirror'];
 const SIDEBAR_MENU_STATE_KEY = 'sidebar.menuAbierto';
 
 function Sidebar() {
@@ -156,7 +156,8 @@ function Sidebar() {
             icono: <FaHistory />,
             nombre: 'Sistema',
             submodulos: [
-                { id: 'logs', nombre: 'Auditoría / Logs', ruta: '/logs', icono: <FaHistory /> }
+                { id: 'logs', nombre: 'Auditoría / Logs', ruta: '/logs', icono: <FaHistory /> },
+                { id: 'mirror', nombre: 'BD Espejo', ruta: '/mirror', icono: <FaDatabase /> }
             ]
         }
     ];

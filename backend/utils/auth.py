@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 from functools import wraps
 from flask import request, jsonify, current_app
 from models.usuario import Usuario
+from models.cargo import Cargo
+import json
 
 def generate_token(user_id, username, rol):
     """
@@ -130,3 +132,46 @@ def admin_required(f):
         return f(current_user, *args, **kwargs)
     
     return decorated
+
+
+def module_permission_required(module_id: str):
+    """Decorador para validar permisos por módulo.
+
+    Requiere que la ruta ya esté protegida por @token_required o @admin_required,
+    de modo que reciba `current_user` como primer argumento.
+    
+    - Admin/Administrador/Supervisor: acceso total
+    - Otros: consulta Cargo.permisos (JSON) por nombre_cargo == current_user.rol
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated(current_user, *args, **kwargs):
+            try:
+                if not module_id:
+                    return jsonify({'error': 'Módulo inválido'}), 400
+
+                rol = (current_user.rol or '').strip().lower()
+                roles_permitidos = ('administrador', 'admin', 'supervisor')
+                if rol in roles_permitidos:
+                    return f(current_user, *args, **kwargs)
+
+                cargo = Cargo.query.filter_by(nombre_cargo=current_user.rol).first()
+                if not cargo or not cargo.permisos:
+                    return jsonify({'error': 'Acceso denegado. Sin permisos asignados'}), 403
+
+                try:
+                    permisos = cargo.permisos
+                    if isinstance(permisos, str):
+                        permisos = json.loads(permisos or '[]')
+                except Exception:
+                    permisos = []
+
+                if not isinstance(permisos, list) or module_id not in permisos:
+                    return jsonify({'error': 'Acceso denegado. Sin permiso para este módulo'}), 403
+
+                return f(current_user, *args, **kwargs)
+            except Exception:
+                return jsonify({'error': 'Error al validar permisos'}), 500
+
+        return decorated
+    return decorator

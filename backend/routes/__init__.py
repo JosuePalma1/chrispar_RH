@@ -8,6 +8,7 @@ from .permiso_routes import permiso_bp
 from .nomina_routes import nomina_bp
 from .rubro_routes import rubro_bp
 from .log_transaccional_routes import log_bp
+from .mirror_routes import mirror_bp
 
 # Lista con todos los blueprints ya configurados con su propio url_prefix
 all_blueprints = [
@@ -21,4 +22,5 @@ all_blueprints = [
     nomina_bp,
     rubro_bp,
     log_bp,
+    mirror_bp,
 ]
