@@ -227,14 +227,6 @@ function Horario() {
     const guardarHorario = async (e) => {
         e.preventDefault();
 
-        const timeToMinutes = (value) => {
-            if (!value) return null;
-            const parts = String(value).split(':');
-            const h = parseInt(parts[0] || '0', 10);
-            const m = parseInt(parts[1] || '0', 10);
-            return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
-        };
-
         if (!horarioActual.id_empleado) {
             mostrarToast('Debe seleccionar un empleado de la lista.', 'error');
             return;
@@ -251,18 +243,10 @@ function Horario() {
         }
 
         // Validación de orden de horas (excepto turno nocturno)
-        const turnoLower = (horarioActual.turno || '').trim().toLowerCase();
+        const turno = String(horarioActual.turno || '').trim().toLowerCase();
         const entradaMin = parseTimeToMinutes(horarioActual.hora_entrada);
         const salidaMin = parseTimeToMinutes(horarioActual.hora_salida);
-        if (turnoLower !== 'nocturno' && Number.isFinite(entradaMin) && Number.isFinite(salidaMin) && salidaMin < entradaMin) {
-            mostrarToast('La hora de salida no puede ser anterior a la hora de entrada', 'error');
-            return;
-        }
-
-        const turno = String(horarioActual.turno || '').trim().toLowerCase();
-        const entradaMin = timeToMinutes(horarioActual.hora_entrada);
-        const salidaMin = timeToMinutes(horarioActual.hora_salida);
-        if (turno !== 'nocturno' && entradaMin !== null && salidaMin !== null && salidaMin < entradaMin) {
+        if (turno !== 'nocturno' && Number.isFinite(entradaMin) && Number.isFinite(salidaMin) && salidaMin < entradaMin) {
             mostrarToast('La hora de salida no puede ser anterior a la hora de entrada.', 'error');
             return;
         }
