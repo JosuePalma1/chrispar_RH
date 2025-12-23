@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Sidebar from './Sidebar';
 import './Nominas.css';
+import { FaFilePdf, FaFileExcel, FaPlus, FaTimes } from 'react-icons/fa';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
 
@@ -199,19 +200,35 @@ function Nominas() {
     <div style={{ display: 'flex' }}>
       <Sidebar />
       <div className="nominas-container">
-        <h2 className="title">Nóminas</h2>
+        <div className="nominas-header">
+          <h2>Gestión de Nóminas</h2>
+          <div className="header-actions">
+            <button className="btn-exportar btn-pdf" title="Exportar PDF"><FaFilePdf /> PDF</button>
+            <button className="btn-exportar btn-excel" title="Exportar Excel"><FaFileExcel /> Excel</button>
+            <button className="btn-nuevo" onClick={() => { setCreateModalOpen(true); setForm({ id_empleado: '', fecha_inicio: '', fecha_fin: '', total: '' }); setFormErrors({}); }} title="Crear Nómina"><FaPlus /></button>
+          </div>
+        </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <button className="btn-create" onClick={() => { setCreateModalOpen(true); setForm({ id_empleado: '', fecha_inicio: '', fecha_fin: '', total: '' }); setFormErrors({}); }}>Crear Nómina</button>
-          <input className="search-input" placeholder="Buscar en nóminas..." value={search} onChange={handleSearch} />
+        <div className="busqueda-seccion">
+          <div className="busqueda-wrapper">
+            <input
+              type="text"
+              placeholder="Buscar en nóminas..."
+              value={search}
+              onChange={handleSearch}
+              className="input-busqueda"
+            />
+          </div>
+          <span className="resultados-info">Mostrando <strong>{Array.isArray(filteredNominas) ? filteredNominas.length : 0}</strong> registros</span>
         </div>
 
       {loading ? (
         <p>Cargando...</p>
       ) : error ? (
         <p className="error">{error}</p>
-      ) : (
-        <table className="nominas-table">
+        ) : (
+        <div className="tabla-responsive">
+          <table className="usuarios-tabla">
           <thead>
             <tr>
               <th>ID</th>
@@ -225,51 +242,60 @@ function Nominas() {
           <tbody>
             {filteredNominas.map(n => (
               <tr key={n.id_nomina}>
-                <td>{n.id_nomina}</td>
-                <td>{n.id_empleado}</td>
-                <td>{n.fecha_inicio}</td>
-                <td>{n.fecha_fin}</td>
-                <td>{n.total}</td>
-                <td>
-                  <button className="btn-update" onClick={() => openEditModal(n)}>Actualizar</button>
-                  <button className="btn-delete" onClick={() => handleDelete(n.id_nomina)}>Eliminar</button>
+                <td className="td-center">{n.id_nomina}</td>
+                <td className="td-center">{n.id_empleado}</td>
+                <td className="td-center">{n.fecha_inicio}</td>
+                <td className="td-center">{n.fecha_fin}</td>
+                <td className="td-center">{n.total}</td>
+                <td className="td-center">
+                  <div className="acciones-grupo">
+                    <button className="btn-update" onClick={() => openEditModal(n)}>Actualizar</button>
+                    <button className="btn-delete" onClick={() => handleDelete(n.id_nomina)}>Eliminar</button>
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </div>
       )}
       {editModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>Editar Nómina #{editForm.id_nomina}</h3>
-            <div className="modal-row">
+        <div className="modal">
+          <div className="modal-contenido">
+            <div className="modal-header">
+              <h3>Editar Nómina #{editForm.id_nomina}</h3>
+              <button className="btn-cerrar-modal" onClick={() => setEditModalOpen(false)} type="button"><FaTimes /></button>
+            </div>
+            <div className="form-grupo">
               <label>Fecha Inicio</label>
               <input name="fecha_inicio" type="date" value={editForm.fecha_inicio} onChange={handleEditChange} />
               {formErrors.fecha_inicio && <div className="field-error">{formErrors.fecha_inicio}</div>}
             </div>
-            <div className="modal-row">
+            <div className="form-grupo">
               <label>Fecha Fin</label>
               <input name="fecha_fin" type="date" value={editForm.fecha_fin} onChange={handleEditChange} />
               {formErrors.fecha_fin && <div className="field-error">{formErrors.fecha_fin}</div>}
             </div>
-            <div className="modal-row">
+            <div className="form-grupo">
               <label>Total</label>
               <input name="total" type="number" step="0.01" min="0" value={editForm.total} onChange={handleEditChange} onKeyDown={numericKeyDown} />
               {formErrors.total && <div className="field-error">{formErrors.total}</div>}
             </div>
-            <div className="modal-actions">
-              <button className="btn-update" onClick={handleEditSave}>Guardar</button>
-              <button className="btn-delete" onClick={() => setEditModalOpen(false)}>Cancelar</button>
+            <div className="form-botones">
+              <button className="btn-guardar" onClick={handleEditSave}>Guardar</button>
+              <button className="btn-cancelar" onClick={() => setEditModalOpen(false)}>Cancelar</button>
             </div>
           </div>
         </div>
       )}
       {createModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>Crear Nómina</h3>
-            <div className="modal-row">
+        <div className="modal">
+          <div className="modal-contenido">
+            <div className="modal-header">
+              <h3>Crear Nómina</h3>
+              <button className="btn-cerrar-modal" onClick={() => setCreateModalOpen(false)} type="button"><FaTimes /></button>
+            </div>
+            <div className="form-grupo">
               <label>Empleado</label>
               <select name="id_empleado" value={form.id_empleado} onChange={handleChange}>
                 <option value="">-- Seleccionar empleado --</option>
@@ -279,24 +305,24 @@ function Nominas() {
               </select>
               {formErrors.id_empleado && <div className="field-error">{formErrors.id_empleado}</div>}
             </div>
-            <div className="modal-row">
+            <div className="form-grupo">
               <label>Fecha Inicio</label>
               <input name="fecha_inicio" type="date" value={form.fecha_inicio} onChange={handleChange} />
               {formErrors.fecha_inicio && <div className="field-error">{formErrors.fecha_inicio}</div>}
             </div>
-            <div className="modal-row">
+            <div className="form-grupo">
               <label>Fecha Fin</label>
               <input name="fecha_fin" type="date" value={form.fecha_fin} onChange={handleChange} />
               {formErrors.fecha_fin && <div className="field-error">{formErrors.fecha_fin}</div>}
             </div>
-            <div className="modal-row">
+            <div className="form-grupo">
               <label>Total</label>
               <input name="total" type="number" step="0.01" min="0" value={form.total} onChange={handleChange} onKeyDown={numericKeyDown} />
               {formErrors.total && <div className="field-error">{formErrors.total}</div>}
             </div>
-            <div className="modal-actions">
-              <button className="btn-update" onClick={handleCreate}>Guardar</button>
-              <button className="btn-delete" onClick={() => setCreateModalOpen(false)}>Cancelar</button>
+            <div className="form-botones">
+              <button className="btn-guardar" onClick={handleCreate}>Guardar</button>
+              <button className="btn-cancelar" onClick={() => setCreateModalOpen(false)}>Cancelar</button>
             </div>
           </div>
         </div>

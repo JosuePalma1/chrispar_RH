@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Sidebar from './Sidebar';
 import './Rubros.css';
+import { FaFilePdf, FaFileExcel, FaPlus, FaTimes } from 'react-icons/fa';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
 
@@ -213,11 +214,26 @@ function Rubros() {
     <div style={{ display: 'flex' }}>
       <Sidebar />
       <div className="rubros-container">
-        <h2 className="title">Rubros</h2>
+        <div className="rubros-header">
+          <h2>Rubros de Pago</h2>
+          <div className="header-actions">
+            <button className="btn-exportar btn-pdf" title="Exportar PDF"><FaFilePdf /> PDF</button>
+            <button className="btn-exportar btn-excel" title="Exportar Excel"><FaFileExcel /> Excel</button>
+            <button className="btn-nuevo" onClick={() => { setCreateModalOpen(true); setForm({ id_nomina: '', codigo: '', descripcion: '', tipo: 'devengo', monto: '' }); setFormErrors({}); }} title="Crear Rubro"><FaPlus /></button>
+          </div>
+        </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <button className="btn-create" onClick={() => { setCreateModalOpen(true); setForm({ id_nomina: '', codigo: '', descripcion: '', tipo: 'devengo', monto: '' }); setFormErrors({}); }}>Crear Rubro</button>
-          <input className="search-input" placeholder="Buscar en rubros..." value={search} onChange={handleSearch} />
+        <div className="busqueda-seccion">
+          <div className="busqueda-wrapper">
+            <input
+              type="text"
+              placeholder="Buscar en rubros..."
+              value={search}
+              onChange={handleSearch}
+              className="input-busqueda"
+            />
+          </div>
+          <span className="resultados-info">Mostrando <strong>{Array.isArray(filteredRubros) ? filteredRubros.length : 0}</strong> registros</span>
         </div>
 
       {loading ? (
@@ -225,7 +241,8 @@ function Rubros() {
       ) : error ? (
         <p className="error">{error}</p>
       ) : (
-        <table className="rubros-table">
+        <div className="tabla-responsive">
+          <table className="usuarios-tabla">
           <thead>
             <tr>
               <th>ID</th>
@@ -240,37 +257,43 @@ function Rubros() {
           <tbody>
             {filteredRubros.map(r => (
               <tr key={r.id_rubro}>
-                <td>{r.id_rubro}</td>
-                <td>{r.id_nomina}</td>
-                <td>{r.codigo}</td>
-                <td>{r.descripcion}</td>
-                <td>{r.tipo}</td>
-                <td>{r.monto}</td>
-                <td>
-                  <button className="btn-update" onClick={() => openEditModal(r)}>Actualizar</button>
-                  <button className="btn-delete" onClick={() => handleDelete(r.id_rubro)}>Eliminar</button>
+                <td className="td-center">{r.id_rubro}</td>
+                <td className="td-center">{r.id_nomina}</td>
+                <td className="td-center">{r.codigo}</td>
+                <td className="td-center">{r.descripcion}</td>
+                <td className="td-center">{r.tipo}</td>
+                <td className="td-center">{r.monto}</td>
+                <td className="td-center">
+                  <div className="acciones-grupo">
+                    <button className="btn-update" onClick={() => openEditModal(r)}>Actualizar</button>
+                    <button className="btn-delete" onClick={() => handleDelete(r.id_rubro)}>Eliminar</button>
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </div>
       )}
       {/* Edit Modal */}
       {editModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>Editar Rubro #{editForm.id_rubro}</h3>
-            <div className="modal-row">
+        <div className="modal">
+          <div className="modal-contenido">
+            <div className="modal-header">
+              <h3>Editar Rubro #{editForm.id_rubro}</h3>
+              <button className="btn-cerrar-modal" onClick={() => setEditModalOpen(false)} type="button"><FaTimes /></button>
+            </div>
+            <div className="form-grupo">
               <label>Código</label>
               <input name="codigo" value={editForm.codigo} onChange={handleEditChange} />
               {formErrors.codigo && <div className="field-error">{formErrors.codigo}</div>}
             </div>
-            <div className="modal-row">
+            <div className="form-grupo">
               <label>Descripción</label>
               <input name="descripcion" value={editForm.descripcion} onChange={handleEditChange} />
               {formErrors.descripcion && <div className="field-error">{formErrors.descripcion}</div>}
             </div>
-            <div className="modal-row">
+            <div className="form-grupo">
               <label>Tipo</label>
               <select name="tipo" value={editForm.tipo} onChange={handleEditChange}>
                 <option value="devengo">Devengo</option>
@@ -278,23 +301,26 @@ function Rubros() {
               </select>
               {formErrors.tipo && <div className="field-error">{formErrors.tipo}</div>}
             </div>
-            <div className="modal-row">
+            <div className="form-grupo">
               <label>Monto</label>
               <input name="monto" type="number" step="0.01" min="0" value={editForm.monto} onChange={handleEditChange} onKeyDown={numericKeyDown} />
               {formErrors.monto && <div className="field-error">{formErrors.monto}</div>}
             </div>
-            <div className="modal-actions">
-              <button className="btn-update" onClick={handleEditSave}>Guardar</button>
-              <button className="btn-delete" onClick={() => setEditModalOpen(false)}>Cancelar</button>
+            <div className="form-botones">
+              <button className="btn-guardar" onClick={handleEditSave}>Guardar</button>
+              <button className="btn-cancelar" onClick={() => setEditModalOpen(false)}>Cancelar</button>
             </div>
           </div>
         </div>
       )}
       {createModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>Crear Rubro</h3>
-            <div className="modal-row">
+        <div className="modal">
+          <div className="modal-contenido">
+            <div className="modal-header">
+              <h3>Crear Rubro</h3>
+              <button className="btn-cerrar-modal" onClick={() => setCreateModalOpen(false)} type="button"><FaTimes /></button>
+            </div>
+            <div className="form-grupo">
               <label>Nómina</label>
               <select name="id_nomina" value={form.id_nomina} onChange={handleChange}>
                 <option value="">-- Seleccionar nómina --</option>
@@ -304,17 +330,17 @@ function Rubros() {
               </select>
               {formErrors.id_nomina && <div className="field-error">{formErrors.id_nomina}</div>}
             </div>
-            <div className="modal-row">
+            <div className="form-grupo">
               <label>Código</label>
               <input name="codigo" value={form.codigo} onChange={handleChange} />
               {formErrors.codigo && <div className="field-error">{formErrors.codigo}</div>}
             </div>
-            <div className="modal-row">
+            <div className="form-grupo">
               <label>Descripción</label>
               <input name="descripcion" value={form.descripcion} onChange={handleChange} />
               {formErrors.descripcion && <div className="field-error">{formErrors.descripcion}</div>}
             </div>
-            <div className="modal-row">
+            <div className="form-grupo">
               <label>Tipo</label>
               <select name="tipo" value={form.tipo} onChange={handleChange}>
                 <option value="devengo">Devengo</option>
@@ -322,14 +348,14 @@ function Rubros() {
               </select>
               {formErrors.tipo && <div className="field-error">{formErrors.tipo}</div>}
             </div>
-            <div className="modal-row">
+            <div className="form-grupo">
               <label>Monto</label>
               <input name="monto" type="number" step="0.01" min="0" value={form.monto} onChange={handleChange} onKeyDown={numericKeyDown} />
               {formErrors.monto && <div className="field-error">{formErrors.monto}</div>}
             </div>
-            <div className="modal-actions">
-              <button className="btn-update" onClick={handleCreate}>Guardar</button>
-              <button className="btn-delete" onClick={() => setCreateModalOpen(false)}>Cancelar</button>
+            <div className="form-botones">
+              <button className="btn-guardar" onClick={handleCreate}>Guardar</button>
+              <button className="btn-cancelar" onClick={() => setCreateModalOpen(false)}>Cancelar</button>
             </div>
           </div>
         </div>
