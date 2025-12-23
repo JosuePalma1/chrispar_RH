@@ -5,14 +5,20 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Cargar variables de entorno desde .env
-load_dotenv()
-
 BASE_DIR = Path(__file__).resolve().parent
 
+# Cargar variables de entorno desde backend/.env, sin depender del CWD.
+# override=True para que el .env del proyecto tenga prioridad en desarrollo.
+load_dotenv(dotenv_path=BASE_DIR / ".env", override=True)
+
 class Config:
-    # FORZAR Docker primary - ignorar variables de entorno temporalmente
-    SQLALCHEMY_DATABASE_URI = "postgresql://postgres:123@localhost:5432/chrispar"
+    # Base de datos principal
+    # - En desarrollo local (Postgres instalado o contenedor con puerto 5432 expuesto): localhost
+    # - Si el backend corre dentro de Docker: usar el nombre del servicio (postgres_primary)
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        "DATABASE_URL",
+        "postgresql://postgres:123@localhost:5432/chrispar",
+    )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv("SECRET_KEY", "devkey")
 
@@ -23,8 +29,9 @@ class Config:
     #   - external mode: mirror is another DB (e.g., another container) used for read-only inspection
     MIRROR_SCHEMA = os.getenv("MIRROR_SCHEMA", "mirror")
     MIRROR_DB_PATH = os.getenv("MIRROR_DB_PATH", str(BASE_DIR / "database_mirror.db"))
-    # FORZAR Docker mirror - Comentado para habilitar modo schema automático
-    # MIRROR_DATABASE_URL = "postgresql://postgres:123@localhost:5433/chrispar"
+    # Mirror DB:
+    # - Si MIRROR_DATABASE_URL está definido => modo externo (Docker/otra instancia)
+    # - Si NO está definido => modo schema (triggers hacia el schema "mirror")
     MIRROR_DATABASE_URL = os.getenv("MIRROR_DATABASE_URL")  # None si no está definida
 
     # SQLite only: if enabled (or mirror file exists), the app will ATTACH the mirror DB for each connection.

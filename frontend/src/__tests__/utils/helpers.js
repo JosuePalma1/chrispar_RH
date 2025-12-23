@@ -1,39 +1,10 @@
-/**
- * Utility functions for tests
- */
+// CRA treats any .js file inside __tests__ as a test file.
+// This file is kept for backwards-compat in case something imports it,
+// but the helpers live in a shared module.
+export * from '../../testUtils';
 
-// Build a fake JWT token for testing (without using Buffer which doesn't work in browser)
-export const buildFakeToken = ({ username, rol, user_id }) => {
-  const payload = btoa(JSON.stringify({ username, rol, user_id }));
-  return ['header', payload, 'signature'].join('.');
-};
-
-export const decodeToken = (token) => {
-  try {
-    return JSON.parse(atob(token.split('.')[1]));
-  } catch (error) {
-    return null;
-  }
-};
-
-export const mockFetchSuccess = (data) => {
-  return Promise.resolve({
-    ok: true,
-    json: () => Promise.resolve(data),
-  });
-};
-
-export const mockFetchError = (status = 500, errorData = {}) => {
-  return Promise.resolve({
-    ok: false,
-    status,
-    json: () => Promise.resolve(errorData),
-  });
-};
-
-export const setupAuthHeaders = (token) => {
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`,
-  };
-};
+test('test helpers module loads', async () => {
+	const mod = await import('../../testUtils');
+	expect(typeof mod.buildFakeToken).toBe('function');
+	expect(typeof mod.decodeToken).toBe('function');
+});

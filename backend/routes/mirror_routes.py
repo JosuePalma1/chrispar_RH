@@ -2,6 +2,7 @@ import os
 
 from flask import Blueprint, current_app, jsonify, request
 from sqlalchemy import create_engine, text
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.pool import NullPool
 
 from extensions import db
@@ -14,6 +15,22 @@ from utils.mirror_db import (
 )
 
 mirror_bp = Blueprint("mirror", __name__, url_prefix="/api/mirror")
+
+
+def _safe_url_info(url: str | None) -> dict | None:
+	if not url:
+		return None
+	try:
+		u = make_url(url)
+		return {
+			"driver": u.drivername,
+			"host": u.host,
+			"port": u.port,
+			"database": u.database,
+			"username": u.username,
+		}
+	except Exception:
+		return {"configured": True}
 
 
 def _get_mirror_path() -> str:
@@ -73,7 +90,7 @@ def mirror_status(current_user):
 
 	try:
 		with db.engine.connect() as conn:
-			attached = True
+			attached: bool | None = None
 			if dialect == "sqlite":
 				attached = attach_mirror_if_needed(conn, mirror_path, schema_name=mirror_schema)
 
@@ -82,7 +99,7 @@ def mirror_status(current_user):
 				trigger_count = conn.exec_driver_sql(
 					"SELECT COUNT(*) FROM sqlite_master WHERE type='trigger' AND name LIKE 'trg_mirror_%';"
 				).scalar() or 0
-			elif dialect.startswith("postgres"):
+			elif mirror_mode == "schema" and dialect.startswith("postgres"):
 				# Only counts triggers created by schema-mirror mode (not logical replication)
 				trigger_count = (
 					conn.execute(
@@ -105,8 +122,12 @@ def mirror_status(current_user):
 				mirror_engine = _get_external_mirror_engine(mirror_database_url)
 				with mirror_engine.connect() as mirror_conn:
 					tables = list_mirror_tables(mirror_conn, schema_name="public")
-			else:
+			elif dialect == "sqlite":
 				tables = list_mirror_tables(conn, schema_name=mirror_schema) if attached else []
+			elif mirror_mode == "schema" and dialect.startswith("postgres"):
+				tables = list_mirror_tables(conn, schema_name=mirror_schema)
+			else:
+				tables = []
 
 	except Exception as e:
 		return jsonify(
@@ -129,8 +150,10 @@ def mirror_status(current_user):
 			"mirror_schema": mirror_schema,
 			"mirror_path": mirror_path if dialect == "sqlite" else None,
 			"mirror_database_url": "configured" if mirror_database_url else None,
+			"primary_connection": _safe_url_info(current_app.config.get("SQLALCHEMY_DATABASE_URI")),
+			"mirror_connection": _safe_url_info(mirror_database_url),
 			"exists": exists,
-			"attached": bool(attached),
+			"attached": bool(attached) if attached is not None else None,
 			"tables": tables,
 			"mirror_tables_count": len(tables),
 			"mirror_triggers_count": int(trigger_count),

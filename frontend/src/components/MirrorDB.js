@@ -117,6 +117,15 @@ function MirrorDB() {
 	const isPostgres = String(status?.dialect || '').toLowerCase().startsWith('postgres');
 	const setupDisabled = status?.mirror_mode === 'external' || isPostgres;
 
+	const formatConn = (c) => {
+		if (!c) return 'N/A';
+		if (c.configured && !c.host && !c.port && !c.database) return 'configured';
+		const host = c.host || 'localhost';
+		const port = c.port ? `:${c.port}` : '';
+		const db = c.database ? `/${c.database}` : '';
+		return `${host}${port}${db}`;
+	};
+
 	const handleSetup = async () => {
 		try {
 			setMessage('');
@@ -183,7 +192,7 @@ function MirrorDB() {
 
 						{isPostgres && status?.mirror_mode !== 'external' && (
 							<div className="mirror-message error">
-								En Postgres, este botón está deshabilitado para evitar bloqueos. Usa espejo externo (MIRROR_DATABASE_URL) + replicación.
+								En Postgres (modo schema), el espejo se configura automáticamente al iniciar (schema + triggers). Este botón queda deshabilitado.
 							</div>
 						)}
 
@@ -197,6 +206,12 @@ function MirrorDB() {
 									<ul className="mirror-status">
 										<li>
 											<strong>Motor:</strong> {status.dialect || 'N/A'}
+										</li>
+										<li>
+											<strong>Primary:</strong> {formatConn(status.primary_connection)}
+										</li>
+										<li>
+											<strong>Mirror:</strong> {formatConn(status.mirror_connection)}
 										</li>
 										<li>
 											<strong>Modo:</strong> {status.mirror_mode || 'N/A'}

@@ -156,7 +156,7 @@ services:
   postgres_primary:
     image: postgres:16
     ports:
-      - "5432:5432"
+      - "5434:5432"  # 5432 suele estar ocupado por PostgreSQL local en Windows
     environment:
       POSTGRES_DB: chrispar
       POSTGRES_USER: postgres
@@ -181,7 +181,7 @@ docker compose up -d postgres_primary postgres_mirror
 ```
 
 Esto crea:
-- `postgres_primary` → puerto host 5432
+- `postgres_primary` → puerto host 5434
 - `postgres_mirror` → puerto host 5433
 
 #### 3. Sincronizar schemas
@@ -191,7 +191,7 @@ Esto crea:
 **Opción A - Usando migraciones:**
 ```bash
 # Migrar primary
-export DATABASE_URL=postgresql://postgres:123@localhost:5432/chrispar
+export DATABASE_URL=postgresql://postgres:123@localhost:5434/chrispar
 flask db upgrade
 
 # Migrar mirror
@@ -223,7 +223,7 @@ Este comando ejecuta `docker/replication/setup_replication.sh` que:
 
 **Archivo `.env`:**
 ```env
-DATABASE_URL=postgresql://postgres:123@localhost:5432/chrispar
+DATABASE_URL=postgresql://postgres:123@localhost:5434/chrispar
 MIRROR_DATABASE_URL=postgresql://postgres:123@localhost:5433/chrispar
 SECRET_KEY=123
 ```
