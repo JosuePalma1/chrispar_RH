@@ -1,0 +1,205 @@
+# 📚 Documentación del Sistema Chrispar HR
+
+Bienvenido a la documentación técnica y arquitectónica del Sistema de Gestión de Recursos Humanos de Chrispar Market.
+
+## 📂 Contenido
+
+### 📊 [Diagramas de Arquitectura](./diagrams/)
+Diagramas del sistema utilizando el modelo C4:
+
+#### Nivel 1: Contexto del Sistema
+- **[C4 Nivel 1: Contexto del Sistema](./diagrams/c4-nivel1-contexto.puml)** - Vista general del sistema, actores externos y relaciones principales
+- **[C4 Nivel 1: Contexto Detallado](./diagrams/c4-nivel1-contexto-detallado.puml)** - Versión extendida con más información técnica
+
+#### Nivel 2: Contenedores
+- **[C4 Nivel 2: Contenedores](./diagrams/c4-nivel2-contenedores.puml)** - Estructura técnica del sistema (Frontend, Backend, Base de Datos)
+- **[C4 Nivel 2: Contenedores Detallado](./diagrams/c4-nivel2-contenedores-detallado.puml)** - Versión extendida con arquitectura de blueprints y tecnologías
+
+## 🎯 Propósito de esta Documentación
+
+Esta documentación tiene como objetivo:
+1. **Visualizar la arquitectura** del sistema en diferentes niveles de abstracción
+2. **Facilitar la comprensión** del sistema para nuevos desarrolladores
+3. **Documentar decisiones** arquitectónicas y técnicas
+4. **Servir como referencia** para el mantenimiento y evolución del sistema
+
+## 📖 Modelo C4
+
+Los diagramas utilizan el **Modelo C4** (Context, Containers, Components, Code), que es un enfoque de documentación arquitectónica que describe un sistema de software en diferentes niveles de zoom:
+
+### Nivel 1: Contexto del Sistema
+**Audiencia:** Todos (técnicos y no técnicos)  
+**Muestra:** El sistema y cómo se relaciona con usuarios y otros sistemas
+
+✅ **Ya disponible** en este repositorio
+
+### Nivel 2: Contenedores
+**Audiencia:** Desarrolladores y arquitectos  
+**Muestra:** Aplicaciones, almacenes de datos y cómo se comunican
+
+✅ **Ya disponible** en este repositorio
+
+### Nivel 3: Componentes
+**Audiencia:** Desarrolladores  
+**Muestra:** Componentes dentro de cada contenedor
+
+🔜 Próximamente
+
+### Nivel 4: Código
+**Audiencia:** Desarrolladores  
+**Muestra:** Implementación a nivel de código (clases, interfaces)
+
+🔜 Opcional
+
+## 🏗️ Arquitectura del Sistema
+
+### Vista General (Nivel 1)
+
+El **Sistema Chrispar HR** es una aplicación web full-stack que centraliza todos los procesos de Recursos Humanos de Chrispar Market.
+
+#### Componentes Principales:
+- **Frontend**: React 19 (SPA - Single Page Application)
+- **Backend**: Flask 2.2.5 (Python 3.12) - REST API
+- **Base de Datos**: PostgreSQL 14+
+- **Autenticación**: JWT (JSON Web Tokens)
+- **Notificaciones**: Sistema de Email (SMTP)
+
+#### Actores del Sistema:
+1. **Administrador de RH** - Acceso completo al sistema
+2. **Gerente/Supervisor** - Gestión de su equipo
+3. **Empleado** - Consulta de información personal
+
+#### Módulos Funcionales:
+- 👥 Gestión de Empleados
+- 🔐 Gestión de Usuarios y Autenticación
+- 💼 Cargos y Permisos por Rol
+- 💰 Procesamiento de Nóminas
+- 📊 Rubros Salariales (Devengos y Deducciones)
+- 🕐 Horarios de Trabajo
+- ✅ Control de Asistencias
+- 📝 Solicitudes de Permisos
+- 📋 Hojas de Vida
+- 📜 Logs de Auditoría
+
+### Vista de Contenedores (Nivel 2)
+
+El sistema está compuesto por tres contenedores principales que se comunican entre sí:
+
+#### 🌐 Contenedor 1: Single Page Application (Frontend)
+- **Tecnología:** React 19 + React Router 6
+- **Puerto:** 3000 (desarrollo) / 80-443 (producción)
+- **Responsabilidad:** Interfaz de usuario interactiva
+- **Características:**
+  - SPA con enrutamiento del lado del cliente
+  - Dashboard con métricas en tiempo real
+  - Formularios con validación
+  - Sidebar dinámico según permisos de usuario
+  - Comunicación con API vía Axios
+  - 20 tests automatizados
+
+#### ⚙️ Contenedor 2: API REST (Backend)
+- **Tecnología:** Flask 2.2.5 + Python 3.12
+- **Puerto:** 5000 (desarrollo) / configurable (producción)
+- **Responsabilidad:** Lógica de negocio y coordinación
+- **Arquitectura en 3 capas:**
+  - **Controladores (API Routes):** Endpoints REST para cada módulo
+  - **Servicios (Lógica de Negocio):** Validaciones, procesamiento, control de permisos
+  - **DAL (Data Access Layer):** SQLAlchemy ORM para abstracción de base de datos
+- **Características:**
+  - Autenticación JWT con roles
+  - CORS para comunicación cross-origin
+  - Validaciones de negocio
+  - Logs de auditoría automáticos
+  - 186 tests automatizados (88% cobertura)
+
+#### 💾 Contenedor 3: BD Principal (Operacional)
+- **Tecnología:** PostgreSQL 14+ OLTP
+- **Puerto:** 5432
+- **Responsabilidad:** Almacenamiento persistente para operaciones transaccionales
+- **Características:**
+  - 10+ tablas con relaciones
+  - Integridad referencial
+  - Migraciones versionadas (Alembic)
+  - Transacciones ACID
+
+#### 🔄 Contenedor 4: BD Espejo (Réplica)
+- **Tecnología:** PostgreSQL (Solo Lectura)
+- **Puerto:** 5432
+- **Responsabilidad:** Réplica para reportes y consultas pesadas
+- **Características:**
+  - Streaming Replication desde BD Principal
+  - Solo lectura (read-only queries)
+  - No afecta rendimiento operacional
+  - Sincronización automática
+
+#### 📦 Contenedor 5: Almacenamiento de Objetos
+- **Tecnología:** MinIO / Amazon S3
+- **Responsabilidad:** Gestión de archivos binarios
+- **Características:**
+  - Hojas de vida (PDF)
+  - Documentos adjuntos
+  - Fotos de empleados
+  - URL del Archivo
+  - Versionamiento
+
+#### 🔄 Flujo de Comunicación
+```
+Usuario → Navegador → [SPA React:3000] ↔ [API Flask:5000] ↔ [BD Principal:5432]
+                                               ↓              ↓
+                                    [MinIO/S3 Storage]   [BD Espejo:5432]
+                                               ↓
+                                    [Email Service SMTP]
+```
+
+**Coherencia con Actividad 1:**  
+✅ Arquitectura 3 capas en Backend (Controladores → Servicios → DAL)  
+✅ BD Principal + BD Espejo (Replicación)  
+✅ Almacenamiento de objetos MinIO/S3  
+✅ Frontend React + Backend Flask + PostgreSQL
+
+## 🛠️ Tecnologías y Herramientas
+
+### Stack Tecnológico
+```
+Frontend:  React 19 + React Router 6 + Axios
+Backend:   Python 3.12 + Flask 2.2.5 + SQLAlchemy
+Database:  PostgreSQL 14+ con Alembic (migraciones)
+Testing:   Pytest (186 tests) + React Testing Library (20 tests)
+CI/CD:     GitHub Actions
+```
+
+### Herramientas de Desarrollo
+- **Control de Versiones**: Git + GitHub
+- **Gestión de Dependencias**: pip (Python) + npm (JavaScript)
+- **Testing**: pytest + coverage.py + Jest
+- **Diagramación**: PlantUML + C4-PlantUML
+
+## 🔗 Enlaces Útiles
+
+- [README Principal](../README.md) - Guía de instalación y uso
+- [Configuración de Entorno](../CONFIGURACION_ENV.md) - Variables de entorno
+- [Guía de Testing](../backend/TESTING_GUIDE.md) - Cómo ejecutar pruebas
+- [Resumen de Tests](../backend/TESTING_SUMMARY.md) - Cobertura de pruebas
+
+## 👥 Equipo de Desarrollo
+
+- Yimmi Leonel Barberan Moreira
+- James Malony Molina Bravo
+- Marcelo Matias Nieto Medina
+- Josue Fernando Palma Zambrano
+- Alex Sahid Triviño Hidalgo
+
+**Institución:** Universidad Técnica de Manabí  
+**Curso:** Aplicaciones Web II - 6to Semestre  
+**Proyecto:** Sistema de Gestión de Recursos Humanos para Chrispar Market
+
+## 📅 Historial de Actualizaciones
+
+| Fecha | Versión | Descripción |
+|-------|---------|-------------|
+| Dic 2025 | 1.1 | Diagramas C4 Nivel 2 - Contenedores (Frontend, Backend, BD) |
+| Dic 2025 | 1.0 | Diagramas C4 Nivel 1 - Contexto del Sistema |
+
+---
+
+**Nota:** Esta documentación se actualiza continuamente conforme evoluciona el sistema. Para contribuir o reportar errores en la documentación, por favor contacta al equipo de desarrollo.

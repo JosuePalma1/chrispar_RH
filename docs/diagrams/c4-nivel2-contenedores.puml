@@ -1,0 +1,85 @@
+@startuml C4_Container_Diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+' Configuración del diagrama
+LAYOUT_WITH_LEGEND()
+
+title Diagrama C4 - Nivel 2: Contenedores\nSistema de Gestión de Recursos Humanos - Chrispar Market
+
+' ====================
+' ACTORES PRINCIPALES
+' ====================
+
+Person(admin_rh, "Administrador RH", "Gestiona empleados, usuarios, cargos, nóminas y configuraciones")
+Person(gerente, "Gerente/Supervisor", "Revisa empleados, aprueba permisos y consulta información")
+Person(empleado, "Empleado", "Consulta información personal, horarios y solicita permisos")
+
+System_Boundary(chrispar_system, "Sistema Chrispar HR") {
+    
+    ' ====================
+    ' CONTENEDORES FRONTEND
+    ' ====================
+    
+    Container(web_app, "Aplicación Web SPA", "React 19", "Interfaz de usuario para gestión de RR.HH.\n• Dashboard con métricas\n• Formularios interactivos\n• Sidebar dinámico según permisos\n• Tablas con paginación")
+    
+    ' ====================
+    ' CONTENEDORES BACKEND
+    ' ====================
+    
+    Container(api_rest, "API REST", "Flask 2.2.5, Python 3.12", "Proporciona funcionalidad de negocio\nvía endpoints REST JSON:\n• Controladores (API Routes)\n• Servicios (Lógica de Negocio)\n• DAL (Acceso a Datos - SQLAlchemy)\n• Autenticación JWT")
+    
+    ' ====================
+    ' CONTENEDORES DE PERSISTENCIA
+    ' ====================
+    
+    ContainerDb(db_postgres, "BD Principal", "PostgreSQL 14+", "Base de datos operacional OLTP:\n• Empleados, Usuarios, Cargos\n• Nóminas, Rubros, Horarios\n• Asistencias, Permisos\n• Hojas de Vida, Logs")
+    
+    ContainerDb(db_replica, "BD Espejo (Réplica)", "PostgreSQL (Solo Lectura)", "Replicación para:\n• Reportes\n• Consultas pesadas\n• Datos estructurados (CRUD)")
+    
+    Container(object_storage, "Almacenamiento de Objetos", "MinIO / S3", "Almacena archivos binarios:\n• Hojas de vida (PDFs)\n• Documentos adjuntos\n• Fotos de empleados\n• URL del Archivo")
+}
+
+' ====================
+' SISTEMAS EXTERNOS
+' ====================
+
+System_Ext(email_service, "Servicio de Email", "Envía notificaciones SMTP")
+System_Ext(browser, "Navegador Web", "Chrome, Firefox, Edge, Safari")
+
+' ====================
+' RELACIONES - USUARIOS
+' ====================
+
+Rel(admin_rh, browser, "Usa")
+Rel(gerente, browser, "Usa")
+Rel(empleado, browser, "Usa")
+
+Rel(browser, web_app, "Accede vía HTTPS", "Port 3000\nHTTPS/HTML/CSS/JS")
+
+' ====================
+' RELACIONES - FRONTEND ↔ BACKEND
+' ====================
+
+Rel(web_app, api_rest, "Realiza llamadas API", "HTTPS/REST\nPort 5000\nJSON + JWT Bearer Token")
+
+' ====================
+' RELACIONES - BACKEND ↔ SISTEMAS
+' ====================
+
+Rel(api_rest, db_postgres, "Lee/Escribe datos", "SQL/TCP\nPort 5432\nSQLAlchemy ORM")
+
+Rel(api_rest, db_replica, "Lee datos (Reportes)", "SQL/TCP\nPort 5432\nStreaming Replication")
+
+Rel(db_postgres, db_replica, "Replicación", "PostgreSQL\nStreaming")
+
+Rel(api_rest, object_storage, "Sube/Baja archivos", "S3 API\nArchivos binarios")
+
+Rel(api_rest, email_service, "Envía notificaciones", "SMTP\nPort 587/465\n• Nóminas procesadas\n• Permisos aprobados")
+
+' ====================
+' COMPONENTES CLAVE
+' ====================
+
+SHOW_LEGEND()
+
+@enduml

@@ -7,6 +7,7 @@ Aplicación web full-stack (Flask + React) para centralizar los procesos de RR. 
 ## 📚 Tabla de Contenidos
 - [Resumen del Proyecto](#-resumen-del-proyecto)
 - [Arquitectura y Stack](#-arquitectura-y-stack)
+- [Documentación y Diagramas](#-documentación-y-diagramas)
 - [Estructura del Repositorio](#-estructura-del-repositorio)
 - [Requisitos Previos](#-requisitos-previos)
 - [Instalación Inicial](#-instalación-inicial-primera-vez)
@@ -38,6 +39,33 @@ Aplicación web full-stack (Flask + React) para centralizar los procesos de RR. 
 | Frontend | React 19, React Router 6 | Create React App, Axios |
 | Testing | Pytest, React Testing Library | 186 tests backend, 20 tests frontend |
 | CI/CD | GitHub Actions | Tests automáticos en Python 3.10/3.11/3.12 |
+
+---
+
+## 📊 Documentación y Diagramas
+
+El proyecto incluye documentación arquitectónica completa con diagramas C4:
+
+### 🏗️ Diagramas de Arquitectura
+- **[C4 Nivel 1: Contexto del Sistema](docs/diagrams/)** - Vista general del sistema, actores externos y sistemas relacionados
+- **[C4 Nivel 2: Contenedores](docs/diagrams/)** - Estructura técnica completa coherente con Actividad 1
+- **[Documentación Completa](docs/)** - Guías técnicas y arquitectónicas
+
+Los diagramas muestran:
+- **Nivel 1:** Sistema principal, actores externos, sistemas relacionados
+- **Nivel 2:** Arquitectura de contenedores completa:
+  - Frontend: SPA React 19
+  - Backend: API Flask (3 capas: Controladores → Servicios → DAL)
+  - BD Principal PostgreSQL (Operacional OLTP)
+  - BD Espejo PostgreSQL (Réplica para reportes)
+  - Almacenamiento de Objetos MinIO/S3 (archivos binarios)
+  - Servicio de Email SMTP
+- Flujo de comunicación entre componentes
+- Protocolos y puertos (HTTPS, SQL/TCP, SMTP, S3 API)
+
+**Coherencia con Actividad 1:** ✅ Arquitectura ideal implementada
+
+**Herramientas**: PlantUML con notación C4 Model
 
 ---
 

@@ -1,0 +1,56 @@
+@startuml C4_Context_Diagram_Detailed
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+' Configuración visual mejorada
+LAYOUT_WITH_LEGEND()
+
+title Diagrama C4 - Nivel 1: Contexto del Sistema\nSistema de Gestión de Recursos Humanos - Chrispar Market
+
+' ====================
+' ACTORES PRINCIPALES
+' ====================
+
+Person(admin_rh, "Administrador RH", "Gestiona empleados, usuarios,\ncargos, nóminas, rubros,\nhorarios y configuraciones")
+
+Person(gerente, "Gerente/Supervisor", "Revisa empleados, nóminas,\nasistencias y aprueba\nsolicitudes de permisos")
+
+Person(empleado, "Empleado", "Consulta información personal,\nhorarios, nóminas y\nsolicita permisos")
+
+' ====================
+' SISTEMA PRINCIPAL
+' ====================
+
+System(chrispar_hr, "Sistema Chrispar HR", "Aplicación web full-stack (Flask + React)\npara gestión integral de Recursos Humanos:\n• Empleados y Usuarios\n• Cargos y Permisos\n• Nóminas y Rubros\n• Horarios y Asistencias\n• Permisos y Hojas de Vida\n• Auditoría de Transacciones")
+
+' ====================
+' SISTEMAS EXTERNOS
+' ====================
+
+SystemDb_Ext(postgresql, "Base de Datos PostgreSQL", "Almacenamiento persistente:\nEmpleados, Usuarios, Cargos,\nNóminas, Rubros, Horarios,\nAsistencias, Permisos,\nHojas de Vida, Logs")
+
+System_Ext(email_system, "Servicio de Email", "Envío de notificaciones:\n• Nóminas procesadas\n• Permisos aprobados/rechazados\n• Alertas administrativas\n• Recordatorios")
+
+System_Ext(auth_jwt, "Autenticación JWT", "Gestión de sesiones seguras:\n• Generación de tokens\n• Validación de credenciales\n• Control de acceso por roles\n• Refresh tokens")
+
+' ====================
+' RELACIONES PRINCIPALES
+' ====================
+
+' Actores → Sistema Principal
+Rel(admin_rh, chrispar_hr, "Administra el sistema completo", "HTTPS/REST API")
+Rel(gerente, chrispar_hr, "Consulta y aprueba operaciones", "HTTPS/REST API")
+Rel(empleado, chrispar_hr, "Consulta datos personales y solicita permisos", "HTTPS/REST API")
+
+' Sistema → Bases de datos y servicios
+Rel(chrispar_hr, postgresql, "Lee/Escribe datos", "PostgreSQL\nSQL/TCP Port 5432")
+Rel(chrispar_hr, auth_jwt, "Valida tokens y permisos", "JWT Bearer\nHTTPS/JSON")
+Rel(chrispar_hr, email_system, "Envía notificaciones", "SMTP\nPort 587/465")
+
+' Notificaciones a usuarios
+Rel(email_system, admin_rh, "Alertas de sistema")
+Rel(email_system, gerente, "Solicitudes pendientes")
+Rel(email_system, empleado, "Confirmaciones")
+
+SHOW_LEGEND()
+
+@enduml
