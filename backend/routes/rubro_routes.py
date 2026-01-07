@@ -150,7 +150,8 @@ def actualizar_rubro(current_user, id):
 		r = Rubro.query.get_or_404(id)
 
 		datos_anteriores = {'monto': r.monto, 'tipo': r.tipo, 'operacion': r.operacion}
-
+		
+		monto = None
 		# monto (validar si viene)
 		if 'monto' in data:
 			try:

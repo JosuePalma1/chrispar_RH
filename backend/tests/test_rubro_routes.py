@@ -29,11 +29,8 @@ class TestRubroRoutes:
         # Crear nómina
         nomina_data = {
             "id_empleado": empleado_id,
-            "fecha_inicio": str(date.today()),
-            "fecha_fin": str(date.today() + timedelta(days=30)),
-            "salario_bruto": 5000.0,
-            "deducciones": 500.0,
-            "salario_neto": 4500.0
+            "mes": "2024-01",
+            "total": 4500.0
         }
         nomina_response = client.post("/api/nominas/", json=nomina_data, headers=auth_headers)
         nomina_id = nomina_response.json["id"]
@@ -41,8 +38,7 @@ class TestRubroRoutes:
         # Crear rubro
         rubro_data = {
             "id_nomina": nomina_id,
-            "codigo": "DEV001",
-            "descripcion": "Bono de productividad",
+            "motivo": "Bono de productividad",
             "tipo": "devengo",
             "monto": 300.0
         }
@@ -71,11 +67,8 @@ class TestRubroRoutes:
         # Crear nómina
         nomina_data = {
             "id_empleado": empleado_id,
-            "fecha_inicio": str(date.today()),
-            "fecha_fin": str(date.today() + timedelta(days=30)),
-            "salario_bruto": 4000.0,
-            "deducciones": 800.0,
-            "salario_neto": 3200.0
+            "mes": "2024-01",
+            "total": 3200.0
         }
         nomina_response = client.post("/api/nominas/", json=nomina_data, headers=auth_headers)
         nomina_id = nomina_response.json["id"]
@@ -83,8 +76,7 @@ class TestRubroRoutes:
         # Crear rubro deducción
         rubro_data = {
             "id_nomina": nomina_id,
-            "codigo": "DED001",
-            "descripcion": "Descuento préstamo",
+            "motivo": "Descuento préstamo",
             "tipo": "deduccion",
             "monto": 200.0
         }
@@ -96,8 +88,7 @@ class TestRubroRoutes:
     def test_crear_rubro_sin_nomina(self, client, auth_headers):
         """Test: Validar que se requiere id_nomina"""
         rubro_data = {
-            "codigo": "DEV002",
-            "descripcion": "Bono sin nómina",
+            "motivo": "Bono sin nómina",
             "tipo": "devengo",
             "monto": 100.0
         }
@@ -124,11 +115,8 @@ class TestRubroRoutes:
         # Crear nómina
         nomina_data = {
             "id_empleado": empleado_id,
-            "fecha_inicio": str(date.today()),
-            "fecha_fin": str(date.today() + timedelta(days=30)),
-            "salario_bruto": 6000.0,
-            "deducciones": 600.0,
-            "salario_neto": 5400.0
+            "mes": "2024-01",
+            "total": 5400.0
         }
         nomina_response = client.post("/api/nominas/", json=nomina_data, headers=auth_headers)
         nomina_id = nomina_response.json["id"]
@@ -136,8 +124,7 @@ class TestRubroRoutes:
         # Crear rubros
         rubro1_data = {
             "id_nomina": nomina_id,
-            "codigo": "DEV003",
-            "descripcion": "Horas extra",
+            "motivo": "Horas extra",
             "tipo": "devengo",
             "monto": 250.0
         }
@@ -145,8 +132,7 @@ class TestRubroRoutes:
 
         rubro2_data = {
             "id_nomina": nomina_id,
-            "codigo": "DED002",
-            "descripcion": "Seguro médico",
+            "motivo": "Seguro médico",
             "tipo": "deduccion",
             "monto": 150.0
         }
@@ -178,22 +164,16 @@ class TestRubroRoutes:
         # Crear dos nóminas
         nomina1_data = {
             "id_empleado": empleado_id,
-            "fecha_inicio": str(date.today()),
-            "fecha_fin": str(date.today() + timedelta(days=30)),
-            "salario_bruto": 3500.0,
-            "deducciones": 350.0,
-            "salario_neto": 3150.0
+            "mes": "2024-01",
+            "total": 3150.0
         }
         nomina1_response = client.post("/api/nominas/", json=nomina1_data, headers=auth_headers)
         nomina1_id = nomina1_response.json["id"]
 
         nomina2_data = {
             "id_empleado": empleado_id,
-            "fecha_inicio": str(date.today() + timedelta(days=31)),
-            "fecha_fin": str(date.today() + timedelta(days=60)),
-            "salario_bruto": 3500.0,
-            "deducciones": 350.0,
-            "salario_neto": 3150.0
+            "mes": "2024-02",
+            "total": 3150.0
         }
         nomina2_response = client.post("/api/nominas/", json=nomina2_data, headers=auth_headers)
         nomina2_id = nomina2_response.json["id"]
@@ -201,8 +181,7 @@ class TestRubroRoutes:
         # Crear rubros para cada nómina
         rubro1_data = {
             "id_nomina": nomina1_id,
-            "codigo": "DEV004",
-            "descripcion": "Bono mes 1",
+            "motivo": "Bono mes 1",
             "tipo": "devengo",
             "monto": 200.0
         }
@@ -210,8 +189,7 @@ class TestRubroRoutes:
 
         rubro2_data = {
             "id_nomina": nomina2_id,
-            "codigo": "DEV005",
-            "descripcion": "Bono mes 2",
+            "motivo": "Bono mes 2",
             "tipo": "devengo",
             "monto": 300.0
         }
@@ -245,11 +223,8 @@ class TestRubroRoutes:
         # Crear nómina
         nomina_data = {
             "id_empleado": empleado_id,
-            "fecha_inicio": str(date.today()),
-            "fecha_fin": str(date.today() + timedelta(days=30)),
-            "salario_bruto": 4500.0,
-            "deducciones": 450.0,
-            "salario_neto": 4050.0
+            "mes": "2024-03",
+            "total": 4050.0
         }
         nomina_response = client.post("/api/nominas/", json=nomina_data, headers=auth_headers)
         nomina_id = nomina_response.json["id"]
@@ -257,8 +232,7 @@ class TestRubroRoutes:
         # Crear rubro
         rubro_data = {
             "id_nomina": nomina_id,
-            "codigo": "DEV006",
-            "descripcion": "Comisión por ventas",
+            "motivo": "Comisión por ventas",
             "tipo": "devengo",
             "monto": 500.0
         }
@@ -270,7 +244,6 @@ class TestRubroRoutes:
         
         assert response.status_code == 200
         assert response.json["id_rubro"] == rubro_id
-        assert response.json["codigo"] == "DEV006"
         assert response.json["tipo"] == "devengo"
         assert response.json["monto"] == 500.0
 
@@ -293,11 +266,8 @@ class TestRubroRoutes:
         # Crear nómina
         nomina_data = {
             "id_empleado": empleado_id,
-            "fecha_inicio": str(date.today()),
-            "fecha_fin": str(date.today() + timedelta(days=30)),
-            "salario_bruto": 5500.0,
-            "deducciones": 550.0,
-            "salario_neto": 4950.0
+            "mes": "2024-04",
+            "total": 4950.0
         }
         nomina_response = client.post("/api/nominas/", json=nomina_data, headers=auth_headers)
         nomina_id = nomina_response.json["id"]
@@ -305,8 +275,7 @@ class TestRubroRoutes:
         # Crear rubro
         rubro_data = {
             "id_nomina": nomina_id,
-            "codigo": "DED003",
-            "descripcion": "Descuento provisional",
+            "motivo": "Descuento provisional",
             "tipo": "deduccion",
             "monto": 100.0
         }
@@ -316,7 +285,7 @@ class TestRubroRoutes:
         # Actualizar el rubro
         update_data = {
             "monto": 150.0,
-            "descripcion": "Descuento revisado"
+            "motivo": "Descuento revisado"
         }
         response = client.put(f"/api/rubros/{rubro_id}", json=update_data, headers=auth_headers)
         
@@ -326,7 +295,7 @@ class TestRubroRoutes:
         # Verificar actualización
         get_response = client.get(f"/api/rubros/{rubro_id}", headers=auth_headers)
         assert get_response.json["monto"] == 150.0
-        assert get_response.json["descripcion"] == "Descuento revisado"
+        assert get_response.json["motivo"] == "Descuento revisado"
 
     def test_actualizar_rubro_cambiar_tipo(self, client, auth_headers, cargo_fixture):
         """Test: Cambiar el tipo de un rubro (devengo a deducción)"""
@@ -347,11 +316,8 @@ class TestRubroRoutes:
         # Crear nómina
         nomina_data = {
             "id_empleado": empleado_id,
-            "fecha_inicio": str(date.today()),
-            "fecha_fin": str(date.today() + timedelta(days=30)),
-            "salario_bruto": 4800.0,
-            "deducciones": 480.0,
-            "salario_neto": 4320.0
+            "mes": "2024-05",
+            "total": 4320.0
         }
         nomina_response = client.post("/api/nominas/", json=nomina_data, headers=auth_headers)
         nomina_id = nomina_response.json["id"]
@@ -359,8 +325,7 @@ class TestRubroRoutes:
         # Crear rubro
         rubro_data = {
             "id_nomina": nomina_id,
-            "codigo": "DEV007",
-            "descripcion": "Bono inicial",
+            "motivo": "Bono inicial",
             "tipo": "devengo",
             "monto": 200.0
         }
@@ -398,11 +363,8 @@ class TestRubroRoutes:
         # Crear nómina
         nomina_data = {
             "id_empleado": empleado_id,
-            "fecha_inicio": str(date.today()),
-            "fecha_fin": str(date.today() + timedelta(days=30)),
-            "salario_bruto": 3800.0,
-            "deducciones": 380.0,
-            "salario_neto": 3420.0
+            "mes": "2024-06",
+            "total": 3420.0
         }
         nomina_response = client.post("/api/nominas/", json=nomina_data, headers=auth_headers)
         nomina_id = nomina_response.json["id"]
@@ -410,8 +372,7 @@ class TestRubroRoutes:
         # Crear rubro
         rubro_data = {
             "id_nomina": nomina_id,
-            "codigo": "DED004",
-            "descripcion": "Descuento temporal",
+            "motivo": "Descuento temporal",
             "tipo": "deduccion",
             "monto": 50.0
         }
@@ -448,11 +409,8 @@ class TestRubroRoutes:
         # Crear nómina
         nomina_data = {
             "id_empleado": empleado_id,
-            "fecha_inicio": str(date.today()),
-            "fecha_fin": str(date.today() + timedelta(days=30)),
-            "salario_bruto": 4200.0,
-            "deducciones": 420.0,
-            "salario_neto": 3780.0
+            "mes": "2024-07",
+            "total": 3780.0
         }
         nomina_response = client.post("/api/nominas/", json=nomina_data, headers=auth_headers)
         nomina_id = nomina_response.json["id"]
@@ -460,8 +418,7 @@ class TestRubroRoutes:
         # Crear rubro sin monto
         rubro_data = {
             "id_nomina": nomina_id,
-            "codigo": "DEV008",
-            "descripcion": "Rubro pendiente de definir",
+            "motivo": "Rubro pendiente de definir",
             "tipo": "devengo"
         }
         response = client.post("/api/rubros/", json=rubro_data, headers=auth_headers)
@@ -492,22 +449,19 @@ class TestRubroRoutes:
         # Crear nómina
         nomina_data = {
             "id_empleado": empleado_id,
-            "fecha_inicio": str(date.today()),
-            "fecha_fin": str(date.today() + timedelta(days=30)),
-            "salario_bruto": 7000.0,
-            "deducciones": 1400.0,
-            "salario_neto": 5600.0
+            "mes": "2024-08",
+            "total": 5600.0
         }
         nomina_response = client.post("/api/nominas/", json=nomina_data, headers=auth_headers)
         nomina_id = nomina_response.json["id"]
 
         # Crear varios rubros
         rubros = [
-            {"codigo": "DEV009", "descripcion": "Salario base", "tipo": "devengo", "monto": 5000.0},
-            {"codigo": "DEV010", "descripcion": "Horas extra", "tipo": "devengo", "monto": 1000.0},
-            {"codigo": "DEV011", "descripcion": "Bonificación", "tipo": "devengo", "monto": 1000.0},
-            {"codigo": "DED005", "descripcion": "Impuesto", "tipo": "deduccion", "monto": 700.0},
-            {"codigo": "DED006", "descripcion": "Seguro", "tipo": "deduccion", "monto": 700.0}
+            {"motivo": "Salario base", "tipo": "devengo", "monto": 5000.0},
+            {"motivo": "Horas extra", "tipo": "devengo", "monto": 1000.0},
+            {"motivo": "Bonificación", "tipo": "devengo", "monto": 1000.0},
+            {"motivo": "Impuesto", "tipo": "deduccion", "monto": 700.0},
+            {"motivo": "Seguro", "tipo": "deduccion", "monto": 700.0}
         ]
 
         for rubro in rubros:
@@ -518,55 +472,4 @@ class TestRubroRoutes:
         # Verificar que todos se crearon
         list_response = client.get(f"/api/rubros/?id_nomina={nomina_id}", headers=auth_headers)
         assert len(list_response.json) == 5
-
-    def test_actualizar_rubro_codigo(self, client, auth_headers, cargo_fixture):
-        """Test: Actualizar el código de un rubro"""
-        # Crear empleado
-        empleado_data = {
-            "nombre": "Kevin",
-            "apellido": "Luna",
-            "email": "kevin.luna@test.com",
-            "telefono": "222555888",
-            "direccion": "Calle Nueva",
-            "fecha_nacimiento": "1990-10-10",
-            "fecha_contratacion": "2020-07-07",
-            "id_cargo": cargo_fixture
-        }
-        emp_response = client.post("/api/empleados/", json=empleado_data, headers=auth_headers)
-        empleado_id = emp_response.json["id"]
-
-        # Crear nómina
-        nomina_data = {
-            "id_empleado": empleado_id,
-            "fecha_inicio": str(date.today()),
-            "fecha_fin": str(date.today() + timedelta(days=30)),
-            "salario_bruto": 5200.0,
-            "deducciones": 520.0,
-            "salario_neto": 4680.0
-        }
-        nomina_response = client.post("/api/nominas/", json=nomina_data, headers=auth_headers)
-        nomina_id = nomina_response.json["id"]
-
-        # Crear rubro
-        rubro_data = {
-            "id_nomina": nomina_id,
-            "codigo": "DEV999",
-            "descripcion": "Bono temporal",
-            "tipo": "devengo",
-            "monto": 400.0
-        }
-        create_response = client.post("/api/rubros/", json=rubro_data, headers=auth_headers)
-        rubro_id = create_response.json["id"]
-
-        # Actualizar código
-        update_data = {
-            "codigo": "DEV012"
-        }
-        response = client.put(f"/api/rubros/{rubro_id}", json=update_data, headers=auth_headers)
-        
-        assert response.status_code == 200
-
-        # Verificar actualización
-        get_response = client.get(f"/api/rubros/{rubro_id}", headers=auth_headers)
-        assert get_response.json["codigo"] == "DEV012"
 

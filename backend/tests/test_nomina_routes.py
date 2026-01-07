@@ -32,10 +32,8 @@ class TestNominaCRUD:
             '/api/nominas/',
             json={
                 'id_empleado': empleado_id,
-                'fecha_inicio': '2024-01-01',
-                'fecha_fin': '2024-01-31',
-                'total': 1500.00,
-                'estado': 'pagada'
+                'mes': '2024-01',
+                'total': 1500.00
             },
             headers=auth_headers
         )
@@ -77,10 +75,8 @@ class TestNominaCRUD:
             
             nomina = Nomina(
                 id_empleado=empleado.id,
-                fecha_inicio=date(2024, 1, 1),
-                fecha_fin=date(2024, 1, 31),
-                total=2000.00,
-                estado='pagada'
+                mes='2024-01',
+                total_desembolsar=2000.00
             )
             db.session.add(nomina)
             db.session.commit()
@@ -91,7 +87,7 @@ class TestNominaCRUD:
         data = json.loads(response.data)
         assert isinstance(data, list)
         assert len(data) >= 1
-        assert data[0]['total'] == 2000.00
+        assert data[0]['total_desembolsar'] == 2000.00
     
     def test_obtener_nomina_por_id(self, client, auth_headers, app, cargo_fixture):
         """GET /api/nominas/<id> debe retornar una nómina específica"""
@@ -109,10 +105,8 @@ class TestNominaCRUD:
             
             nomina = Nomina(
                 id_empleado=empleado.id,
-                fecha_inicio=date(2024, 2, 1),
-                fecha_fin=date(2024, 2, 28),
-                total=1800.00,
-                estado='pendiente'
+                mes='2024-02',
+                total_desembolsar=1800.00
             )
             db.session.add(nomina)
             db.session.commit()
@@ -123,8 +117,7 @@ class TestNominaCRUD:
         assert response.status_code == 200
         data = json.loads(response.data)
         assert data['id_nomina'] == nomina_id
-        assert data['total'] == 1800.00
-        assert data['estado'] == 'pendiente'
+        assert data['total_desembolsar'] == 1800.00
     
     def test_actualizar_nomina(self, client, auth_headers, app, cargo_fixture):
         """PUT /api/nominas/<id> debe actualizar una nómina"""
@@ -142,10 +135,8 @@ class TestNominaCRUD:
             
             nomina = Nomina(
                 id_empleado=empleado.id,
-                fecha_inicio=date(2024, 3, 1),
-                fecha_fin=date(2024, 3, 31),
-                total=1500.00,
-                estado='pendiente'
+                mes='2024-03',
+                total_desembolsar=1500.00
             )
             db.session.add(nomina)
             db.session.commit()
@@ -154,8 +145,7 @@ class TestNominaCRUD:
         response = client.put(
             f'/api/nominas/{nomina_id}',
             json={
-                'total': 1750.00,
-                'estado': 'pagada'
+                'total': 1750.00
             },
             headers=auth_headers
         )
@@ -167,8 +157,7 @@ class TestNominaCRUD:
         # Verificar cambios
         with app.app_context():
             nomina_actualizada = Nomina.query.get(nomina_id)
-            assert nomina_actualizada.total == 1750.00
-            assert nomina_actualizada.estado == 'pagada'
+            assert nomina_actualizada.total_desembolsar == 1750.00
     
     def test_eliminar_nomina(self, client, auth_headers, app, cargo_fixture):
         """DELETE /api/nominas/<id> debe eliminar una nómina"""
@@ -186,10 +175,8 @@ class TestNominaCRUD:
             
             nomina = Nomina(
                 id_empleado=empleado.id,
-                fecha_inicio=date(2024, 4, 1),
-                fecha_fin=date(2024, 4, 30),
-                total=1600.00,
-                estado='pendiente'
+                mes='2024-04',
+                total_desembolsar=1600.00
             )
             db.session.add(nomina)
             db.session.commit()
