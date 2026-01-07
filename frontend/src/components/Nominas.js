@@ -165,7 +165,7 @@ function Nominas() {
     setFormErrors(prev => { const c = { ...prev }; delete c.mes; return c; });
   };
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  
 
   const closeCreateModal = () => {
     setCreateModalOpen(false);

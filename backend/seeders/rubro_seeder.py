@@ -34,7 +34,7 @@ class RubroSeeder(Seeder):
                     id_nomina=nominas[1].id_nomina if len(nominas) > 1 else nominas[0].id_nomina,
                     tipo='devengo',
                     monto=1800.00,
-                    motivo='Sueldo base'
+                    motivo='Sueldo total'
                 ),
                 Rubro(
                     id_nomina=nominas[1].id_nomina if len(nominas) > 1 else nominas[0].id_nomina,
