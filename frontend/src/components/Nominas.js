@@ -15,15 +15,17 @@ function Nominas() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ id_empleado: '', mes: '', sueldo_base: '', horas_extra: '', total_desembolsar: '' });
+  const [form, setForm] = useState({ id_empleado: '', mes: '', sueldo_base: '', horas_extra: '' });
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [viewNomina, setViewNomina] = useState(null);
   const openViewModal = (nomina) => setViewNomina(nomina);
-  const [editForm, setEditForm] = useState({ id_nomina: null, id_empleado: '', fecha_inicio: '', fecha_fin: '', total: '' });
+  const [editForm, setEditForm] = useState({ id_nomina: null, id_empleado: '', mes: '', sueldo_base: '', horas_extra: '' });
   const [formErrors, setFormErrors] = useState({});
   const [toast, setToast] = useState(null);
   const [toastType, setToastType] = useState('success');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [nominaToDelete, setNominaToDelete] = useState(null);
 
   // Prevent non-numeric characters in numeric inputs
   const numericKeyDown = (e) => {
@@ -50,9 +52,17 @@ function Nominas() {
     setTimeout(() => setToast(null), 5000);
   };
 
-  const filteredNominas = Array.isArray(nominas) && search.trim()
-    ? nominas.filter(n => Object.values(n).some(v => String(v ?? '').toLowerCase().includes(search.toLowerCase())))
-    : nominas;
+  const filteredNominas = Array.isArray(nominas)
+    ? nominas.filter(n => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      const empleado = empleadosList.find(emp => String(emp.id) === String(n.id_empleado));
+      const empleadoNombre = empleado ? `${empleado.nombres} ${empleado.apellidos}`.toLowerCase() : '';
+      // search existing nomina fields
+      const matchFields = Object.values(n).some(v => String(v ?? '').toLowerCase().includes(q));
+      return matchFields || empleadoNombre.includes(q);
+    })
+    : [];
 
   const fetchNominas = async () => {
     try {
@@ -61,7 +71,8 @@ function Nominas() {
       const res = await axios.get(`${API_URL}/api/nominas/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      setNominas(res.data);
+      const list = Array.isArray(res.data) ? res.data.slice().sort((a,b) => (a.id_nomina || 0) - (b.id_nomina || 0)) : [];
+      setNominas(list);
       setError('');
     } catch (err) {
       if (err.response && err.response.status === 401) {
@@ -76,13 +87,16 @@ function Nominas() {
 
   const exportToExcel = () => {
     try {
-      const dataToExport = filteredNominas.map(n => ({
-        ID: n.id_nomina,
-        Mes: n.mes || n.fecha_generacion || '',
-        Empleado: n.id_empleado,
-        'Total a Desembolsar': n.total_desembolsar ?? n.total ?? 0,
-        Estado: n.estado || ''
-      }));
+      const dataToExport = filteredNominas.map(n => {
+        const emp = empleadosList.find(emp => String(emp.id) === String(n.id_empleado));
+        const empleadoNombre = emp ? `${emp.nombres} ${emp.apellidos}` : n.id_empleado;
+        return {
+          ID: n.id_nomina,
+          Mes: n.mes || n.fecha_generacion || '',
+          Empleado: empleadoNombre,
+          'Total a Desembolsar': n.total_desembolsar ?? n.total ?? 0
+        };
+      });
       const ws = XLSX.utils.json_to_sheet(dataToExport);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Nominas');
@@ -96,14 +110,17 @@ function Nominas() {
   const exportToPDF = () => {
     try {
       const doc = new jsPDF();
-      const head = [['ID', 'Mes', 'Empleado', 'Total a Desembolsar', 'Estado']];
-      const body = filteredNominas.map(n => [
-        n.id_nomina,
-        n.mes || n.fecha_generacion || '',
-        n.id_empleado,
-        n.total_desembolsar ?? n.total ?? 0,
-        n.estado || ''
-      ]);
+      const head = [['ID', 'Empleado', 'Mes', 'Total a Desembolsar']];
+      const body = filteredNominas.map(n => {
+        const emp = empleadosList.find(emp => String(emp.id) === String(n.id_empleado));
+        const empleadoNombre = emp ? `${emp.nombres} ${emp.apellidos}` : n.id_empleado;
+        return [
+          n.id_nomina,
+          empleadoNombre,
+          n.mes || n.fecha_generacion || '',
+          n.total_desembolsar ?? n.total ?? 0
+        ];
+      });
       // use autoTable plugin
       autoTable(doc, { head, body, startY: 14 });
       doc.text('Listado de Nóminas', 14, 10);
@@ -125,6 +142,27 @@ function Nominas() {
       // silence: dropdown can be empty if unauthenticated
       setEmpleadosList([]);
     }
+  };
+
+  const getEmpleadoNombre = (id) => {
+    const emp = empleadosList.find(emp => String(emp.id) === String(id));
+    return emp ? `${emp.nombres} ${emp.apellidos}` : id;
+  };
+
+  // month/year selector helpers (allow selecting years beyond current)
+  const months = [
+    { v: '01', l: 'Enero' }, { v: '02', l: 'Febrero' }, { v: '03', l: 'Marzo' }, { v: '04', l: 'Abril' },
+    { v: '05', l: 'Mayo' }, { v: '06', l: 'Junio' }, { v: '07', l: 'Julio' }, { v: '08', l: 'Agosto' },
+    { v: '09', l: 'Septiembre' }, { v: '10', l: 'Octubre' }, { v: '11', l: 'Noviembre' }, { v: '12', l: 'Diciembre' }
+  ];
+  const currentYear = new Date().getFullYear();
+  const years = [];
+  for (let y = currentYear - 10; y <= currentYear + 5; y++) years.push(y);
+
+  const handleMesSelect = (monthValue, yearValue) => {
+    if (!monthValue || !yearValue) return;
+    setForm(prev => ({ ...prev, mes: `${yearValue}-${monthValue}` }));
+    setFormErrors(prev => { const c = { ...prev }; delete c.mes; return c; });
   };
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
@@ -153,9 +191,8 @@ function Nominas() {
       errors.mes = 'Selecciona el mes';
       mostrarToast(errors.mes, 'error');
     }
-
-    // sueldo_base, horas_extra, total_desembolsar validations
-    const numericFields = ['sueldo_base', 'horas_extra', 'total_desembolsar'];
+    // sueldo_base, horas_extra validations
+    const numericFields = ['sueldo_base', 'horas_extra'];
     numericFields.forEach(field => {
       const val = form[field];
       if (val === '' || val === null || typeof val === 'undefined') {
@@ -170,17 +207,30 @@ function Nominas() {
       }
     });
 
+    // horas_extra cannot be greater than sueldo_base
+    if (!errors.sueldo_base && !errors.horas_extra) {
+      const sb = parseFloat(form.sueldo_base) || 0;
+      const he = parseFloat(form.horas_extra) || 0;
+      if (he > sb) {
+        errors.horas_extra = 'Horas extra no puede ser mayor al sueldo base';
+        mostrarToast(errors.horas_extra, 'error');
+      }
+    }
+
     setFormErrors(errors);
     if (Object.keys(errors).length) return;
 
     try {
       const token = localStorage.getItem('token');
+      const sueldo_base = parseFloat(form.sueldo_base) || 0;
+      const horas_extra = parseFloat(form.horas_extra) || 0;
+      const total_desembolsar = Number((sueldo_base + horas_extra).toFixed(2));
       const payload = {
         id_empleado: parseInt(form.id_empleado, 10),
         mes: form.mes,
-        sueldo_base: parseFloat(form.sueldo_base) || 0,
-        horas_extra: parseFloat(form.horas_extra) || 0,
-        total_desembolsar: parseFloat(form.total_desembolsar) || 0,
+        sueldo_base,
+        horas_extra,
+        total_desembolsar,
         creado_por: 1
       };
       await axios.post(`${API_URL}/api/nominas/`, payload, {
@@ -198,26 +248,40 @@ function Nominas() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('¿Eliminar esta nómina?')) return;
     try {
       const token = localStorage.getItem('token');
       await axios.delete(`${API_URL}/api/nominas/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      mostrarToast('Nómina eliminada', 'success');
       fetchNominas();
     } catch (err) {
       setError('Error al eliminar nómina');
+      mostrarToast('Error al eliminar nómina', 'error');
     }
   };
 
+  const confirmDeleteNomina = async () => {
+    if (!nominaToDelete) return;
+    await handleDelete(nominaToDelete.id_nomina);
+    setNominaToDelete(null);
+    setDeleteConfirmOpen(false);
+  };
+
+  const cancelDeleteNomina = () => {
+    setNominaToDelete(null);
+    setDeleteConfirmOpen(false);
+  };
+
   const openEditModal = (nomina) => {
+    // determine mes value
+    const mesVal = nomina.mes || nomina.fecha_generacion || '';
     setEditForm({
       id_nomina: nomina.id_nomina,
       id_empleado: nomina.id_empleado,
-      fecha_inicio: nomina.fecha_inicio || '',
-      fecha_fin: nomina.fecha_fin || '',
-      total: nomina.total || nomina.total_desembolsar || 0,
-      estado: nomina.estado || ''
+      mes: mesVal,
+      sueldo_base: (nomina.sueldo_base != null) ? String(nomina.sueldo_base) : '',
+      horas_extra: (nomina.horas_extra != null) ? String(nomina.horas_extra) : ''
     });
     setFormErrors({});
     setEditModalOpen(true);
@@ -227,51 +291,72 @@ function Nominas() {
 
   const validateEdit = () => {
     const errors = {};
-    const fechaInicioVal = editForm.fecha_inicio ? Date.parse(editForm.fecha_inicio) : NaN;
-    const fechaFinVal = editForm.fecha_fin ? Date.parse(editForm.fecha_fin) : NaN;
-    if (!editForm.fecha_inicio || isNaN(fechaInicioVal)) errors.fecha_inicio = 'Fecha inicio inválida';
-    if (!editForm.fecha_fin || isNaN(fechaFinVal)) errors.fecha_fin = 'Fecha fin inválida';
-    if (!errors.fecha_inicio && !errors.fecha_fin && fechaInicioVal > fechaFinVal) errors.fecha_fin = 'Fecha fin debe ser posterior o igual a fecha inicio';
-    if (editForm.total === '' || editForm.total === null || typeof editForm.total === 'undefined') {
-      errors.total = 'Total requerido';
-    } else if (!/^\d+(?:\.\d{1,2})?$/.test(String(editForm.total))) {
-      errors.total = 'Total debe ser numérico con hasta 2 decimales';
-    } else if (parseFloat(editForm.total) < 0) {
-      errors.total = 'Total no puede ser negativo';
-    } else if (parseFloat(editForm.total) > 1000000000) {
-      errors.total = 'Total demasiado grande';
+    if (!editForm.mes) errors.mes = 'Selecciona el mes';
+    // sueldo_base and horas_extra validations
+    ['sueldo_base', 'horas_extra'].forEach(field => {
+      const val = editForm[field];
+      if (val === '' || val === null || typeof val === 'undefined') {
+        errors[field] = 'Requerido';
+      } else if (!/^\d+(?:\.\d{1,2})?$/.test(String(val))) {
+        errors[field] = 'Formato numérico inválido';
+      } else if (parseFloat(val) < 0) {
+        errors[field] = 'No puede ser negativo';
+      }
+    });
+    // horas_extra cannot exceed sueldo_base
+    if (!errors.sueldo_base && !errors.horas_extra) {
+      const sb = parseFloat(editForm.sueldo_base) || 0;
+      const he = parseFloat(editForm.horas_extra) || 0;
+      if (he > sb) errors.horas_extra = 'Horas extra no puede ser mayor al sueldo base';
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const handleEditSave = async () => {
-    if (!validateEdit()) return;
-    try {
-      const token = localStorage.getItem('token');
-      const payload = {
-        fecha_inicio: editForm.fecha_inicio,
-        fecha_fin: editForm.fecha_fin,
-        total: parseFloat(editForm.total) || 0
-      };
-      await axios.put(`${API_URL}/api/nominas/${editForm.id_nomina}`, payload, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      setEditModalOpen(false);
-      fetchNominas();
-      alert('Nómina actualizada correctamente');
-    } catch (err) {
-      setError(err.response?.data?.error || 'Error al actualizar nómina');
-      alert(err.response?.data?.error || 'Error al actualizar nómina');
-    }
-  };
+const handleEditSave = async () => {
+  if (!validateEdit()) return;
+  try {
+    const token = localStorage.getItem('token');
+    const sueldo_base = parseFloat(editForm.sueldo_base) || 0;
+    const horas_extra = parseFloat(editForm.horas_extra) || 0;
+    
+    // Calculamos el total para enviarlo al backend
+    const total_desembolsar = Number((sueldo_base + horas_extra).toFixed(2));
+
+    const payload = {
+      mes: editForm.mes,
+      sueldo_base,
+      horas_extra,
+      total_desembolsar
+    };
+
+    await axios.put(`${API_URL}/api/nominas/${editForm.id_nomina}`, payload, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    // 1. Refrescar los datos directamente del servidor (LA SOLUCIÓN MÁS SEGURA)
+    await fetchNominas();
+
+    // 2. Si el modal de "Ver Detalle" está abierto para esta nómina, lo cerramos o actualizamos
+    setViewNomina(null); 
+
+    // 3. Cerramos el modal de edición y notificamos
+    setEditModalOpen(false);
+    mostrarToast('Nómina actualizada correctamente', 'success');
+
+  } catch (err) {
+    const message = err.response?.data?.error || err.response?.data?.message || err.message || 'Error al actualizar nómina';
+    setError(message);
+    mostrarToast(message, 'error');
+  }
+};
 
   // update form change to support new create fields and real-time validation
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
     // realtime numeric validation
-    if (['sueldo_base', 'horas_extra', 'total_desembolsar'].includes(name)) {
+    if (['sueldo_base', 'horas_extra'].includes(name)) {
       if (value === '' || value === null) {
         setFormErrors(prev => ({ ...prev, [name]: 'Requerido' }));
         mostrarToast(`${name.replace('_', ' ')}: Requerido`, 'error');
@@ -332,6 +417,7 @@ function Nominas() {
           <thead>
             <tr>
               <th>Nº Nómina</th>
+              <th>Empleado</th>
               <th>Mes</th>
               <th>Total a Desembolsar</th>
               <th>Acciones</th>
@@ -341,12 +427,13 @@ function Nominas() {
             {filteredNominas.map(n => (
               <tr key={n.id_nomina}>
                 <td className="td-center">{n.id_nomina}</td>
+                <td className="td-center">{(empleadosList.find(emp => String(emp.id) === String(n.id_empleado)) ? `${empleadosList.find(emp => String(emp.id) === String(n.id_empleado)).nombres} ${empleadosList.find(emp => String(emp.id) === String(n.id_empleado)).apellidos}` : n.id_empleado)}</td>
                 <td className="td-center">{n.mes || n.fecha_generacion || ''}</td>
                 <td className="td-center">{Number(n.total_desembolsar ?? n.total ?? 0).toFixed(2)}</td>
                 <td className="td-center">
                   <div className="acciones-grupo">
                     <button className="btn-icono editar" onClick={() => openEditModal(n)} title="Editar"><FaEdit /></button>
-                    <button className="btn-icono eliminar" onClick={() => handleDelete(n.id_nomina)} title="Eliminar"><FaTrash /></button>
+                    <button className="btn-icono eliminar" onClick={() => { setNominaToDelete(n); setDeleteConfirmOpen(true); }} title="Eliminar"><FaTrash /></button>
                     <button className="btn-icono ver" onClick={() => openViewModal(n)} title="Ver"><FaEye /></button>
                   </div>
                 </td>
@@ -354,6 +441,23 @@ function Nominas() {
             ))}
           </tbody>
           </table>
+        </div>
+      )}
+      {deleteConfirmOpen && (
+        <div className="modal">
+          <div className="modal-contenido">
+            <div className="modal-header">
+              <h3>Confirmar eliminación</h3>
+              <button className="btn-cerrar-modal" onClick={cancelDeleteNomina} type="button"><FaTimes /></button>
+            </div>
+            <div className="form-grupo">
+              <p>¿Estás seguro de eliminar la nómina <strong>#{nominaToDelete && nominaToDelete.id_nomina}</strong> del empleado <strong>{nominaToDelete ? getEmpleadoNombre(nominaToDelete.id_empleado) : ''}</strong> ?</p>
+            </div>
+            <div className="form-botones">
+              <button className="btn-guardar" onClick={confirmDeleteNomina}>Eliminar</button>
+              <button className="btn-cancelar" onClick={cancelDeleteNomina}>Cancelar</button>
+            </div>
+          </div>
         </div>
       )}
       {editModalOpen && (
@@ -364,19 +468,36 @@ function Nominas() {
               <button className="btn-cerrar-modal" onClick={() => setEditModalOpen(false)} type="button"><FaTimes /></button>
             </div>
             <div className="form-grupo">
-              <label>Fecha Inicio</label>
-              <input name="fecha_inicio" type="date" value={editForm.fecha_inicio} onChange={handleEditChange} />
-              {formErrors.fecha_inicio && <div className="field-error">{formErrors.fecha_inicio}</div>}
+              <label>Empleado</label>
+              <div>{getEmpleadoNombre(editForm.id_empleado)}</div>
             </div>
             <div className="form-grupo">
-              <label>Fecha Fin</label>
-              <input name="fecha_fin" type="date" value={editForm.fecha_fin} onChange={handleEditChange} />
-              {formErrors.fecha_fin && <div className="field-error">{formErrors.fecha_fin}</div>}
+              <label>Mes</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select name="mes_month" value={(editForm.mes && editForm.mes.split('-')[1]) || ''} onChange={(e) => setEditForm(prev => ({ ...prev, mes: `${(editForm.mes && editForm.mes.split('-')[0]) || currentYear}-${e.target.value}` }))}>
+                  <option value="">Mes</option>
+                  {months.map(m => <option key={m.v} value={m.v}>{m.l}</option>)}
+                </select>
+                <select name="mes_year" value={(editForm.mes && editForm.mes.split('-')[0]) || currentYear} onChange={(e) => setEditForm(prev => ({ ...prev, mes: `${e.target.value}-${(editForm.mes && editForm.mes.split('-')[1]) || String(new Date().getMonth()+1).padStart(2,'0')}` }))}>
+                  <option value="">Año</option>
+                  {years.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+              {formErrors.mes && <div className="field-error">{formErrors.mes}</div>}
             </div>
             <div className="form-grupo">
-              <label>Total</label>
-              <input name="total" type="number" step="0.01" min="0" value={editForm.total} onChange={handleEditChange} onKeyDown={numericKeyDown} />
-              {formErrors.total && <div className="field-error">{formErrors.total}</div>}
+              <label>Sueldo Base</label>
+              <input name="sueldo_base" type="number" step="0.01" min="0" value={editForm.sueldo_base || ''} onChange={handleEditChange} onKeyDown={numericKeyDown} />
+              {formErrors.sueldo_base && <div className="field-error">{formErrors.sueldo_base}</div>}
+            </div>
+            <div className="form-grupo">
+              <label>Horas Extra</label>
+              <input name="horas_extra" type="number" step="0.01" min="0" value={editForm.horas_extra || ''} onChange={handleEditChange} onKeyDown={numericKeyDown} />
+              {formErrors.horas_extra && <div className="field-error">{formErrors.horas_extra}</div>}
+            </div>
+            <div className="form-grupo">
+              <label>Total a Desembolsar</label>
+              <div className="readonly-currency">${Number((parseFloat(editForm.sueldo_base || 0) + parseFloat(editForm.horas_extra || 0))).toFixed(2)}</div>
             </div>
             <div className="form-botones">
               <button className="btn-guardar" onClick={handleEditSave}>Guardar</button>
@@ -404,7 +525,16 @@ function Nominas() {
             </div>
             <div className="form-grupo">
               <label>Mes</label>
-              <input name="mes" type="month" value={form.mes || ''} onChange={handleFormChange} />
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select name="mes_month" value={(form.mes && form.mes.split('-')[1]) || ''} onChange={(e) => handleMesSelect(e.target.value, (form.mes && form.mes.split('-')[0]) || currentYear)}>
+                  <option value="">Mes</option>
+                  {months.map(m => <option key={m.v} value={m.v}>{m.l}</option>)}
+                </select>
+                <select name="mes_year" value={(form.mes && form.mes.split('-')[0]) || currentYear} onChange={(e) => handleMesSelect((form.mes && form.mes.split('-')[1]) || String(new Date().getMonth()+1).padStart(2,'0'), e.target.value)}>
+                  <option value="">Año</option>
+                  {years.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
               {formErrors.mes && <div className="field-error">{formErrors.mes}</div>}
             </div>
             <div className="form-grupo">
@@ -417,11 +547,7 @@ function Nominas() {
               <input name="horas_extra" type="number" step="0.01" min="0" value={form.horas_extra || ''} onChange={handleFormChange} onKeyDown={numericKeyDown} />
               {formErrors.horas_extra && <div className="field-error">{formErrors.horas_extra}</div>}
             </div>
-            <div className="form-grupo">
-              <label>Total a Desembolsar</label>
-              <input name="total_desembolsar" type="number" step="0.01" min="0" value={form.total_desembolsar || ''} onChange={handleFormChange} onKeyDown={numericKeyDown} />
-              {formErrors.total_desembolsar && <div className="field-error">{formErrors.total_desembolsar}</div>}
-            </div>
+            {/* total_desembolsar se calcula automáticamente: sueldo_base + horas_extra */}
             <div className="form-botones">
               <button className="btn-guardar" onClick={handleCreate}>Guardar</button>
               <button className="btn-cancelar" onClick={closeCreateModal}>Cancelar</button>
@@ -438,7 +564,7 @@ function Nominas() {
             </div>
             <div className="form-grupo">
               <label>Empleado</label>
-              <div>{viewNomina.id_empleado}</div>
+              <div>{(empleadosList.find(emp => String(emp.id) === String(viewNomina.id_empleado)) ? `${empleadosList.find(emp => String(emp.id) === String(viewNomina.id_empleado)).nombres} ${empleadosList.find(emp => String(emp.id) === String(viewNomina.id_empleado)).apellidos}` : viewNomina.id_empleado)}</div>
             </div>
             <div className="form-grupo">
               <label>Mes</label>
