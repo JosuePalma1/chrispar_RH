@@ -159,8 +159,7 @@ def actualizar_rubro(current_user, id):
 					return jsonify({'error': 'El monto no puede ser negativo'}), 400
 			except ValueError:
 				return jsonify({'error': 'El monto debe ser un número válido'}), 400
-			else:
-				monto = None
+			# if parsing succeeded, `monto` remains as the parsed float; do not overwrite with None
 
 		fecha = parse_date(data.get('fecha')) if data.get('fecha') else None
 
