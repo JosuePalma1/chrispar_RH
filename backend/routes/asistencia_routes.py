@@ -6,7 +6,7 @@ from models.usuario import Usuario
 from utils.auth import token_required, admin_required
 from utils.parsers import parse_date, parse_time
 import json
-from datetime import datetime, time as dt_time
+from datetime import datetime, time as dt_time, timedelta
 
 asistencia_bp = Blueprint("asistencia", __name__, url_prefix="/api/asistencias")
 
@@ -30,16 +30,17 @@ def crear_asistencia(current_user):
             try:
                 dt_entrada = datetime.combine(fecha_dt, entrada)
                 dt_salida = datetime.combine(fecha_dt, salida)
+                # Si la salida es menor o igual a la entrada, asumimos que la salida fue al día siguiente
                 if dt_salida <= dt_entrada:
-                    return 0.0
+                    dt_salida = dt_salida + timedelta(days=1)
 
                 total_seg = (dt_salida - dt_entrada).total_seconds()
 
-                # Si es domingo (weekday() == 6) todo es hora extra
+                # Si es domingo (weekday() == 6) todo es hora extra (considerando posible cruce de día)
                 if fecha_dt.weekday() == 6:
                     return round(total_seg / 3600.0, 2)
 
-                # Ventana normal: 08:00 - 20:00
+                # Ventana normal: 08:00 - 20:00 para el día de la entrada
                 ventana_inicio = datetime.combine(fecha_dt, dt_time(hour=8, minute=0, second=0))
                 ventana_fin = datetime.combine(fecha_dt, dt_time(hour=20, minute=0, second=0))
 
@@ -54,6 +55,15 @@ def crear_asistencia(current_user):
                 return round(max(0.0, extra_seg) / 3600.0, 2)
             except Exception:
                 return 0.0
+
+        # Verificar duplicados: mismo empleado, misma fecha y misma hora_entrada
+        try:
+            existe = Asistencia.query.filter_by(id_empleado=data["id_empleado"], fecha=fecha, hora_entrada=hora_entrada).first()
+            if existe:
+                return jsonify({"error": "Ya existe una asistencia para este empleado en la misma fecha y hora de entrada"}), 400
+        except Exception:
+            # en caso de error en la consulta seguimos (no bloquear por validación de duplicado)
+            existe = None
 
         horas_extra = calcular_horas_extra(fecha, hora_entrada, hora_salida)
 
@@ -193,6 +203,18 @@ def actualizar_asistencia(current_user, id):
         hora_entrada = parse_time(data.get("hora_entrada", a.hora_entrada))
         hora_salida = parse_time(data.get("hora_salida", a.hora_salida))
 
+        # Validar duplicado si se cambia la hora_entrada: mismo empleado, misma fecha y misma hora_entrada
+        try:
+            if hora_entrada is not None and (hora_entrada != a.hora_entrada):
+                dup = Asistencia.query.filter(Asistencia.id_empleado == a.id_empleado,
+                                              Asistencia.fecha == a.fecha,
+                                              Asistencia.hora_entrada == hora_entrada,
+                                              Asistencia.id_asistencia != a.id_asistencia).first()
+                if dup:
+                    return jsonify({"error": "Otra asistencia ya existe para este empleado en la misma fecha y hora de entrada"}), 400
+        except Exception:
+            pass
+
         a.hora_entrada = hora_entrada if hora_entrada is not None else a.hora_entrada
         a.hora_salida = hora_salida if hora_salida is not None else a.hora_salida
 
@@ -204,8 +226,9 @@ def actualizar_asistencia(current_user, id):
                 try:
                     dt_entrada = datetime.combine(fecha_dt, entrada)
                     dt_salida = datetime.combine(fecha_dt, salida)
+                    # Si la salida es menor o igual que la entrada, asumimos salida al día siguiente
                     if dt_salida <= dt_entrada:
-                        return 0.0
+                        dt_salida = dt_salida + timedelta(days=1)
 
                     total_seg = (dt_salida - dt_entrada).total_seconds()
                     if fecha_dt.weekday() == 6:
