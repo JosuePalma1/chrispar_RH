@@ -154,7 +154,7 @@ function MirrorDB() {
 	return (
 		<div style={{ display: 'flex' }}>
 			<Sidebar />
-			<div className="mirror-container">
+			<div className="mirror-container main-with-sidebar">
 				<div className="mirror-header">
 					<h2>Base de Datos Espejo</h2>
 				</div>

@@ -7,6 +7,41 @@
     display: flex;
     flex-direction: column;
     overflow-y: auto;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+}
+
+.sidebar.collapsed{width:70px}
+.sidebar.collapsed .sidebar-header h2{display:none}
+.sidebar.collapsed .menu-text,.sidebar.collapsed .submenu-text,.sidebar.collapsed .menu-chevron{display:none}
+.sidebar.collapsed .menu-item-simple,.sidebar.collapsed .menu-categoria-header,.sidebar.collapsed .menu-subitem{justify-content:center;padding-left:8px;padding-right:8px}
+.sidebar-toggle{background:none;border:0;color:#fff;cursor:pointer;font-size:18px;padding:6px 8px;border-radius:6px;margin-left:8px}
+.sidebar-toggle:focus{outline:none}
+
+/* Smooth transitions for collapse/expand */
+.sidebar{transition:width 180ms ease}
+.main-with-sidebar{transition:margin-left 180ms ease}
+
+/* Use a body class so the main content is always offset correctly regardless
+    of DOM structure. This prevents the sidebar from overlapping tables or
+    header controls. */
+/* main-with-sidebar offsets are handled in `index.css` */
+
+/* Note: common page-block offsets are handled centrally in `index.css` to
+    avoid duplicate margins. */
+
+/* On small screens don't apply the offset so layout stays full-width */
+@media (max-width: 900px) {
+    body:not(.sidebar-collapsed) .header-card,
+    body:not(.sidebar-collapsed) .search-card,
+    body:not(.sidebar-collapsed) .table-wrapper,
+    body:not(.sidebar-collapsed) .footer-card,
+    body:not(.sidebar-collapsed) .card,
+    body:not(.sidebar-collapsed) .page-content {
+        margin-left: 0;
+    }
 }
 
 .sidebar-header {
@@ -207,3 +242,7 @@
         padding-left: 0;
     }
 }
+
+/* Main content offset when sidebar is fixed (kept for fallback). Centralized offsets live in `index.css`. */
+.main-with-sidebar{margin-left:220px}
+@media (max-width:768px){.main-with-sidebar{margin-left:70px}}

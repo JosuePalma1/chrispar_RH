@@ -7,6 +7,7 @@ from utils.auth import token_required, admin_required
 from utils.parsers import parse_date, parse_time
 import json
 from datetime import datetime, time as dt_time, timedelta
+from models.horario import Horario
 
 asistencia_bp = Blueprint("asistencia", __name__, url_prefix="/api/asistencias")
 
@@ -23,36 +24,112 @@ def crear_asistencia(current_user):
         if not fecha or not hora_entrada:
             return jsonify({"error": "fecha y hora_entrada válidas son requeridas"}), 400
 
-        # Calcular horas extra según horario: Lunes-Sábado 08:00 - 20:00
-        def calcular_horas_extra(fecha_dt, entrada, salida):
+        # Calcular horas extra basadas en el horario activo del empleado para la fecha.
+        # Si no existe horario activo, se usa la ventana por defecto 08:00-20:00.
+        def calcular_horas_extra(id_empleado, fecha_dt, entrada, salida):
             if entrada is None or salida is None:
                 return 0.0
             try:
+                # Combinar fechas/tiempos
                 dt_entrada = datetime.combine(fecha_dt, entrada)
                 dt_salida = datetime.combine(fecha_dt, salida)
-                # Si la salida es menor o igual a la entrada, asumimos que la salida fue al día siguiente
+                # Si la salida es menor o igual a la entrada, asumimos salida al día siguiente
                 if dt_salida <= dt_entrada:
                     dt_salida = dt_salida + timedelta(days=1)
 
                 total_seg = (dt_salida - dt_entrada).total_seconds()
 
-                # Si es domingo (weekday() == 6) todo es hora extra (considerando posible cruce de día)
+                # Si es domingo, todo es hora extra
                 if fecha_dt.weekday() == 6:
                     return round(total_seg / 3600.0, 2)
 
-                # Ventana normal: 08:00 - 20:00 para el día de la entrada
-                ventana_inicio = datetime.combine(fecha_dt, dt_time(hour=8, minute=0, second=0))
-                ventana_fin = datetime.combine(fecha_dt, dt_time(hour=20, minute=0, second=0))
+                # Intentar obtener el horario activo del empleado para la fecha
+                horario_activo = None
+                try:
+                    horarios = Horario.query.filter_by(id_empleado=id_empleado).all()
+                    # Seleccionar el horario cuya ventana de vigencia contiene la fecha
+                    candidatos = []
+                    for h in horarios:
+                        inicio = h.inicio_vigencia or h.fecha_inicio
+                        fin = h.fin_vigencia
+                        if inicio is None:
+                            continue
+                        if inicio <= fecha_dt and (fin is None or fin >= fecha_dt):
+                            candidatos.append(h)
+                    if candidatos:
+                        # Preferir el horario con inicio más reciente
+                        horario_activo = max(candidatos, key=lambda x: x.inicio_vigencia or x.fecha_inicio)
+                    else:
+                        # Si no hay candidatos por vigencia, intentar coger el horario más reciente por fecha_inicio
+                        if horarios:
+                            horario_activo = max(horarios, key=lambda x: x.fecha_inicio or datetime(1900,1,1).date())
+                except Exception:
+                    horario_activo = None
 
-                # Calcular solapamiento entre [entrada, salida] y [ventana_inicio, ventana_fin]
+                if horario_activo and horario_activo.hora_entrada and horario_activo.hora_salida:
+                    ventana_inicio = datetime.combine(fecha_dt, horario_activo.hora_entrada)
+                    ventana_fin = datetime.combine(fecha_dt, horario_activo.hora_salida)
+                    # Determinar si la fecha es día laborable según el campo dia_laborables
+                    def es_dia_laborable(dia_laborables_text, fecha_dt):
+                        if not dia_laborables_text:
+                            return True
+                        text = dia_laborables_text.strip().lower()
+                        # Mapeo simple de nombres al número weekday
+                        dias_map = {
+                            'lunes': 0, 'martes': 1, 'miercoles': 2, 'miércoles': 2,
+                            'jueves': 3, 'viernes': 4, 'sabado': 5, 'sábado': 5, 'domingo': 6
+                        }
+                        # Manejar rangos como "lunes a viernes"
+                        if ' a ' in text:
+                            partes = [p.strip() for p in text.split(' a ')]
+                            if len(partes) == 2 and partes[0] in dias_map and partes[1] in dias_map:
+                                start = dias_map[partes[0]]
+                                end = dias_map[partes[1]]
+                                wd = fecha_dt.weekday()
+                                if start <= end:
+                                    return start <= wd <= end
+                                else:
+                                    # rango que cruza semana (ej: viernes a lunes)
+                                    return wd >= start or wd <= end
+                        # Manejar listas separadas por comas o 'y'
+                        for sep in [',', ' y ', ' e '] :
+                            if sep in text:
+                                tokens = [t.strip() for t in text.split(sep) if t.strip()]
+                                for t in tokens:
+                                    if t in dias_map and dias_map[t] == fecha_dt.weekday():
+                                        return True
+                                return False
+                        # Comparación simple
+                        return dias_map.get(text, None) == fecha_dt.weekday()
+
+                    es_laboral = es_dia_laborable(horario_activo.dia_laborables, fecha_dt)
+                else:
+                    # Ventana por defecto
+                    ventana_inicio = datetime.combine(fecha_dt, dt_time(hour=8, minute=0, second=0))
+                    ventana_fin = datetime.combine(fecha_dt, dt_time(hour=20, minute=0, second=0))
+                    # Por defecto asumimos Lunes-Sábado laborales (como en la lógica previa),
+                    # pero todavía tratamos domingo como día extra completo.
+                    es_laboral = (fecha_dt.weekday() != 6)
+
+                # Acomodar ventana_fin si está antes que ventana_inicio (turno nocturno atraviesa medianoche)
+                if ventana_fin <= ventana_inicio:
+                    ventana_fin = ventana_fin + timedelta(days=1)
+
+                # Calcular solapamiento entre [dt_entrada, dt_salida] y [ventana_inicio, ventana_fin]
                 inicio_solap = max(dt_entrada, ventana_inicio)
                 fin_solap = min(dt_salida, ventana_fin)
                 solap_seg = 0
                 if fin_solap > inicio_solap:
                     solap_seg = (fin_solap - inicio_solap).total_seconds()
 
+                # Si el día no es laboral según el horario, todo el tiempo es extra
+                if not es_laboral:
+                    return round(total_seg / 3600.0, 2)
+
+                # Extra_seg ya representa el tiempo fuera de la ventana laboral
                 extra_seg = total_seg - solap_seg
-                return round(max(0.0, extra_seg) / 3600.0, 2)
+                total_extra = max(0.0, extra_seg)
+                return round(total_extra / 3600.0, 2)
             except Exception:
                 return 0.0
 
@@ -65,7 +142,7 @@ def crear_asistencia(current_user):
             # en caso de error en la consulta seguimos (no bloquear por validación de duplicado)
             existe = None
 
-        horas_extra = calcular_horas_extra(fecha, hora_entrada, hora_salida)
+        horas_extra = calcular_horas_extra(data.get("id_empleado"), fecha, hora_entrada, hora_salida)
 
         nueva = Asistencia(
             id_empleado=data["id_empleado"],
@@ -220,7 +297,7 @@ def actualizar_asistencia(current_user, id):
 
         # Recalcular horas extra si hay entrada/salida
         try:
-            def calcular_horas_extra(fecha_dt, entrada, salida):
+            def calcular_horas_extra_update(fecha_dt, entrada, salida, id_empleado):
                 if entrada is None or salida is None:
                     return 0.0
                 try:
@@ -231,21 +308,86 @@ def actualizar_asistencia(current_user, id):
                         dt_salida = dt_salida + timedelta(days=1)
 
                     total_seg = (dt_salida - dt_entrada).total_seconds()
+
+                    # Si es domingo, todo es extra
                     if fecha_dt.weekday() == 6:
                         return round(total_seg / 3600.0, 2)
-                    ventana_inicio = datetime.combine(fecha_dt, dt_time(hour=8, minute=0, second=0))
-                    ventana_fin = datetime.combine(fecha_dt, dt_time(hour=20, minute=0, second=0))
+
+                    # Obtener horario activo
+                    horario_activo = None
+                    try:
+                        horarios = Horario.query.filter_by(id_empleado=id_empleado).all()
+                        candidatos = []
+                        for h in horarios:
+                            inicio = h.inicio_vigencia or h.fecha_inicio
+                            fin = h.fin_vigencia
+                            if inicio is None:
+                                continue
+                            if inicio <= fecha_dt and (fin is None or fin >= fecha_dt):
+                                candidatos.append(h)
+                        if candidatos:
+                            horario_activo = max(candidatos, key=lambda x: x.inicio_vigencia or x.fecha_inicio)
+                        else:
+                            if horarios:
+                                horario_activo = max(horarios, key=lambda x: x.fecha_inicio or datetime(1900,1,1).date())
+                    except Exception:
+                        horario_activo = None
+
+                    if horario_activo and horario_activo.hora_entrada and horario_activo.hora_salida:
+                        ventana_inicio = datetime.combine(fecha_dt, horario_activo.hora_entrada)
+                        ventana_fin = datetime.combine(fecha_dt, horario_activo.hora_salida)
+                        # Reusar la misma función de parseo de dias
+                        def es_dia_laborable(dia_laborables_text, fecha_dt):
+                            if not dia_laborables_text:
+                                return True
+                            text = dia_laborables_text.strip().lower()
+                            dias_map = {
+                                'lunes': 0, 'martes': 1, 'miercoles': 2, 'miércoles': 2,
+                                'jueves': 3, 'viernes': 4, 'sabado': 5, 'sábado': 5, 'domingo': 6
+                            }
+                            if ' a ' in text:
+                                partes = [p.strip() for p in text.split(' a ')]
+                                if len(partes) == 2 and partes[0] in dias_map and partes[1] in dias_map:
+                                    start = dias_map[partes[0]]
+                                    end = dias_map[partes[1]]
+                                    wd = fecha_dt.weekday()
+                                    if start <= end:
+                                        return start <= wd <= end
+                                    else:
+                                        return wd >= start or wd <= end
+                            for sep in [',', ' y ', ' e '] :
+                                if sep in text:
+                                    tokens = [t.strip() for t in text.split(sep) if t.strip()]
+                                    for t in tokens:
+                                        if t in dias_map and dias_map[t] == fecha_dt.weekday():
+                                            return True
+                                    return False
+                            return dias_map.get(text, None) == fecha_dt.weekday()
+
+                        es_laboral = es_dia_laborable(horario_activo.dia_laborables, fecha_dt)
+                    else:
+                        ventana_inicio = datetime.combine(fecha_dt, dt_time(hour=8, minute=0, second=0))
+                        ventana_fin = datetime.combine(fecha_dt, dt_time(hour=20, minute=0, second=0))
+                        es_laboral = (fecha_dt.weekday() != 6)
+
+                    if ventana_fin <= ventana_inicio:
+                        ventana_fin = ventana_fin + timedelta(days=1)
+
                     inicio_solap = max(dt_entrada, ventana_inicio)
                     fin_solap = min(dt_salida, ventana_fin)
                     solap_seg = 0
                     if fin_solap > inicio_solap:
                         solap_seg = (fin_solap - inicio_solap).total_seconds()
+
+                    if not es_laboral:
+                        return round(total_seg / 3600.0, 2)
+
                     extra_seg = total_seg - solap_seg
                     return round(max(0.0, extra_seg) / 3600.0, 2)
                 except Exception:
                     return 0.0
 
-            a.horas_extra = calcular_horas_extra(a.fecha, a.hora_entrada, a.hora_salida)
+            a.horas_extra = calcular_horas_extra_update(a.fecha, a.hora_entrada, a.hora_salida, a.id_empleado)
         except Exception:
             a.horas_extra = a.horas_extra
 

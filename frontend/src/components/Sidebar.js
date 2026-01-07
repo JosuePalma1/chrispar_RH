@@ -4,7 +4,7 @@ import './Sidebar.css';
 import { 
     FaHome, FaUsers, FaUserTie, FaIdCard, FaCalendarAlt, 
     FaClock, FaMoneyBillWave, FaFileInvoiceDollar, 
-    FaClipboardList, FaHistory, FaChevronDown, FaChevronRight, FaDatabase 
+    FaClipboardList, FaHistory, FaChevronDown, FaChevronRight, FaDatabase, FaBars 
 } from 'react-icons/fa';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
@@ -87,6 +87,39 @@ function Sidebar() {
         }
     });
 
+    const SIDEBAR_COLLAPSED_KEY = 'sidebar.collapsed';
+    const [collapsed, setCollapsed] = useState(() => {
+        try {
+            const raw = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+            return raw === 'true';
+        } catch {
+            return false;
+        }
+    });
+
+    const toggleCollapsed = () => {
+        try {
+            const next = !collapsed;
+            localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+            setCollapsed(next);
+        } catch {
+            setCollapsed(c => !c);
+        }
+    };
+
+    // keep a class on body so layout CSS can target main-with-sidebar reliably
+    useEffect(() => {
+        try {
+            if (collapsed) document.body.classList.add('sidebar-collapsed');
+            else document.body.classList.remove('sidebar-collapsed');
+        } catch (e) {
+            // ignore
+        }
+        return () => {
+            try { document.body.classList.remove('sidebar-collapsed'); } catch {}
+        };
+    }, [collapsed]);
+
     // Estado efectivo: "personal" se mantiene abierto en dashboard.
     const menuAbierto = useMemo(() => {
         return {
@@ -167,9 +200,10 @@ function Sidebar() {
     };
 
     return (
-        <aside className="sidebar">
+        <aside className={"sidebar" + (collapsed ? ' collapsed' : '')}>
             <div className="sidebar-header">
                 <h2>CHRISPAR HHRR</h2>
+                <button className="sidebar-toggle" aria-label="Toggle sidebar" onClick={toggleCollapsed}><FaBars /></button>
             </div>
             <nav className="sidebar-nav">
                 {menuEstructura.map((item) => {

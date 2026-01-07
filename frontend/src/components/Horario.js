@@ -365,7 +365,7 @@ function Horario() {
     if (loading) return (
         <div style={{ display: 'flex' }}>
             <Sidebar />
-            <div className="usuarios-container">Cargando...</div>
+            <div className="usuarios-container main-with-sidebar">Cargando...</div>
         </div>
     );
 
@@ -378,7 +378,7 @@ function Horario() {
     return (
         <div style={{ display: 'flex' }}>
             <Sidebar />
-            <div className="usuarios-container">
+            <div className="usuarios-container main-with-sidebar">
                 <div className="usuarios-header">
                     <h2>Gestión de Horarios</h2>
                     <div className="header-actions">

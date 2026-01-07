@@ -379,7 +379,7 @@ const handleEditSave = async () => {
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar />
-      <div className="nominas-container">
+      <div className="nominas-container main-with-sidebar">
         <div className="nominas-header">
           <h2>Gestión de Nóminas</h2>
           <div className="header-actions">

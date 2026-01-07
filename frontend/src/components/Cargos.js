@@ -380,7 +380,7 @@ function Cargos() {
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar />
-      <div className="cargos-container">
+      <div className="cargos-container main-with-sidebar">
         <div className="cargos-header">
           <h2>Gestión de Cargos</h2>
           <div className="header-actions">

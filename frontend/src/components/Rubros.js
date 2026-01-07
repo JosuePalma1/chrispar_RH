@@ -322,7 +322,7 @@ const openEditModal = (rubro) => {
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar />
-      <div className="rubros-container">
+      <div className="rubros-container main-with-sidebar">
         <div className="rubros-header">
           <h2>Rubros de Pago</h2>
             <div className="header-actions">
