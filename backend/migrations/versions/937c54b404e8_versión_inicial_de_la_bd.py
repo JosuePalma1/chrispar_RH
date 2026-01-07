@@ -160,8 +160,7 @@ def upgrade():
     sa.Column('autorizado_por', sa.String(length=200), nullable=True),
     sa.Column('motivo', sa.Text(), nullable=True),
     sa.Column('operacion', sa.String(length=10), nullable=False),
-    sa.Column('codigo', sa.String(length=50), nullable=True),
-    sa.Column('descripcion', sa.String(length=255), nullable=True),
+    # removed codigo and descripcion — not part of current rubro entity
     sa.Column('fecha_creacion', sa.DateTime(), nullable=True),
     sa.Column('fecha_actualizacion', sa.DateTime(), nullable=True),
     sa.Column('creado_por', sa.Integer(), nullable=True),

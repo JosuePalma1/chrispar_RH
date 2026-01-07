@@ -15,9 +15,6 @@ class Rubro(db.Model):
     motivo = db.Column(db.Text, nullable=True)
     operacion = db.Column(db.String(10), nullable=False, default='suma')  # 'suma' or 'resta'
 
-    # Mantener campos opcionales/compatibilidad
-    codigo = db.Column(db.String(50), nullable=True)
-    descripcion = db.Column(db.String(255), nullable=True)
 
     # Auditoría
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
@@ -29,4 +26,4 @@ class Rubro(db.Model):
     nomina = db.relationship("Nomina", back_populates="rubros")
 
     def __repr__(self):
-        return f"<Rubro {self.id_rubro} - Nomina {self.id_nomina} - {self.descripcion} : {self.monto}>"
+        return f"<Rubro {self.id_rubro} - Nomina {self.id_nomina} - {self.tipo} : {self.monto}>"

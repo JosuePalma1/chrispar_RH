@@ -42,8 +42,6 @@ def crear_rubro(current_user):
 		
 		nuevo = Rubro(
 			id_nomina=data['id_nomina'],
-			codigo=data.get('codigo'),
-			descripcion=data.get('descripcion'),
 			tipo=data['tipo'],
 			monto=monto,
 			fecha=fecha,
@@ -64,8 +62,6 @@ def crear_rubro(current_user):
 				usuario=current_user.username,
 				datos_nuevos=json.dumps({
 					'id_nomina': nuevo.id_nomina,
-					'codigo': nuevo.codigo,
-					'descripcion': nuevo.descripcion,
 					'tipo': nuevo.tipo,
 					'monto': nuevo.monto,
 					'fecha': nuevo.fecha.isoformat() if nuevo.fecha else None,
@@ -113,8 +109,6 @@ def listar_rubros(current_user):
 			result.append({
 				'id_rubro': r.id_rubro,
 				'id_nomina': r.id_nomina,
-				'codigo': r.codigo,
-				'descripcion': r.descripcion,
 				'tipo': r.tipo,
 				'monto': r.monto,
 				'fecha': r.fecha.isoformat() if r.fecha else None,
@@ -135,8 +129,6 @@ def obtener_rubro(current_user, id):
 		return jsonify({
 			'id_rubro': r.id_rubro,
 			'id_nomina': r.id_nomina,
-			'codigo': r.codigo,
-			'descripcion': r.descripcion,
 			'tipo': r.tipo,
 			'monto': r.monto,
 			'fecha': r.fecha.isoformat() if r.fecha else None,
@@ -176,8 +168,7 @@ def actualizar_rubro(current_user, id):
 		if operacion and operacion not in ['suma', 'resta']:
 			return jsonify({'error': "El campo 'operacion' debe ser 'suma' o 'resta'"}), 400
 
-		r.codigo = data.get('codigo', r.codigo)
-		r.descripcion = data.get('descripcion', r.descripcion)
+		# codigo/descripcion removed from model — ignore if provided
 		r.tipo = data.get('tipo', r.tipo)
 		if monto is not None:
 			r.monto = monto
@@ -233,8 +224,6 @@ def eliminar_rubro(current_user, id):
 		r = Rubro.query.get_or_404(id)
 		datos_anteriores = {
 			'id_nomina': r.id_nomina,
-			'codigo': r.codigo,
-			'descripcion': r.descripcion,
 			'tipo': r.tipo,
 			'monto': r.monto,
 			'fecha': r.fecha.isoformat() if r.fecha else None,
