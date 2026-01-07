@@ -3,6 +3,7 @@ from extensions import db
 from models.rubro import Rubro
 from models.log_transaccional import LogTransaccional
 from utils.auth import token_required, admin_required
+from utils.parsers import parse_date
 import json
 
 rubro_bp = Blueprint('rubro', __name__, url_prefix='/api/rubros')
@@ -12,11 +13,11 @@ rubro_bp = Blueprint('rubro', __name__, url_prefix='/api/rubros')
 @admin_required
 def crear_rubro(current_user):
 	try:
-		data = request.get_json()
+		data = request.get_json() or {}
 		
 		# Validaciones de campos requeridos
 		if not data.get('id_nomina'):
-			return jsonify({'error': 'La nómina es requerida'}), 400
+			return jsonify({'error': 'La nómina es requerida', 'field': 'id_nomina'}), 400
 		
 		if not data.get('tipo'):
 			return jsonify({'error': 'El tipo de rubro es requerido'}), 400
@@ -30,6 +31,14 @@ def crear_rubro(current_user):
 				return jsonify({'error': 'El monto no puede ser negativo'}), 400
 		except ValueError:
 			return jsonify({'error': 'El monto debe ser un número válido'}), 400
+
+		# Fecha opcional
+		fecha = parse_date(data.get('fecha')) if data.get('fecha') else None
+
+		# Operación opcional (suma/resta)
+		operacion = data.get('operacion', 'suma')
+		if operacion not in ['suma', 'resta']:
+			return jsonify({'error': "El campo 'operacion' debe ser 'suma' o 'resta'"}), 400
 		
 		nuevo = Rubro(
 			id_nomina=data['id_nomina'],
@@ -37,7 +46,11 @@ def crear_rubro(current_user):
 			descripcion=data.get('descripcion'),
 			tipo=data['tipo'],
 			monto=monto,
-			creado_por=data.get('creado_por')
+			fecha=fecha,
+			autorizado_por=data.get('autorizado_por'),
+			motivo=data.get('motivo'),
+			operacion=operacion,
+			creado_por=(data.get('creado_por') if data.get('creado_por') is not None else getattr(current_user, 'id', None))
 		)
 		db.session.add(nuevo)
 		db.session.commit()
@@ -54,7 +67,11 @@ def crear_rubro(current_user):
 					'codigo': nuevo.codigo,
 					'descripcion': nuevo.descripcion,
 					'tipo': nuevo.tipo,
-					'monto': nuevo.monto
+					'monto': nuevo.monto,
+					'fecha': nuevo.fecha.isoformat() if nuevo.fecha else None,
+					'autorizado_por': nuevo.autorizado_por,
+					'motivo': nuevo.motivo,
+					'operacion': nuevo.operacion
 				})
 			)
 			db.session.add(log)
@@ -99,7 +116,11 @@ def listar_rubros(current_user):
 				'codigo': r.codigo,
 				'descripcion': r.descripcion,
 				'tipo': r.tipo,
-				'monto': r.monto
+				'monto': r.monto,
+				'fecha': r.fecha.isoformat() if r.fecha else None,
+				'autorizado_por': r.autorizado_por,
+				'motivo': r.motivo,
+				'operacion': r.operacion
 			})
 		return jsonify(result), 200
 	except Exception as error:
@@ -118,6 +139,10 @@ def obtener_rubro(current_user, id):
 			'descripcion': r.descripcion,
 			'tipo': r.tipo,
 			'monto': r.monto,
+			'fecha': r.fecha.isoformat() if r.fecha else None,
+			'autorizado_por': r.autorizado_por,
+			'motivo': r.motivo,
+			'operacion': r.operacion,
 			'fecha_creacion': r.fecha_creacion.isoformat() if r.fecha_creacion else None,
 			'fecha_actualizacion': r.fecha_actualizacion.isoformat() if r.fecha_actualizacion else None
 		}), 200
@@ -129,22 +154,48 @@ def obtener_rubro(current_user, id):
 @admin_required
 def actualizar_rubro(current_user, id):
 	try:
-		data = request.get_json()
+		data = request.get_json() or {}
 		r = Rubro.query.get_or_404(id)
 
-		datos_anteriores = {'monto': r.monto, 'tipo': r.tipo}
+		datos_anteriores = {'monto': r.monto, 'tipo': r.tipo, 'operacion': r.operacion}
+
+		# monto (validar si viene)
+		if 'monto' in data:
+			try:
+				monto = float(data.get('monto'))
+				if monto < 0:
+					return jsonify({'error': 'El monto no puede ser negativo'}), 400
+			except ValueError:
+				return jsonify({'error': 'El monto debe ser un número válido'}), 400
+			else:
+				monto = None
+
+		fecha = parse_date(data.get('fecha')) if data.get('fecha') else None
+
+		operacion = data.get('operacion') if 'operacion' in data else None
+		if operacion and operacion not in ['suma', 'resta']:
+			return jsonify({'error': "El campo 'operacion' debe ser 'suma' o 'resta'"}), 400
 
 		r.codigo = data.get('codigo', r.codigo)
 		r.descripcion = data.get('descripcion', r.descripcion)
 		r.tipo = data.get('tipo', r.tipo)
-		r.monto = data.get('monto', r.monto)
-		r.modificado_por = data.get('modificado_por')
+		if monto is not None:
+			r.monto = monto
+		if fecha:
+			r.fecha = fecha
+		if 'autorizado_por' in data:
+			r.autorizado_por = data.get('autorizado_por')
+		if 'motivo' in data:
+			r.motivo = data.get('motivo')
+		if operacion:
+			r.operacion = operacion
+		r.modificado_por = (data.get('modificado_por') if data.get('modificado_por') is not None else getattr(current_user, 'id', None))
 
 		db.session.commit()
 
 		# Registrar log
 		try:
-			datos_nuevos = {'monto': r.monto, 'tipo': r.tipo}
+			datos_nuevos = {'monto': r.monto, 'tipo': r.tipo, 'operacion': r.operacion}
 			log = LogTransaccional(
 				tabla_afectada='rubros',
 				operacion='UPDATE',
@@ -185,7 +236,11 @@ def eliminar_rubro(current_user, id):
 			'codigo': r.codigo,
 			'descripcion': r.descripcion,
 			'tipo': r.tipo,
-			'monto': r.monto
+			'monto': r.monto,
+			'fecha': r.fecha.isoformat() if r.fecha else None,
+			'autorizado_por': r.autorizado_por,
+			'motivo': r.motivo,
+			'operacion': r.operacion
 		}
 		rubro_id = r.id_rubro
 
