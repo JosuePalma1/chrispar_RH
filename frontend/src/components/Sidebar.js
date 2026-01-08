@@ -66,7 +66,7 @@ function Sidebar() {
 
     const [menuAbiertoUser, setMenuAbiertoUser] = useState(() => {
         const defaults = {
-            personal: false,
+            personal: true,
             tiempo: false,
             financiero: false,
             sistema: false,
@@ -120,13 +120,8 @@ function Sidebar() {
         };
     }, [collapsed]);
 
-    // Estado efectivo: "personal" se mantiene abierto en dashboard.
-    const menuAbierto = useMemo(() => {
-        return {
-            ...menuAbiertoUser,
-            personal: isDashboardRoute ? true : menuAbiertoUser.personal,
-        };
-    }, [menuAbiertoUser, isDashboardRoute]);
+    // Estado efectivo: usamos directamente la preferencia del usuario
+    const menuAbierto = menuAbiertoUser;
 
     useEffect(() => {
         try {
@@ -137,9 +132,6 @@ function Sidebar() {
     }, [menuAbiertoUser]);
 
     const toggleMenu = (categoria) => {
-        // En dashboard, "Gestión de Personal" se muestra siempre desplegado.
-        if (categoria === 'personal' && isDashboardRoute) return;
-
         setMenuAbiertoUser(prev => ({
             ...prev,
             [categoria]: !prev[categoria]

@@ -1,6 +1,6 @@
 .sidebar {
     width: 280px;
-    min-height: 100vh;
+    height: 100vh;
     background: linear-gradient(180deg, #1a252f 0%, #2c3e50 100%);
     color: white;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.15);
@@ -48,6 +48,9 @@
     padding: 25px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     background-color: rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .sidebar-header h2 {

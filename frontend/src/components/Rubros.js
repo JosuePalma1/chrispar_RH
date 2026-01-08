@@ -294,13 +294,9 @@ const openEditModal = (rubro) => {
       monto: parseFloat(editForm.monto) || 0
     };
     
-    console.log('[v0] Enviando actualización:', payload);
-    
     const response = await axios.put(`${API_URL}/api/rubros/${editForm.id_rubro}`, payload, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    
-    console.log('[v0] Respuesta del servidor:', response.data);
     
     // Cerrar modal primero
     setEditModalOpen(false);
@@ -308,14 +304,11 @@ const openEditModal = (rubro) => {
     // Luego recargar datos
     await fetchRubros();
     
-    console.log('[v0] Datos recargados');
-    
     mostrarToast('Rubro actualizado correctamente', 'success');
   } catch (err) {
     const msg = err.response?.data?.error || 'Error al actualizar rubro';
     setError(msg);
     mostrarToast(msg, 'error');
-    console.log('[v0] Error al actualizar:', err);
   }
 };
 
