@@ -15,7 +15,7 @@ code {
 /* Only offset elements that opt-in using `.main-with-sidebar`. This is a
    controlled approach so pages that shouldn't be shifted remain full-width. */
 body:not(.sidebar-collapsed) .main-with-sidebar {
-  margin-left: 220px; /* tuned sidebar offset (smaller gap) */
+  margin-left: 280px; /* tuned sidebar offset (smaller gap) */
   transition: margin-left 200ms ease;
 }
 
