@@ -19,39 +19,34 @@ class RubroSeeder(Seeder):
                 # Rubros para primera nómina
                 Rubro(
                     id_nomina=nominas[0].id_nomina,
-                    codigo='SUELDO',
-                    descripcion='Sueldo base',
                     tipo='devengo',
-                    monto=2500.00
+                    monto=2500.00,
+                    motivo='Sueldo base'
                 ),
                 Rubro(
                     id_nomina=nominas[0].id_nomina,
-                    codigo='IESS',
-                    descripcion='Aporte IESS',
                     tipo='deduccion',
-                    monto=237.50
+                    monto=237.50,
+                    motivo='Aporte IESS'
                 ),
                 # Rubros para segunda nómina
                 Rubro(
                     id_nomina=nominas[1].id_nomina if len(nominas) > 1 else nominas[0].id_nomina,
-                    codigo='SUELDO',
-                    descripcion='Sueldo base',
                     tipo='devengo',
-                    monto=1800.00
+                    monto=1800.00,
+                    motivo='Sueldo total'
                 ),
                 Rubro(
                     id_nomina=nominas[1].id_nomina if len(nominas) > 1 else nominas[0].id_nomina,
-                    codigo='HORAS_EXTRA',
-                    descripcion='Horas extras',
                     tipo='devengo',
-                    monto=150.00
+                    monto=150.00,
+                    motivo='Horas extras'
                 ),
                 Rubro(
                     id_nomina=nominas[1].id_nomina if len(nominas) > 1 else nominas[0].id_nomina,
-                    codigo='IESS',
-                    descripcion='Aporte IESS',
                     tipo='deduccion',
-                    monto=171.00
+                    monto=171.00,
+                    motivo='Aporte IESS'
                 ),
             ]
             

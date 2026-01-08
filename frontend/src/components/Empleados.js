@@ -595,7 +595,7 @@ function Empleados() {
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar />
-      <div className="empleados-container">
+      <div className="empleados-container main-with-sidebar">
         <div className="empleados-header">
           <h2>Gestión de Empleados</h2>
           <div className="header-actions">

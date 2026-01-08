@@ -4,7 +4,7 @@ import './Sidebar.css';
 import { 
     FaHome, FaUsers, FaUserTie, FaIdCard, FaCalendarAlt, 
     FaClock, FaMoneyBillWave, FaFileInvoiceDollar, 
-    FaClipboardList, FaHistory, FaChevronDown, FaChevronRight, FaDatabase 
+    FaClipboardList, FaHistory, FaChevronDown, FaChevronRight, FaDatabase, FaBars 
 } from 'react-icons/fa';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
@@ -66,7 +66,7 @@ function Sidebar() {
 
     const [menuAbiertoUser, setMenuAbiertoUser] = useState(() => {
         const defaults = {
-            personal: false,
+            personal: true,
             tiempo: false,
             financiero: false,
             sistema: false,
@@ -87,13 +87,41 @@ function Sidebar() {
         }
     });
 
-    // Estado efectivo: "personal" se mantiene abierto en dashboard.
-    const menuAbierto = useMemo(() => {
-        return {
-            ...menuAbiertoUser,
-            personal: isDashboardRoute ? true : menuAbiertoUser.personal,
+    const SIDEBAR_COLLAPSED_KEY = 'sidebar.collapsed';
+    const [collapsed, setCollapsed] = useState(() => {
+        try {
+            const raw = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+            return raw === 'true';
+        } catch {
+            return false;
+        }
+    });
+
+    const toggleCollapsed = () => {
+        try {
+            const next = !collapsed;
+            localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+            setCollapsed(next);
+        } catch {
+            setCollapsed(c => !c);
+        }
+    };
+
+    // keep a class on body so layout CSS can target main-with-sidebar reliably
+    useEffect(() => {
+        try {
+            if (collapsed) document.body.classList.add('sidebar-collapsed');
+            else document.body.classList.remove('sidebar-collapsed');
+        } catch (e) {
+            // ignore
+        }
+        return () => {
+            try { document.body.classList.remove('sidebar-collapsed'); } catch {}
         };
-    }, [menuAbiertoUser, isDashboardRoute]);
+    }, [collapsed]);
+
+    // Estado efectivo: usamos directamente la preferencia del usuario
+    const menuAbierto = menuAbiertoUser;
 
     useEffect(() => {
         try {
@@ -104,9 +132,6 @@ function Sidebar() {
     }, [menuAbiertoUser]);
 
     const toggleMenu = (categoria) => {
-        // En dashboard, "Gestión de Personal" se muestra siempre desplegado.
-        if (categoria === 'personal' && isDashboardRoute) return;
-
         setMenuAbiertoUser(prev => ({
             ...prev,
             [categoria]: !prev[categoria]
@@ -167,9 +192,10 @@ function Sidebar() {
     };
 
     return (
-        <aside className="sidebar">
+        <aside className={"sidebar" + (collapsed ? ' collapsed' : '')}>
             <div className="sidebar-header">
                 <h2>CHRISPAR HHRR</h2>
+                <button className="sidebar-toggle" aria-label="Toggle sidebar" onClick={toggleCollapsed}><FaBars /></button>
             </div>
             <nav className="sidebar-nav">
                 {menuEstructura.map((item) => {

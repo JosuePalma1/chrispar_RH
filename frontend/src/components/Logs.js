@@ -178,7 +178,7 @@ function Logs() {
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar />
-      <div className="logs-container">
+      <div className="logs-container main-with-sidebar">
         {/* Header con botones de exportar */}
         <div className="logs-header">
           <h2>Auditoría de Transacciones</h2>

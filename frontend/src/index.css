@@ -11,3 +11,69 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Only offset elements that opt-in using `.main-with-sidebar`. This is a
+   controlled approach so pages that shouldn't be shifted remain full-width. */
+body:not(.sidebar-collapsed) .main-with-sidebar {
+  margin-left: 280px; /* tuned sidebar offset (smaller gap) */
+  transition: margin-left 200ms ease;
+}
+
+body.sidebar-collapsed .main-with-sidebar {
+  margin-left: 70px; /* collapsed sidebar width */
+}
+
+/* Generic app toast used across many list pages */
+.app-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  z-index: 1001;
+  font-size: 15px;
+  opacity: 0;
+  animation: app-toast-in 0.4s forwards;
+  white-space: pre-wrap;
+  text-align: center;
+  min-width: 240px;
+  max-width: 520px;
+  overflow-wrap: anywhere;
+}
+
+.app-toast.toast-success { background-color: #27ae60; }
+.app-toast.toast-error { background-color: #e74c3c; }
+
+@keyframes app-toast-in {
+  from { opacity: 0; transform: translate(-50%, -16px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Confirm modal (reusable) */
+.confirm-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.45);
+  z-index: 1200;
+}
+.confirm-modal-contenido {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  width: 92%;
+  max-width: 480px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+}
+.confirm-title { margin: 0 0 8px 0; font-size: 18px; }
+.confirm-message { margin-bottom: 16px; color: #333; }
+.confirm-actions { text-align: right; display: flex; gap: 8px; justify-content: flex-end; }
+.confirm-btn { padding: 8px 14px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; }
+.confirm-ok { background: #e74c3c; color: white; }
+.confirm-cancel { background: #f0f0f0; color: #333; }
+

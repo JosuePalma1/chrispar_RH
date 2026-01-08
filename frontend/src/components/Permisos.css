@@ -20,7 +20,18 @@
 .permisos-table th,.permisos-table td{padding:12px;text-align:left;border-bottom:1px solid #eee}
 .permisos-table td{font-size:13px;vertical-align:middle}
 .permisos-table th{font-size:14px}
-.permisos-table th{background:#f5f5f5;font-weight:700}
+
+/* Header bar style: dark background, white text, subtle rounded corners */
+.permisos-table thead th{
+	background: #273849; /* dark navy */
+	color: #ffffff;
+	font-weight:700;
+	padding: 14px 16px;
+	border: none;
+	text-align: left;
+}
+.permisos-table thead th:first-child{border-top-left-radius:6px}
+.permisos-table thead th:last-child{border-top-right-radius:6px}
 .permisos-table tr:hover{background:#fafafa}
 
 .btn-nuevo{background-color:#9bcf15;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-weight:700}
@@ -33,8 +44,58 @@
 .btn-eliminar{background:#6c757d;color:#fff;border:0;padding:6px 10px;border-radius:4px;cursor:pointer}
 .btn-eliminar:hover{background:#5a6268}
 
-.action-buttons{display:flex;flex-direction:column;gap:8px}
-.action-buttons button{width:100px}
+.action-buttons{display:flex;flex-direction:row;gap:8px;align-items:center;justify-content:center}
+.action-buttons button{width:auto;padding:6px 10px}
+
+/* Header / search / footer cards (match Asistencias styles) */
+.header-card{background:#fff;border-radius:8px;padding:14px 18px;border:1px solid rgba(0,0,0,0.04);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:14px}
+.header-card .permisos-header{margin:0;padding:0}
+.header-card h2{margin:0;font-size:26px;color:#233341;font-weight:800}
+.header-right{flex:0 0 auto}
+.btn-add{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;background:#9bcf15;color:#fff;border:none;font-weight:700;font-size:18px;cursor:pointer}
+.btn-add:hover{background:#8ab613}
+.btn-add:focus{outline:none;box-shadow:0 0 0 3px rgba(155,207,21,0.14)}
+.search-card{background:#fff;border-radius:8px;padding:12px 16px;border:1px solid rgba(0,0,0,0.03);box-shadow:0 1px 2px rgba(0,0,0,0.03);display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.search-card .busqueda-wrapper{flex:1;max-width:720px}
+.search-card .resultados-info{flex:0 0 auto;color:#7f8c8d}
+.footer-card{background:#fff;border-radius:8px;padding:12px 16px;border:1px solid rgba(0,0,0,0.03);box-shadow:0 1px 2px rgba(0,0,0,0.03);margin-top:18px}
+.footer-card .table-footer{display:flex;justify-content:center;align-items:center;gap:16px;padding:22px 12px}
+.footer-card .pagination-controls{display:flex;align-items:center;gap:12px}
+.footer-card .pagination-controls .btn-prev,.footer-card .pagination-controls .btn-next{background:#f3f4f6;border:1px solid #e6e9ec;padding:8px 14px;border-radius:6px;color:#6b7280;cursor:pointer}
+.footer-card .pagination-controls .btn-prev:disabled,.footer-card .pagination-controls .btn-next:disabled{opacity:0.6;cursor:default;background:#fafafa}
+.footer-card .pagination-controls .page-number{width:36px;height:36px;background:#2b8cff;color:#fff;border-radius:6px;border:none;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+.footer-card .pagination-controls .btn-prev:not(:disabled):hover{
+	background:#2b8cff;
+	color:#fff;
+	border-color:#2b8cff;
+	transform:translateY(-2px);
+	box-shadow:0 8px 22px rgba(43,140,255,0.24);
+}
+.footer-card .pagination-controls .btn-next:not(:disabled):hover{
+	background:#2b8cff;
+	color:#fff;
+	border-color:#2b8cff;
+	transform:translateY(-2px);
+	box-shadow:0 8px 22px rgba(43,140,255,0.24);
+}
+.footer-card .pagination-controls .page-number{box-shadow:0 2px 6px rgba(43,140,255,0.18)}
+.footer-card .pagination-controls .page-link{min-width:32px;height:32px;background:#fff;border:1px solid #e6e9ec;padding:0 8px;border-radius:6px;color:#374151;display:inline-flex;align-items:center;justify-content:center;margin:0 4px;cursor:pointer}
+.footer-card .pagination-controls .page-link:hover{background:#f8fafc}
+.footer-card .pagination-controls .btn-next,.footer-card .pagination-controls .btn-prev{box-shadow:none}
+.footer-card .pagination-controls .btn-next{box-shadow:0 4px 10px rgba(43,140,255,0.12)}
+
+/* Icon-only buttons (consistent with Asistencias) */
+.icon-btn{display:flex;align-items:center;justify-content:center;padding:0;border-radius:6px;border:none;cursor:pointer;background:none;font-size:16px;transition:all 0.15s ease;width:36px;height:36px}
+.icon-btn svg{width:18px;height:18px}
+.icon-btn.approve{color:#28a745}
+.icon-btn.approve:hover{background:rgba(40,167,69,0.08);transform:translateY(-2px)}
+.icon-btn.reject{color:#dc3545}
+.icon-btn.reject:hover{background:rgba(220,53,69,0.08);transform:translateY(-2px)}
+.icon-btn.edit{color:#2b8cff}
+.icon-btn.edit:hover{background:rgba(43,140,255,0.08);transform:translateY(-2px)}
+.icon-btn.delete{color:#6c757d}
+.icon-btn.delete:hover{background:rgba(108,117,125,0.08);transform:translateY(-2px)}
+.icon-btn:focus{outline:none}
 
 .estado{padding:6px 10px;border-radius:4px;font-weight:700;text-transform:capitalize;display:inline-block;white-space:nowrap;text-align:center;min-width:86px}
 .estado.pendiente{background:#fff3cd;color:#856404}
@@ -106,11 +167,39 @@
 .permisos-table td.col-created .datetime,.permisos-table td.col-updated .datetime{display:flex;flex-direction:column;gap:2px}
 .permisos-table td.col-created .datetime .d,.permisos-table td.col-updated .datetime .d{font-weight:600}
 .permisos-table td.col-created .datetime .t,.permisos-table td.col-updated .datetime .t{color:#666;font-size:12px}
-.permisos-table td.col-desc{max-width:420px; width:340px; min-width:260px; white-space:normal;overflow:hidden;text-overflow:ellipsis;word-break:break-word}
-.permisos-table td.col-emp{max-width:140px;overflow:hidden;text-overflow:ellipsis}
-.permisos-table td.col-auth{max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Make description wrap and reduce wide fixed widths to avoid horizontal scrolling */
+.permisos-table td.col-desc{max-width:600px; width:auto; min-width:0; white-space:normal;overflow-wrap:break-word;word-break:break-word;hyphens:auto}
+.permisos-table td.col-emp{max-width:120px;overflow:hidden;text-overflow:ellipsis}
+.permisos-table td.col-auth{max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Give more room for created datetime (per request) */
-.permisos-table td.col-created{width:150px;min-width:150px}
+.permisos-table td.col-created{width:110px;min-width:90px}
+
+/* Ensure 'Motivo' column and header have a reasonable minimum width so the header
+	text doesn't wrap into a single-letter column when the table becomes narrow. */
+.permisos-table thead th:nth-child(5),
+.permisos-table td.col-desc {
+    /* Reduce min-width to give less space to 'Motivo' while keeping
+       it readable; trimmed side padding. */
+    min-width: 200px;
+    max-width: 600px;
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+/* Give more space to the 'Actualizado' column so date+time fits */
+.permisos-table td.col-updated{width:150px;min-width:130px;padding-left:8px;padding-right:8px}
+
+/* Provide a row-style action layout (used in Permisos.js) so action icons
+	stay in one line instead of stacking vertically. */
+.action-vertical{display:flex;flex-direction:row;gap:8px;align-items:center;justify-content:center}
+
+/* If needed, slightly reduce global cell padding to save horizontal space */
+.permisos-table th,.permisos-table td{padding:10px}
+
+/* Let the table wrapper scroll internally if table is wider than viewport */
+.table-wrapper{overflow-x:auto}
+
+.permisos-table thead th{/* fallback removed; see override below */}
 .permisos-table td.col-type{white-space:nowrap}
 .permisos-table td.col-id{width:48px}
 
@@ -118,4 +207,22 @@
 @media (max-width: 900px) {
 	.permisos-table td{font-size:12px}
 	.action-buttons button{width:100px}
+}
+
+/* Pagination/footer */
+.table-footer{display:flex;justify-content:space-between;align-items:center;padding:12px 0}
+.pagination-controls button{background:#fff;border:1px solid #ddd;padding:6px 8px;margin:0 4px;border-radius:4px;cursor:pointer}
+.pagination-controls button:disabled{opacity:0.6;cursor:default}
+.page-size{display:flex;align-items:center;gap:8px}
+.page-size select{padding:6px;border:1px solid #ddd;border-radius:4px}
+
+/* Header final override: keep header text on one line, vertically centered
+	 and with controlled padding so the bar doesn't become too tall. This will
+	 avoid odd multi-line breaks in short columns like 'Autorizado Por'. */
+.permisos-table thead th{
+	white-space:nowrap;
+	word-break:normal;
+	padding:10px 14px;
+	line-height:1.1;
+	vertical-align:middle;
 }

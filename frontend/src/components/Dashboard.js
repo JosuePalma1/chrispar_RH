@@ -526,7 +526,7 @@ function Dashboard() {
     }
 
     return (
-        <div className="dashboard-container">
+        <div className="dashboard-container main-with-sidebar">
             <Sidebar />
 
             <main className="main-content">

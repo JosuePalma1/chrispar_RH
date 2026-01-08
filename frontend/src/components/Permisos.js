@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Sidebar from './Sidebar';
+import ConfirmModal from './ConfirmModal';
 import './Permisos.css';
+import { FaCheck, FaTimes, FaEdit, FaTrash } from 'react-icons/fa';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
 
@@ -9,10 +11,16 @@ function Permisos() {
   const [permisos, setPermisos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [toast, setToast] = useState(null);
+  const [toastType, setToastType] = useState('success');
   const [form, setForm] = useState({ id_empleado: '', fecha_inicio: '', fecha_fin: '', tipo: '', motivo: '' });
   const [empleados, setEmpleados] = useState([]);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [updatingId, setUpdatingId] = useState(null);
 
   const decodeToken = () => {
     const token = localStorage.getItem('token');
@@ -25,8 +33,7 @@ function Permisos() {
     } catch (e) {
       return {};
     }
-  };
-
+  }
   useEffect(() => {
     fetchPermisos();
     fetchEmpleados();
@@ -115,6 +122,12 @@ function Permisos() {
     }
   };
 
+  const mostrarToast = (mensaje, tipo = 'success') => {
+    setToast(mensaje);
+    setToastType(tipo);
+    setTimeout(() => setToast(null), 5000);
+  };
+
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleCreate = async (e) => {
@@ -123,22 +136,22 @@ function Permisos() {
       const token = localStorage.getItem('token');
       // Validación básica de fechas requeridas por el backend
       if (!form.fecha_inicio || !form.fecha_fin) {
-        alert('Fecha inicio y fecha fin son requeridas');
+        mostrarToast('Fecha inicio y fecha fin son requeridas', 'error');
         return;
       }
 
       if (!form.id_empleado) {
-        alert('Debe seleccionar un empleado');
+        mostrarToast('Debe seleccionar un empleado', 'error');
         return;
       }
 
       if (!form.tipo) {
-        alert('Debe seleccionar el tipo de permiso');
+        mostrarToast('Debe seleccionar el tipo de permiso', 'error');
         return;
       }
 
       if (!form.motivo || !form.motivo.trim()) {
-        alert('El motivo es requerido');
+        mostrarToast('El motivo es requerido', 'error');
         return;
       }
 
@@ -146,7 +159,7 @@ function Permisos() {
       const inicio = new Date(form.fecha_inicio);
       const fin = new Date(form.fecha_fin);
       if (fin < inicio) {
-        alert('La fecha fin no puede ser anterior a la fecha inicio');
+        mostrarToast('La fecha fin no puede ser anterior a la fecha inicio', 'error');
         return;
       }
 
@@ -164,9 +177,11 @@ function Permisos() {
         if (decoded && decoded.id) payload.modificado_por = decoded.id;
         await axios.put(`${API_URL}/api/permisos/${editingId}`, payload, { headers: { 'Authorization': `Bearer ${token}` } });
         setEditingId(null);
+        mostrarToast('Permiso actualizado exitosamente', 'success');
       } else {
         if (decoded && decoded.id) payload.creado_por = decoded.id;
         await axios.post(`${API_URL}/api/permisos/`, payload, { headers: { 'Authorization': `Bearer ${token}` } });
+        mostrarToast('Permiso creado exitosamente', 'success');
       }
 
       setForm({ id_empleado: '', fecha_inicio: '', fecha_fin: '', tipo: '', motivo: '' });
@@ -174,45 +189,104 @@ function Permisos() {
       fetchPermisos();
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.error || 'Error al crear permiso');
+      mostrarToast(err.response?.data?.error || 'Error al crear permiso', 'error');
     }
   };
 
   const handleChangeEstado = async (id, nuevoEstado) => {
+    // Prepare payload and snapshot before performing optimistic update
+    const token = localStorage.getItem('token');
+    const decoded = decodeToken();
+    const payload = { estado: nuevoEstado };
+    if (decoded && decoded.username) payload.autorizado_por = decoded.username;
+    if (decoded && decoded.id) payload.modificado_por = decoded.id;
+
+    const previous = permisos;
+    const now = new Date().toISOString();
+
+    // Optimistic update: update row in place so UI reflects change immediately
+    setUpdatingId(id);
+    setPermisos(prev => prev.map(p => (p.id_permiso === id ? { ...p, estado: nuevoEstado, autorizado_por: payload.autorizado_por || p.autorizado_por, fecha_actualizacion: now } : p)));
+
     try {
-      const token = localStorage.getItem('token');
-      const decoded = decodeToken();
-      const payload = { estado: nuevoEstado };
-      if (decoded && decoded.username) payload.autorizado_por = decoded.username;
-      if (decoded && decoded.id) payload.modificado_por = decoded.id;
-      await axios.put(`${API_URL}/api/permisos/${id}`, payload, { headers: { 'Authorization': `Bearer ${token}` } });
-      fetchPermisos();
+      const res = await axios.put(`${API_URL}/api/permisos/${id}`, payload, { headers: { 'Authorization': `Bearer ${token}` } });
+      // If server returns updated object, merge it into the existing row
+      if (res && res.data && typeof res.data === 'object' && Object.keys(res.data).length > 0) {
+        const updated = { ...res.data };
+        if (!updated.id_permiso && updated.id) updated.id_permiso = updated.id;
+        setPermisos(prev => prev.map(p => (p.id_permiso === id ? { ...p, ...updated } : p)));
+      }
     } catch (err) {
-      console.error(err);
-      alert('Error al cambiar estado');
+      // revert on error
+      console.error('handleChangeEstado error:', err);
+      setPermisos(previous);
+      const msg = err.response?.data?.error || err.response?.data || err.message || 'Error al cambiar estado';
+      mostrarToast(String(msg), 'error');
+    } finally {
+      setUpdatingId(null);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('¿Eliminar este permiso?')) return;
+    // replaced by confirm modal flow: this function kept for direct delete when confirmed
     try {
       const token = localStorage.getItem('token');
       await axios.delete(`${API_URL}/api/permisos/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
       fetchPermisos();
+      mostrarToast('Permiso eliminado', 'success');
     } catch (err) {
       console.error(err);
-      alert('Error al eliminar permiso');
+      mostrarToast('Error al eliminar permiso', 'error');
     }
   };
+
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmTargetId, setConfirmTargetId] = useState(null);
+  const [confirmMessage, setConfirmMessage] = useState('¿Eliminar este registro?');
+
+  const openConfirm = (id, message) => {
+    setConfirmTargetId(id);
+    setConfirmMessage(message || '¿Eliminar este registro?');
+    setShowConfirm(true);
+  };
+
+  const onConfirmDelete = async () => {
+    if (!confirmTargetId) { setShowConfirm(false); return; }
+    await handleDelete(confirmTargetId);
+    setConfirmTargetId(null);
+    setShowConfirm(false);
+  };
+
+  // client-side search + pagination
+  const filtered = permisos.filter(p => {
+    const emp = empleados.find(e => e.id === p.id_empleado);
+    const nombreEmp = emp ? `${emp.nombres || ''} ${emp.apellidos || ''}`.trim() : String(p.id_empleado);
+    const q = (searchTerm || '').trim().toLowerCase();
+    if (!q) return true;
+    return nombreEmp.toLowerCase().includes(q) || (p.tipo || '').toLowerCase().includes(q) || (p.descripcion || '').toLowerCase().includes(q) || (formatDate(p.fecha_inicio) || '').includes(q) || (formatDate(p.fecha_fin) || '').includes(q);
+  });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar />
-      <div className="permisos-container">
-        <div className="permisos-header">
-            <h2>Gestion de permisos</h2>
-            <button className="btn-nuevo" onClick={() => setMostrarModal(true)}>+ Nuevo Permiso</button>
+      <div className="permisos-container main-with-sidebar">
+        <div className="header-card">
+          <div className="permisos-header">
+            <h2>Gestión de permisos</h2>
+            <div className="header-right">
+              <button className="btn-add" onClick={() => setMostrarModal(true)} aria-label="Nuevo Permiso">+</button>
+            </div>
           </div>
+        </div>
+
+        <div className="search-card">
+          <div className="busqueda-wrapper">
+            <input className="input-busqueda" placeholder="Buscar por empleado, tipo, motivo, fecha..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} />
+          </div>
+          <div className="resultados-info">Mostrando <strong>{paginated.length}</strong> de <strong>{filtered.length}</strong> registros</div>
+        </div>
 
         {mostrarModal && (
           <div className="modal">
@@ -264,10 +338,11 @@ function Permisos() {
         )}
 
         {loading ? <p>Cargando permisos...</p> : error ? <p className="error">{error}</p> : (
+          <>
+          <div className="table-wrapper">
           <table className="permisos-table">
             <thead>
               <tr>
-                <th>ID</th>
                 <th>Empleado</th>
                 <th>Fecha Inicio</th>
                 <th>Fecha Fin</th>
@@ -281,12 +356,11 @@ function Permisos() {
               </tr>
             </thead>
             <tbody>
-              {permisos.length ? permisos.map(p => {
+              {paginated.length ? paginated.map(p => {
                 const emp = empleados.find(e => e.id === p.id_empleado);
                 const nombreEmp = emp ? `${emp.nombres || ''} ${emp.apellidos || ''}`.trim() : p.id_empleado;
                 return (
                   <tr key={p.id_permiso}>
-                    <td className="col-id">{p.id_permiso}</td>
                     <td className="col-emp">{nombreEmp}</td>
                     <td className="col-date">{formatDate(p.fecha_inicio)}</td>
                     <td className="col-date">{formatDate(p.fecha_fin)}</td>
@@ -308,28 +382,58 @@ function Permisos() {
                         return (<div className="datetime"><div className="d">{s2.d}</div><div className="t">{s2.t}</div></div>);
                       })()
                     }</td>
-                    <td>
-                      <div className="action-buttons">
-                        <button className="btn-aprobar" onClick={() => handleChangeEstado(p.id_permiso, 'aprobado')}>Aprobar</button>
-                        <button className="btn-rechazar" onClick={() => handleChangeEstado(p.id_permiso, 'rechazado')}>Desaprobar</button>
-                        <button className="btn-editar" onClick={() => {
+                    <td className="col-actions">
+                      <div className="action-vertical">
+                        <button className="icon-btn approve" title="Aprobar" aria-label="Aprobar" onClick={() => handleChangeEstado(p.id_permiso, 'aprobado')}><FaCheck /></button>
+                        <button className="icon-btn reject" title="Desaprobar" aria-label="Desaprobar" onClick={() => handleChangeEstado(p.id_permiso, 'rechazado')}><FaTimes /></button>
+                        <button className="icon-btn edit" title="Editar" aria-label="Editar" onClick={() => {
                           setEditingId(p.id_permiso);
                           setForm({ id_empleado: p.id_empleado ? String(p.id_empleado) : '', fecha_inicio: formatDate(p.fecha_inicio), fecha_fin: formatDate(p.fecha_fin), tipo: p.tipo || '', motivo: p.descripcion || '' });
                           setMostrarModal(true);
-                        }}>Editar</button>
-                        <button className="btn-eliminar" onClick={() => handleDelete(p.id_permiso)}>Eliminar</button>
+                        }}><FaEdit /></button>
+                        <button className="icon-btn delete" title="Eliminar" aria-label="Eliminar" onClick={() => openConfirm(p.id_permiso, '¿Eliminar este permiso?')}><FaTrash /></button>
                       </div>
                     </td>
                   </tr>
                 );
               }) : (
-                <tr><td colSpan="11">No hay permisos registrados.</td></tr>
+                <tr><td colSpan="10">No hay permisos registrados.</td></tr>
               )}
             </tbody>
           </table>
+          </div>
+          <div className="footer-card">
+            <div className="table-footer">
+              <div className="pagination-controls">
+                <button className="btn-prev" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Anterior</button>
+                <button className="page-number" disabled>{currentPage}</button>
+                {totalPages > currentPage && (
+                  <button className="page-link" onClick={() => setCurrentPage(currentPage + 1)}>{currentPage + 1}</button>
+                )}
+                <button className="btn-next" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Siguiente</button>
+              </div>
+              <div className="page-size">
+                <label>Mostrar:</label>
+                <select value={pageSize} onChange={(e) => { setPageSize(parseInt(e.target.value,10)); setCurrentPage(1); }}>
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+                <span> registros</span>
+              </div>
+            </div>
+          </div>
+          </>
         )}
+        </div>
+        {toast && (
+          <div className={`app-toast toast-${toastType}`}>
+            {toast}
+          </div>
+        )}
+        <ConfirmModal isOpen={showConfirm} title="Confirmar eliminación" message={confirmMessage} onConfirm={onConfirmDelete} onCancel={() => setShowConfirm(false)} />
       </div>
-    </div>
   );
 }
 

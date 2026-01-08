@@ -419,7 +419,7 @@ function Usuarios() {
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar />
-      <div className="usuarios-container">
+      <div className="usuarios-container main-with-sidebar">
         <div className="usuarios-header">
           <h2>Gestión de Usuarios</h2>
           <div className="header-actions">

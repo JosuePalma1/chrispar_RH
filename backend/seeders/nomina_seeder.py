@@ -19,24 +19,27 @@ class NominaSeeder(Seeder):
             nominas = [
                 Nomina(
                     id_empleado=empleados[0].id,
-                    fecha_inicio=date(2024, 11, 1),
-                    fecha_fin=date(2024, 11, 30),
-                    total=2500.00,
-                    estado='pagado'
+                    mes='2024-11',
+                    fecha_generacion=date(2024, 11, 1),
+                    sueldo_base=2400.00,
+                    horas_extra=100.00,
+                    total_desembolsar=2500.00
                 ),
                 Nomina(
                     id_empleado=empleados[1].id if len(empleados) > 1 else empleados[0].id,
-                    fecha_inicio=date(2024, 11, 1),
-                    fecha_fin=date(2024, 11, 30),
-                    total=1800.00,
-                    estado='pagado'
+                    mes='2024-11',
+                    fecha_generacion=date(2024, 11, 1),
+                    sueldo_base=1650.00,
+                    horas_extra=150.00,
+                    total_desembolsar=1800.00
                 ),
                 Nomina(
                     id_empleado=empleados[2].id if len(empleados) > 2 else empleados[0].id,
-                    fecha_inicio=date(2024, 11, 1),
-                    fecha_fin=date(2024, 11, 30),
-                    total=1500.00,
-                    estado='pendiente'
+                    mes='2024-11',
+                    fecha_generacion=date(2024, 11, 1),
+                    sueldo_base=1400.00,
+                    horas_extra=100.00,
+                    total_desembolsar=1500.00
                 ),
             ]
             
