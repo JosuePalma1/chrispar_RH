@@ -18,6 +18,13 @@ services:
       - "max_replication_slots=10"
     volumes:
       - pg_primary_data:/var/lib/postgresql/data
+    networks:
+      - chrispar_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   postgres_mirror:
     image: postgres:16
@@ -30,6 +37,8 @@ services:
       - "5433:5432"
     volumes:
       - pg_mirror_data:/var/lib/postgresql/data
+    networks:
+      - chrispar_network
 
   replication_setup:
     image: postgres:16
@@ -51,7 +60,65 @@ services:
       PUBLICATION_NAME: chrispar_pub
       SUBSCRIPTION_NAME: chrispar_sub
       SLOT_NAME: chrispar_slot
+    networks:
+      - chrispar_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chrispar_backend
+    restart: always
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    depends_on:
+      postgres_primary:
+        condition: service_healthy
+    networks:
+      - chrispar_network
+    volumes:
+      - ./backend:/app
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: chrispar_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./frontend/.env
+    depends_on:
+      - backend
+    networks:
+      - chrispar_network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    stdin_open: true
+    tty: true
+
+  restore_backup:
+    image: postgres:16
+    container_name: chrispar_restore_backup
+    depends_on:
+      postgres_primary:
+        condition: service_healthy
+    restart: "no"
+    volumes:
+      - ./docker/backups:/backups:ro
+      - ./docker/restore_backup.sh:/restore_backup.sh:ro
+    entrypoint: ["bash", "/restore_backup.sh"]
+    networks:
+      - chrispar_network
 
 volumes:
   pg_primary_data:
   pg_mirror_data:
+
+networks:
+  chrispar_network:
+    driver: bridge
