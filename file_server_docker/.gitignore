@@ -1,0 +1,11 @@
+# Ignorar archivos de Python compilados
+__pycache__/
+*.pyc
+
+# Ignorar entorno virtual (por si alguien lo crea por error)
+venv/
+.env
+
+# IGNORAR LOS ARCHIVOS SUBIDOS (Pero mantener la carpeta)
+storage/*
+!storage/.gitkeep

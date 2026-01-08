@@ -40,7 +40,7 @@ class TestHojaVidaRoutes:
         
         assert response.status_code == 201
         assert "hoja_vida" in response.json
-        assert response.json["mensaje"] == "Registro de Hoja de Vida creado exitosamente"
+        assert response.json["mensaje"] == "Hoja de Vida creada exitosamente"
 
     def test_crear_hoja_vida_laboral(self, client, auth_headers, cargo_fixture):
         """Test: Crear una hoja de vida tipo experiencia laboral"""
@@ -281,7 +281,7 @@ class TestHojaVidaRoutes:
         response = client.delete(f"/api/hojas-vida/{hoja_vida_id}", headers=auth_headers)
         
         assert response.status_code == 200
-        assert response.json["mensaje"] == "Registro de Hoja de Vida eliminado exitosamente"
+        assert response.json["mensaje"] == "Registro de Hoja de Vida y archivo eliminados exitosamente"
 
         # Verificar que ya no aparece en la lista
         list_response = client.get("/api/hojas-vida/", headers=auth_headers)

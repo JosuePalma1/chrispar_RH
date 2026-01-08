@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Sidebar from './Sidebar';
 import './HojaDeVida.css';
-import { FaEdit, FaTrash, FaPlus, FaTimes } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaTimes, FaEye, FaCloudUploadAlt } from 'react-icons/fa';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
 
@@ -16,6 +16,12 @@ function HojaDeVida() {
 
     const [mostrarModal, setMostrarModal] = useState(false);
     const [modoEdicion, setModoEdicion] = useState(false);
+    
+    // --- ESTADOS PARA EL ARCHIVO Y DRAG & DROP ---
+    const [archivoSeleccionado, setArchivoSeleccionado] = useState(null); 
+    const [isDragging, setIsDragging] = useState(false); // Nuevo estado para controlar la animación
+    const fileInputRef = useRef(null);
+
     const [registroActual, setRegistroActual] = useState({
         id_empleado: '',
         tipo: 'Educacion',
@@ -116,6 +122,12 @@ function HojaDeVida() {
         }
         const config = { headers: { 'Authorization': `Bearer ${token}` } };
         CargarEmpleados(token, config);
+        
+        // --- Resetear archivo y estados al abrir modal ---
+        setArchivoSeleccionado(null);
+        setIsDragging(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+
         if (registro) {
             setModoEdicion(true);
             const employeeName = empleados.find(e => e.id === registro.id_empleado);
@@ -144,11 +156,76 @@ function HojaDeVida() {
         setMostrarModal(false);
         setEmployeeSearchQuery('');
         setFilteredEmployees([]);
+        setArchivoSeleccionado(null); 
+        setIsDragging(false);
     };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setRegistroActual(prev => ({ ...prev, [name]: value }));
+    };
+
+    // --- LOGICA DE PROCESAMIENTO DE ARCHIVO (CENTRALIZADA) ---
+    const procesarArchivo = (file) => {
+        // Validar tipo de archivo
+        const tiposPermitidos = [
+            'application/pdf', 
+            'application/msword', 
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+            'image/jpeg', 
+            'image/png', 
+            'image/jpg'
+        ];
+        
+        if (!tiposPermitidos.includes(file.type)) {
+            mostrarToast('Formato no permitido. Use PDF, Word o Imágenes.', 'error');
+            return;
+        }
+
+        // Validar tamaño (ejemplo 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            mostrarToast('El archivo es demasiado pesado (Máx 5MB).', 'error');
+            return;
+        }
+
+        setArchivoSeleccionado(file);
+    };
+
+    // Manejador Input Tradicional
+    const handleFileChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            procesarArchivo(e.target.files[0]);
+        }
+    };
+
+    // --- MANEJADORES DRAG AND DROP ---
+    const handleDragEnter = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            procesarArchivo(e.dataTransfer.files[0]);
+            // Limpiamos el input file nativo por si acaso
+            if (fileInputRef.current) fileInputRef.current.value = "";
+        }
     };
 
     const handleEmployeeSearchChange = (e) => {
@@ -200,7 +277,6 @@ function HojaDeVida() {
             return;
         }
 
-        // Validación de fechas
         if (registroActual.fecha_inicio && registroActual.fecha_finalizacion) {
             const inicio = new Date(registroActual.fecha_inicio);
             const fin = new Date(registroActual.fecha_finalizacion);
@@ -210,21 +286,28 @@ function HojaDeVida() {
             }
         }
 
-        const dataToSend = {
-            ...registroActual,
-            id_empleado: parseInt(registroActual.id_empleado, 10),
-            fecha_inicio: registroActual.fecha_inicio || null,
-            fecha_finalizacion: registroActual.fecha_finalizacion || null,
-        };
+        const formData = new FormData();
+        formData.append('id_empleado', parseInt(registroActual.id_empleado, 10));
+        formData.append('tipo', registroActual.tipo);
+        formData.append('nombre_documento', registroActual.nombre_documento);
+        formData.append('institucion', registroActual.institucion || '');
+        formData.append('fecha_inicio', registroActual.fecha_inicio || '');
+        formData.append('fecha_finalizacion', registroActual.fecha_finalizacion || '');
 
+        // Adjuntar archivo si existe uno nuevo seleccionado
+        if (archivoSeleccionado) {
+            formData.append('archivo', archivoSeleccionado);
+        }
+        
         const token = localStorage.getItem('token');
         const url = modoEdicion
             ? `${API_URL}/api/hojas-vida/${registroActual.id_hoja_vida}`
             : `${API_URL}/api/hojas-vida/`;
+        
         const method = modoEdicion ? 'put' : 'post';
 
         try {
-            await axios[method](url, dataToSend, { headers: { 'Authorization': `Bearer ${token}` } });
+            await axios[method](url, formData, { headers: { 'Authorization': `Bearer ${token}` } });
             mostrarToast(modoEdicion ? 'Hoja de vida actualizada exitosamente.' : 'Hoja de vida creada exitosamente.', 'success');
             cargarDatos();
             cerrarModal();
@@ -235,7 +318,7 @@ function HojaDeVida() {
     };
 
     const eliminarRegistro = async (id) => {
-        if (window.confirm('¿Estás seguro de eliminar este registro?')) {
+        if (window.confirm('¿Estás seguro de eliminar este registro? Se borrará el archivo adjunto.')) {
             try {
                 const token = localStorage.getItem('token');
                 await axios.delete(`${API_URL}/api/hojas-vida/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
@@ -262,7 +345,6 @@ function HojaDeVida() {
     const filtrarYOrdenarHojasVida = () => {
         let resultado = [...hojasVida];
 
-        // Filtrado por búsqueda
         if (busqueda) {
             const busquedaLower = busqueda.toLowerCase();
             resultado = resultado.filter(registro => {
@@ -276,7 +358,6 @@ function HojaDeVida() {
             });
         }
 
-        // Ordenamiento
         if (ordenamiento.campo) {
             resultado.sort((a, b) => {
                 let valorA, valorB;
@@ -369,7 +450,32 @@ function HojaDeVida() {
                             {registrosPaginados.length > 0 ? registrosPaginados.map(registro => (
                                 <tr key={registro.id_hoja_vida}>
                                     <td>{getNombreEmpleado(registro.id_empleado)}</td>
-                                    <td>{registro.nombre_documento}</td>
+                                    <td>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <span>{registro.nombre_documento}</span>
+                                            
+                                            {registro.ruta_archivo_url && (
+                                                <a 
+                                                    href={registro.ruta_archivo_url}
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '6px',
+                                                        fontSize: '0.85em',
+                                                        color: '#3498db',
+                                                        textDecoration: 'none',
+                                                        fontWeight: '500',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    title="Abrir archivo en nueva pestaña"
+                                                >
+                                                    <FaEye /> Ver archivo
+                                                </a>
+                                            )}
+                                        </div>
+                                    </td>
                                     <td>{registro.tipo}</td>
                                     <td>{registro.institucion}</td>
                                     <td className="td-center">
@@ -487,6 +593,53 @@ function HojaDeVida() {
                                     <input type="text" name="nombre_documento" value={registroActual.nombre_documento} onChange={handleChange} required />
                                 </div>
                             </div>
+                            
+                            {/* --- MODIFICADO: Input de Archivo con Drag & Drop --- */}
+                            <div className="form-grupo">
+                                <label>Adjuntar Archivo (PDF, IMG, DOC)</label>
+                                
+                                <div className="file-upload-wrapper">
+                                    <input 
+                                        type="file" 
+                                        name="archivo" 
+                                        id="archivo-input"
+                                        onChange={handleFileChange} 
+                                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                        ref={fileInputRef}
+                                        className="input-file-hidden" 
+                                    />
+                                    
+                                    <label 
+                                        htmlFor="archivo-input" 
+                                        className={`custom-file-label ${isDragging ? 'drag-active' : ''}`}
+                                        onDragEnter={handleDragEnter}
+                                        onDragLeave={handleDragLeave}
+                                        onDragOver={handleDragOver}
+                                        onDrop={handleDrop}
+                                    >
+                                        <FaCloudUploadAlt className="upload-icon" />
+                                        <span>
+                                            {archivoSeleccionado 
+                                                ? `Archivo seleccionado: ${archivoSeleccionado.name}`
+                                                : isDragging 
+                                                    ? "¡Suelta el archivo aquí!" 
+                                                    : "Haz clic o arrastra un archivo aquí"
+                                            }
+                                        </span>
+                                    </label>
+                                </div>
+
+                                {modoEdicion && registroActual.ruta_archivo_url && !archivoSeleccionado && (
+                                    <div style={{fontSize: '0.85rem', color: '#27ae60', marginTop: '8px', fontWeight: '500', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'}}>
+                                        <span>✓</span>
+                                        Ya existe un archivo cargado.
+                                        <span style={{color: '#95a5a6', fontWeight: 'normal', fontSize: '0.8rem'}}>
+                                            (Subir otro lo reemplazará)
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+
                             <div className="form-grupo">
                                 <label>Institución o Empresa</label>
                                 <input type="text" name="institucion" value={registroActual.institucion} onChange={handleChange} />

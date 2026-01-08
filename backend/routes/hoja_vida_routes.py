@@ -4,6 +4,7 @@ from models.hoja_vida import Hoja_Vida
 from models.log_transaccional import LogTransaccional
 from utils.auth import token_required, admin_required
 from utils.parsers import parse_date
+from utils.file_service import upload_file_to_vm, delete_file_from_vm # Funciones del server de archivos
 import json
 
 hoja_vida_bp = Blueprint('hoja_vida', __name__, url_prefix='/api/hojas-vida')
@@ -13,23 +14,41 @@ hoja_vida_bp = Blueprint('hoja_vida', __name__, url_prefix='/api/hojas-vida')
 @admin_required
 def crear_hoja_vida(current_user):
     try:
-        data = request.get_json()
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form
+
+        id_empleado = data.get('id_empleado')
+        tipo = data.get('tipo')
         
-        # Validaciones
-        if not data.get('id_empleado'):
+        # Validaciones básicas de campos de texto
+        if not id_empleado:
             return jsonify({"error": "El id_empleado es requerido"}), 400
-        
-        if not data.get("tipo"):
+        if not tipo:
             return jsonify({"error": "El tipo de documento es requerido"}), 400
 
+        # 2. Manejo del archivo
+        archivo_url = None
+        if 'archivo' in request.files:
+            file = request.files['archivo']
+            if file.filename != '':
+                archivo_url = upload_file_to_vm(file)
+                if not archivo_url:
+                    return jsonify({"error": "Error al procesar el archivo en el servidor de almacenamiento"}), 500
+
+        # Si la URL del archivo viene en el JSON/form pero no como archivo
+        if not archivo_url and 'ruta_archivo_url' in data:
+            archivo_url = data.get('ruta_archivo_url')
+
         nueva_hoja_vida = Hoja_Vida(
-            id_empleado=data["id_empleado"],
-            tipo=data.get("tipo"),
+            id_empleado=int(id_empleado),
+            tipo=tipo,
             nombre_documento=data.get("nombre_documento"),
             institucion=data.get("institucion"),
             fecha_inicio=parse_date(data.get("fecha_inicio")),
             fecha_finalizacion=parse_date(data.get("fecha_finalizacion")),
-            ruta_archivo_url=data.get("ruta_archivo_url"),
+            ruta_archivo_url=archivo_url,
             creado_por=current_user.id
         )
         
@@ -43,22 +62,15 @@ def crear_hoja_vida(current_user):
                 operacion='INSERT',
                 id_registro=nueva_hoja_vida.id_hoja_vida,
                 usuario=current_user.username,
-                datos_nuevos=json.dumps({
-                    'id_empleado': nueva_hoja_vida.id_empleado,
-                    'tipo': nueva_hoja_vida.tipo,
-                    'nombre_documento': nueva_hoja_vida.nombre_documento,
-                    'institucion': nueva_hoja_vida.institucion,
-                    'fecha_inicio': nueva_hoja_vida.fecha_inicio.isoformat() if nueva_hoja_vida.fecha_inicio else None,
-                    'fecha_finalizacion': nueva_hoja_vida.fecha_finalizacion.isoformat() if nueva_hoja_vida.fecha_finalizacion else None
-                })
+                datos_nuevos=json.dumps(nueva_hoja_vida.to_dict())
             )
             db.session.add(log)
             db.session.commit()
         except Exception as log_error:
-            print(f" Error al registrar log: {log_error}")
+            print(f"Error al registrar log: {log_error}")
         
         return jsonify({
-            "mensaje": "Registro de Hoja de Vida creado exitosamente",
+            "mensaje": "Hoja de Vida creada exitosamente",
             "hoja_vida": nueva_hoja_vida.to_dict()
         }), 201
         
@@ -98,12 +110,16 @@ def obtener_hoja_vida(current_user, id_hoja_vida):
     registro = Hoja_Vida.query.get_or_404(id_hoja_vida)
     return jsonify(registro.to_dict())
 
-# UPDATE - Actualizar
+# # UPDATE - Actualizar
 @hoja_vida_bp.route("/<int:id_hoja_vida>", methods=["PUT"])
 @admin_required
 def actualizar_hoja_vida(current_user, id_hoja_vida):
     registro = Hoja_Vida.query.get_or_404(id_hoja_vida)
-    data = request.get_json()
+    
+    if request.is_json:
+        data = request.get_json()
+    else:
+        data = request.form
 
     # Guardar datos anteriores para el log
     datos_anteriores = {
@@ -111,16 +127,42 @@ def actualizar_hoja_vida(current_user, id_hoja_vida):
         'nombre_documento': registro.nombre_documento,
         'institucion': registro.institucion,
         'fecha_inicio': registro.fecha_inicio.isoformat() if registro.fecha_inicio else None,
-        'fecha_finalizacion': registro.fecha_finalizacion.isoformat() if registro.fecha_finalizacion else None
+        'fecha_finalizacion': registro.fecha_finalizacion.isoformat() if registro.fecha_finalizacion else None,
+        'ruta_archivo_url': registro.ruta_archivo_url
     }
     
+    # 1. Actualizar campos de texto
     registro.tipo = data.get("tipo", registro.tipo)
     registro.nombre_documento = data.get("nombre_documento", registro.nombre_documento)
     registro.institucion = data.get("institucion", registro.institucion)
-    registro.fecha_inicio = parse_date(data.get("fecha_inicio", registro.fecha_inicio))
-    registro.fecha_finalizacion = parse_date(data.get("fecha_finalizacion", registro.fecha_finalizacion))
-    registro.ruta_archivo_url = data.get("ruta_archivo_url", registro.ruta_archivo_url)
+    
+    # Usar una lógica que no falle si la fecha viene como objeto o como string
+    fecha_inicio_data = data.get("fecha_inicio", registro.fecha_inicio)
+    if fecha_inicio_data:
+        registro.fecha_inicio = parse_date(fecha_inicio_data)
+
+    fecha_finalizacion_data = data.get("fecha_finalizacion", registro.fecha_finalizacion)
+    if fecha_finalizacion_data:
+        registro.fecha_finalizacion = parse_date(fecha_finalizacion_data)
+
     registro.modificado_por = current_user.id
+
+    # 2. Lógica de Archivos (La parte nueva)
+    # Si viene un archivo nuevo en la petición...
+    if 'archivo' in request.files:
+        file = request.files['archivo']
+        if file.filename != '':
+            # A. Si ya existía un archivo antes, lo borramos de la VM
+            if registro.ruta_archivo_url:
+                delete_file_from_vm(registro.ruta_archivo_url)
+            
+            # B. Subimos el nuevo archivo
+            nueva_url = upload_file_to_vm(file)
+            
+            if nueva_url:
+                registro.ruta_archivo_url = nueva_url
+            else:
+                return jsonify({"error": "Error al subir el nuevo archivo al servidor"}), 500
 
     db.session.commit()
 
@@ -131,7 +173,8 @@ def actualizar_hoja_vida(current_user, id_hoja_vida):
             'nombre_documento': registro.nombre_documento,
             'institucion': registro.institucion,
             'fecha_inicio': registro.fecha_inicio.isoformat() if registro.fecha_inicio else None,
-            'fecha_finalizacion': registro.fecha_finalizacion.isoformat() if registro.fecha_finalizacion else None
+            'fecha_finalizacion': registro.fecha_finalizacion.isoformat() if registro.fecha_finalizacion else None,
+            'ruta_archivo_url': registro.ruta_archivo_url
         }
         
         log = LogTransaccional(
@@ -158,17 +201,20 @@ def actualizar_hoja_vida(current_user, id_hoja_vida):
 def eliminar_hoja_vida(current_user, id_hoja_vida):
     registro = Hoja_Vida.query.get_or_404(id_hoja_vida)
 
-    # Guardar datos antes de eliminar
+    # Guardar datos antes de eliminar para el log
     datos_anteriores = {
         'id_empleado': registro.id_empleado,
         'tipo': registro.tipo,
         'nombre_documento': registro.nombre_documento,
-        'institucion': registro.institucion,
-        'fecha_inicio': registro.fecha_inicio.isoformat() if registro.fecha_inicio else None,
-        'fecha_finalizacion': registro.fecha_finalizacion.isoformat() if registro.fecha_finalizacion else None
+        'ruta_archivo_url': registro.ruta_archivo_url
     }
     hoja_vida_id = registro.id_hoja_vida
     
+    # 1. Eliminar el archivo físico de la VM si existe
+    if registro.ruta_archivo_url:
+        delete_file_from_vm(registro.ruta_archivo_url)
+
+    # 2. Eliminar el registro de la base de datos
     db.session.delete(registro)
     db.session.commit()
 
@@ -186,4 +232,4 @@ def eliminar_hoja_vida(current_user, id_hoja_vida):
     except Exception as log_error:
         print(f" Error al registrar log: {log_error}")
     
-    return jsonify({"mensaje": "Registro de Hoja de Vida eliminado exitosamente"})
+    return jsonify({"mensaje": "Registro de Hoja de Vida y archivo eliminados exitosamente"})

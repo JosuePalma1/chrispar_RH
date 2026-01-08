@@ -36,3 +36,6 @@ class Config:
 
     # SQLite only: if enabled (or mirror file exists), the app will ATTACH the mirror DB for each connection.
     MIRROR_DB_ENABLED = os.getenv("MIRROR_DB_ENABLED", "0") == "1"
+
+    #Server de archivos
+    FILE_SERVER_URL = os.getenv('FILE_SERVER_URL')
