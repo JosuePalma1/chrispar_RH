@@ -7,12 +7,10 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 CORS(app)
 
-# --- CORRECCIÓN 1: Rutas para Docker ---
 # Usamos una ruta relativa. En el contenedor esto será /app/storage
 UPLOAD_FOLDER = 'storage' 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'docx', 'doc'}
 
-# --- CORRECCIÓN 2: URL Pública ---
 # Como Docker expondrá el puerto 5000 en tu Windows, la URL debe coincidir.
 BASE_URL = 'http://localhost:5000'
 
