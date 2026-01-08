@@ -1,0 +1,84 @@
+@startuml C4_Container_Diagram_Detailed
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+' Configuración del diagrama
+LAYOUT_WITH_LEGEND()
+
+title Diagrama C4 - Nivel 2: Contenedores (Detallado)\nSistema de Gestión de Recursos Humanos - Chrispar Market
+
+' ====================
+' ACTORES PRINCIPALES
+' ====================
+
+Person(admin_rh, "Administrador RH", "Usuario con acceso completo")
+Person(gerente, "Gerente/Supervisor", "Usuario con permisos de gestión")
+Person(empleado, "Empleado", "Usuario con acceso limitado")
+
+System_Boundary(chrispar_system, "Sistema Chrispar HR") {
+    
+    ' ====================
+    ' CAPA DE PRESENTACIÓN
+    ' ====================
+    
+    Container(web_app, "Single Page Application", "React 19 + React Router 6", "Aplicación web moderna SPA:\n\n**Componentes principales:**\n• Dashboard (métricas y estadísticas)\n• Login (autenticación)\n• Sidebar (navegación dinámica)\n• ProtectedRoute (control de acceso)\n\n**Módulos funcionales:**\n• Empleados, Usuarios, Cargos\n• Nóminas, Rubros, Horarios\n• Asistencias, Permisos\n• Hojas de Vida, Logs\n\n**Tecnologías:**\n• Axios (HTTP client)\n• React Testing Library (20 tests)")
+    
+    ' ====================
+    ' CAPA DE APLICACIÓN
+    ' ====================
+    
+    Container(api_rest, "API REST Backend", "Flask 2.2.5 + Python 3.12", "API RESTful con arquitectura en 3 capas:\n\n**Controladores (API Routes):**\n• /api/usuarios, /api/empleados\n• /api/cargos, /api/nominas\n• /api/rubros, /api/horarios\n• /api/asistencias, /api/permisos\n• /api/hojas-vida, /api/logs\n\n**Servicios (Lógica de Negocio):**\n• Validaciones de negocio\n• Procesamiento de nóminas\n• Control de permisos por roles\n• Generación de reportes\n\n**DAL (Acceso a Datos):**\n• SQLAlchemy ORM\n• Abstracción de base de datos\n\n**Características:**\n• JWT authentication\n• CORS habilitado\n• Flask-Migrate (Alembic)\n• 186 tests (88% coverage)")
+    
+    ' ====================
+    ' CAPA DE PERSISTENCIA
+    ' ====================
+    
+    ContainerDb(db_postgres, "BD Principal (Operacional)", "PostgreSQL 14+ OLTP", "Base de datos operacional:\n\n**Tablas principales:**\n• usuarios (autenticación)\n• empleados (info personal)\n• cargos (roles y permisos)\n• nominas (pagos)\n• rubros (conceptos salariales)\n• horarios (turnos)\n• asistencias (entrada/salida)\n• permisos (ausencias)\n• hojas_vida (CVs)\n• logs_transaccionales\n\n**Características:**\n• Migraciones Alembic\n• Constraints de integridad\n• Transacciones ACID")
+    
+    ContainerDb(db_replica, "BD Espejo (Solo Lectura)", "PostgreSQL Replica", "Replicación en streaming:\n\n**Propósito:**\n• Reportes pesados\n• Consultas de lectura\n• Datos estructurados (CRUD)\n• Balance de carga\n\n**Configuración:**\n• Streaming Replication\n• Read-only queries\n• Sincronización automática")
+    
+    Container(object_storage, "Almacenamiento de Objetos", "MinIO / Amazon S3", "Gestión de archivos binarios:\n\n**Tipos de archivos:**\n• Hojas de vida (PDF)\n• Documentos adjuntos\n• Fotos de empleados\n• Archivos de respaldo\n\n**Funcionalidades:**\n• Subir/Bajar archivos\n• URL del Archivo\n• Versionamiento\n• Control de acceso")
+}
+
+' ====================
+' SISTEMAS EXTERNOS
+' ====================
+
+System_Ext(email_service, "Servicio de Correo SMTP", "Sistema de notificaciones:\n• Nóminas procesadas\n• Permisos aprobados/rechazados\n• Alertas administrativas\n• Recordatorios")
+
+System_Ext(browser, "Navegador Web", "Cliente web (Chrome, Firefox, Edge, Safari)")
+
+' ====================
+' RELACIONES DETALLADAS
+' ====================
+
+' Usuarios → Navegador
+Rel(admin_rh, browser, "Accede vía navegador")
+Rel(gerente, browser, "Accede vía navegador")
+Rel(empleado, browser, "Accede vía navegador")
+
+' Navegador → SPA
+Rel(browser, web_app, "Carga la aplicación", "HTTPS\nPort 3000\nHTML/CSS/JavaScript")
+
+' SPA ↔ API REST
+Rel(web_app, api_rest, "Llamadas API REST", "HTTPS/JSON\nPort 5000\nAuthorization: Bearer <JWT>\n\n**Endpoints principales:**\nPOST /api/usuarios/login\nGET /api/empleados/\nPOST /api/nominas/\nGET /api/dashboard/metrics")
+
+' API REST ↔ PostgreSQL
+Rel(api_rest, db_postgres, "ORM Queries (Escritura/Lectura)", "PostgreSQL Protocol\nPort 5432\nSQLAlchemy ORM\n\n**Operaciones:**\nINSERT, UPDATE, DELETE\nSELECT (transaccionales)\nTransacciones ACID")
+
+Rel(api_rest, db_replica, "Queries de Lectura (Reportes)", "PostgreSQL Protocol\nPort 5432\nSQLAlchemy (read-only)\n\n**Operaciones:**\nSELECT (reportes)\nConsultas pesadas\nDatos estructurados")
+
+Rel(db_postgres, db_replica, "Replicación continua", "PostgreSQL\nStreaming Replication\nAsíncrona")
+
+' API REST ↔ Object Storage
+Rel(api_rest, object_storage, "Gestión de archivos", "S3 API / MinIO\n\n**Operaciones:**\n• PUT (subir archivos)\n• GET (descargar archivos)\n• DELETE (eliminar)\n• URL del Archivo")
+
+' API REST → Email
+Rel(api_rest, email_service, "Envía emails", "SMTP\nPorts 587 (TLS) / 465 (SSL)\n\n**Triggers:**\n• Nómina procesada\n• Permiso aprobado/rechazado\n• Nuevo usuario creado")
+
+' ====================
+' NOTAS TÉCNICAS
+' ====================
+
+SHOW_LEGEND()
+
+@enduml

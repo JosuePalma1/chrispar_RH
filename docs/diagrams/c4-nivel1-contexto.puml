@@ -1,0 +1,41 @@
+@startuml C4_Context_Diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+' Configuración del diagrama
+LAYOUT_WITH_LEGEND()
+LAYOUT_TOP_DOWN()
+
+title Diagrama C4 - Nivel 1: Contexto del Sistema Chrispar HR
+
+' Definición de Personas (Actores)
+Person(admin_rh, "Administrador de RH", "Gestiona todo el sistema de recursos humanos, usuarios, empleados y configuraciones")
+Person(gerente, "Gerente/Supervisor", "Revisa información de empleados, nóminas, asistencias y aprueba permisos")
+Person(empleado, "Empleado", "Consulta su información personal, horarios, nóminas y solicita permisos")
+
+' Sistema Principal
+System(chrispar_hr, "Sistema Chrispar HR", "Sistema de Gestión de Recursos Humanos que centraliza procesos de administración de empleados, nóminas, asistencias, horarios y permisos")
+
+' Sistemas Externos
+System_Ext(email_system, "Sistema de Email", "Envía notificaciones y alertas a usuarios y empleados")
+SystemDb_Ext(postgresql, "PostgreSQL Database", "Almacena toda la información del sistema: empleados, usuarios, nóminas, asistencias, etc.")
+System_Ext(auth_system, "Sistema de Autenticación JWT", "Gestiona tokens de autenticación y autorización basada en roles")
+
+' Relaciones - Usuarios con el Sistema Principal
+Rel(admin_rh, chrispar_hr, "Administra usuarios, empleados, cargos, nóminas, rubros, horarios y configuraciones", "HTTPS/JSON")
+Rel(gerente, chrispar_hr, "Consulta información de empleados, revisa nóminas, aprueba permisos y asistencias", "HTTPS/JSON")
+Rel(empleado, chrispar_hr, "Consulta información personal, horarios, nóminas y solicita permisos", "HTTPS/JSON")
+
+' Relaciones - Sistema con Sistemas Externos
+Rel(chrispar_hr, postgresql, "Lee y escribe datos", "SQL/TCP")
+Rel(chrispar_hr, email_system, "Envía notificaciones de nóminas, permisos aprobados/rechazados", "SMTP")
+Rel(chrispar_hr, auth_system, "Valida credenciales y genera tokens JWT", "HTTPS/JSON")
+
+' Relaciones inversas para notificaciones
+Rel(email_system, admin_rh, "Envía alertas y notificaciones")
+Rel(email_system, gerente, "Envía notificaciones de solicitudes pendientes")
+Rel(email_system, empleado, "Envía confirmaciones y recordatorios")
+
+' Notas adicionales
+SHOW_LEGEND()
+
+@enduml
