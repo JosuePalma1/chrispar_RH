@@ -8,3 +8,4 @@ marshmallow==3.20.1              # Para validaciones
 PyJWT==2.10.1                    # Para autenticación con JSON Web Tokens
 pytest==7.4.4                    # Framework de pruebas
 Werkzeug==2.2.3                  # Versión compatible con Flask 2.2
+requests==2.31.0                 # Para comunicación entre servicios

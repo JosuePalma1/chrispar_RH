@@ -562,3 +562,89 @@
   font-style: italic;
   cursor: default;
 }
+
+.file-upload-wrapper {
+  position: relative;
+  width: 100%;
+  margin-bottom: 5px;
+}
+
+.input-file-hidden {
+  display: none;
+}
+
+.custom-file-label {
+  display: flex;
+  flex-direction: row;    /* Icono y texto en la misma línea */
+  align-items: center;    /* Centrado vertical */
+  justify-content: center; /* Centrado horizontal */
+  padding: 30px 20px;
+  background-color: #f8f9fa;
+  border: 2px dashed #bdc3c7;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #7f8c8d;
+  font-size: 14px;
+  text-align: center;
+  gap: 20px; /* Espacio grande entre icono y texto */
+  min-height: 120px;
+}
+
+.upload-icon {
+  font-size: 32px;
+  color: #95a5a6;
+  transition: transform 0.3s ease, color 0.3s ease;
+
+  /* AGREGA ESTO */
+  position: relative;
+  top: 5px; /* Aumenta este valor para bajarla más */
+}
+
+/* Configuración base para el texto (span) */
+.custom-file-label span {
+  transition: all 0.3s ease;
+  /* --- CORRECCIÓN IMPORTANTE --- */
+  /* 'inline-block' permite que el texto acepte la transformación vertical */
+  display: inline-block; 
+}
+
+/* --- Estados Interactivos --- */
+
+/* Hover en el contenedor principal */
+.custom-file-label:hover {
+  border-color: #3498db;
+  background-color: #ecf8ff;
+}
+
+/* Al hacer hover, ambos (icono y span) se elevan y cambian de color */
+.custom-file-label:hover .upload-icon,
+.custom-file-label:hover span {
+  transform: translateY(-5px); /* Se elevan 5 pixeles */
+  color: #3498db;
+}
+
+/* Active Drag (Arrastrando archivo) */
+.custom-file-label.drag-active {
+  background-color: #e8f8f5;
+  border-color: #27ae60;
+  border-style: solid;
+  transform: scale(1.02);
+  box-shadow: 0 4px 15px rgba(39, 174, 96, 0.15);
+}
+
+.custom-file-label.drag-active .upload-icon,
+.custom-file-label.drag-active span {
+  color: #27ae60;
+  transform: scale(1.05) translateY(-5px); /* Mantenemos la elevación también al arrastrar */
+}
+
+.modal-contenido::-webkit-scrollbar {
+  display: none;
+}
+
+/* Ocultar la barra de desplazamiento en IE, Edge y Firefox */
+.modal-contenido {
+  -ms-overflow-style: none;  /* IE y Edge */
+  scrollbar-width: none;  /* Firefox */
+}
