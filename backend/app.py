@@ -8,6 +8,20 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object("config.Config")
     
+    # ANTES de inicializar SQLAlchemy, verificar si hay failover activo
+    failover_state_file = '/tmp/failover_state.txt'
+    if os.path.exists(failover_state_file):
+        try:
+            with open(failover_state_file, 'r') as f:
+                if f.read().strip() == 'mirror':
+                    # Cambiar a mirror ANTES de db.init_app()
+                    mirror_url = app.config.get('MIRROR_DATABASE_URL')
+                    if mirror_url:
+                        app.config['SQLALCHEMY_DATABASE_URI'] = mirror_url
+                        app.logger.info("🔄 Failover detectado - usando mirror desde inicio")
+        except Exception as e:
+            app.logger.error(f"Error leyendo estado failover: {e}")
+    
     # Inicializar extensiones
     db.init_app(app)
     migrate.init_app(app, db)
@@ -20,22 +34,29 @@ def create_app():
     @app.before_request
     def check_database_connection():
         """Verifica la conexión a la BD antes de cada request."""
+        # Si ya activamos failover, skip check del primary (evitar loops)
+        if db_failover.using_mirror:
+            # Opcional: intentar volver al primary cada cierto tiempo
+            # db_failover.try_reconnect_primary()
+            return
+        
+        # Verificar conexión al primary
         try:
-            # Si estamos usando mirror, intentar volver al primary
-            if db_failover.using_mirror:
-                db_failover.try_reconnect_primary()
-            
-            # Verificar que la conexión actual funcione
-            db.session.execute(db.text("SELECT 1"))
-            
+            with db.engine.connect() as conn:
+                conn.execute(db.text("SELECT 1"))
+                
         except OperationalError as e:
-            # Si falla, el event handler de extensions.py hará el failover automáticamente
-            app.logger.error(f"Error de conexión a BD: {e}")
-            # Intentar de nuevo con mirror
-            try:
-                db.session.execute(db.text("SELECT 1"))
-            except Exception as retry_error:
-                app.logger.error(f"Error incluso después de failover: {retry_error}")
+            app.logger.error(f"💥 Error de conexión a primary: {str(e)[:100]}")
+            
+            # Ejecutar failover automático al mirror
+            if db_failover.mirror_url:
+                app.logger.warning("🔄 Activando failover automático...")
+                db_failover._switch_to_mirror()
+                app.logger.info("✅ Failover activado - requests subsiguientes usarán mirror")
+            else:
+                app.logger.error("❌ No hay mirror configurado")
+                db.session.rollback()
+                raise
     
     # Importar modelos para que las migraciones los detecten
     with app.app_context():
