@@ -13,6 +13,7 @@ Aplicación web full-stack (Flask + React) para centralizar los procesos de RR. 
 - [Actualización del Proyecto](#-actualización-del-proyecto-git-pull)
 - [Ejecución](#-ejecución)
 - [Variables de Entorno](#-variables-de-entorno)
+- [Alta Disponibilidad y Failover](#-alta-disponibilidad-y-failover)
 - [Pruebas Automatizadas](#-pruebas-automatizadas)
 - [API y Endpoints](#-api-y-endpoints)
 - [Solución de Problemas](#-solución-de-problemas)
@@ -45,28 +46,55 @@ Aplicación web full-stack (Flask + React) para centralizar los procesos de RR. 
 
 ```
 chrispar_HHRR/
+├── README.md                   # Este archivo
+├── CONTRIBUTING.md             # Guía de contribución
+├── CHANGELOG.md                # Historial de cambios
+├── docker-compose.yml          # Orquestación de contenedores
+│
+├── docs/                       # 📚 Documentación completa
+│   ├── configuration/          # Configuración del sistema
+│   ├── features/               # Funcionalidades
+│   │   ├── failover/          # Alta disponibilidad
+│   │   └── mirror-db/         # Replicación de BD
+│   ├── deployment/             # Despliegue
+│   └── testing/                # Testing
+│
+├── scripts/                    # 🛠️ Scripts organizados
+│   ├── database/              # Gestión de BD (seed, init_admin, etc.)
+│   ├── failover/              # Alta disponibilidad
+│   ├── maintenance/           # Mantenimiento
+│   └── demo/                  # Demostraciones
+│
 ├── backend/
-│   ├── app.py                  # Punto de entrada Flask
-│   ├── config.py               # Configuración (dev/test/prod)
-│   ├── extensions.py           # Inicialización de extensiones
-│   ├── models/                 # Modelos SQLAlchemy
-│   ├── routes/                 # Blueprints de endpoints
-│   ├── utils/                  # Helpers (auth, parsers)
-│   ├── tests/                  # 186 tests con pytest
-│   ├── migrations/             # Migraciones de Alembic
-│   ├── seeders/                # Scripts de datos iniciales
-│   ├── database_seeder.py      # Seeder principal
-│   ├── inicializar_db.py       # Crea usuario admin
+│   ├── app.py                 # Punto de entrada Flask
+│   ├── config.py              # Configuración (dev/test/prod)
+│   ├── extensions.py          # Inicialización + Failover
+│   ├── models/                # Modelos SQLAlchemy
+│   ├── routes/                # Blueprints de endpoints
+│   ├── utils/                 # Helpers (auth, parsers)
+│   ├── tests/                 # 186 tests con pytest
+│   ├── migrations/            # Migraciones de Alembic
+│   ├── seeders/               # Datos de prueba
+│   ├── scripts/               # Scripts del backend
+│   │   ├── load_testing/     # Tests de carga (Locust)
+│   │   └── testing/          # Scripts de testing
 │   └── requirements.txt
 │
-└── frontend/
-    ├── public/
-    ├── src/
-    │   ├── components/         # Componentes React
-    │   ├── App.js              # Rutas principales
-    │   └── __tests__/          # Tests con Jest
-    └── package.json
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/        # Componentes React
+│   │   ├── App.js             # Rutas principales
+│   │   └── __tests__/         # Tests con Jest
+│   └── package.json
+│
+└── docker/
+    ├── backups/               # Backups de BD
+    ├── replication/           # Scripts de replicación
+    └── restore_backup.sh
 ```
+
+> 📖 **Ver documentación completa**: [docs/README.md](docs/README.md)
 
 ---
 
@@ -191,11 +219,14 @@ npm start
 Aplicación disponible en: `http://localhost:3000`
 
 ### Credenciales de acceso
-Se crean ejecutando `python inicializar_db.py`:
+Se crean ejecutando `python scripts/database/init_admin.py`:
 - Usuario: **admin**
 - Contraseña: **123**
 
----
+### Poblar datos de prueba
+```powershell
+python scripts/database/seed.py
+```
 
 ---
 
@@ -203,18 +234,66 @@ Se crean ejecutando `python inicializar_db.py`:
 
 ### Backend (`backend/.env`)
 ```env
+# Base de datos
 DATABASE_URL=postgresql://postgres:PASSWORD@localhost:5432/chrispar
+MIRROR_DATABASE_URL=postgresql://postgres:PASSWORD@postgres_mirror:5432/chrispar
+
+# Seguridad
 SECRET_KEY=clave-secreta-para-sesiones
 JWT_SECRET_KEY=clave-secreta-para-jwt
 FLASK_ENV=development
 ```
+
+> 📖 **Ver guía completa**: [docs/configuration/environment-variables.md](docs/configuration/environment-variables.md)
 
 ### Frontend (`frontend/.env`) - Opcional
 ```env
 REACT_APP_API_URL=http://127.0.0.1:5000
 ```
 
-> Ver `CONFIGURACION_ENV.md` para más detalles
+---
+
+## 🔄 Alta Disponibilidad y Failover
+
+El sistema incluye **failover automático on-demand** entre base de datos principal y mirror.
+
+### 📊 Características
+
+- ✅ **Failover On-Demand**: Se activa cuando se detecta fallo al usar la app
+- ✅ **Failover Instantáneo**: Cambio en < 1 segundo
+- ✅ **Failback Automático**: Vuelve al primary cuando se recupera
+- ✅ **Scripts Manuales**: Para mantenimiento planificado
+- ✅ **Replicación Lógica**: PostgreSQL logical replication
+- ✅ **Sin Overhead**: No consume recursos en background
+
+### 🚀 Uso Rápido
+
+#### Verificar estado del sistema
+```powershell
+.\scripts\failover\check_status.ps1
+```
+
+#### Failover manual (mantenimiento)
+```powershell
+# Cambiar al mirror
+.\scripts\failover\failover_to_mirror.ps1
+
+# Volver al primary
+.\scripts\failover\failback_to_primary.ps1
+```
+
+#### Monitorear health check
+```powershell
+# Ver estado actual
+curl http://localhost:5000/api/health
+```
+
+### 📖 Documentación Completa
+
+- **[Quickstart](docs/features/failover/quickstart.md)** - Inicio rápido
+- **[Overview](docs/features/failover/overview.md)** - Guía técnica completa  
+- **[Comparison](docs/features/failover/comparison.md)** - On-Demand vs Background
+- **[Examples](docs/features/failover/examples.md)** - 8 casos prácticos
 
 ---
 
@@ -257,7 +336,7 @@ pytest tests/test_e2e_workflows.py -v
 - ✅ Cargos: 95%
 - ✅ Manejo de errores: 100%
 
-Ver [TESTING_SUMMARY.md](backend/TESTING_SUMMARY.md) para detalles completos.
+> 📖 **Ver guía completa**: [docs/testing/overview.md](docs/testing/overview.md)
 
 ### Frontend - 20 tests
 

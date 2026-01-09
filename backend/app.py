@@ -1,6 +1,7 @@
-from flask import Flask
+from flask import Flask, g
 from flask_cors import CORS
-from extensions import db, migrate
+from extensions import db, migrate, db_failover
+from sqlalchemy.exc import OperationalError
 import os
 
 def create_app():
@@ -12,11 +13,35 @@ def create_app():
     migrate.init_app(app, db)
     CORS(app)
     
+    # Inicializar failover automático
+    db_failover.init_app(app)
+    
+    # Hook para intentar reconectar al primary en cada request
+    @app.before_request
+    def check_database_connection():
+        """Verifica la conexión a la BD antes de cada request."""
+        try:
+            # Si estamos usando mirror, intentar volver al primary
+            if db_failover.using_mirror:
+                db_failover.try_reconnect_primary()
+            
+            # Verificar que la conexión actual funcione
+            db.session.execute(db.text("SELECT 1"))
+            
+        except OperationalError as e:
+            # Si falla, el event handler de extensions.py hará el failover automáticamente
+            app.logger.error(f"Error de conexión a BD: {e}")
+            # Intentar de nuevo con mirror
+            try:
+                db.session.execute(db.text("SELECT 1"))
+            except Exception as retry_error:
+                app.logger.error(f"Error incluso después de failover: {retry_error}")
+    
     # Importar modelos para que las migraciones los detecten
     with app.app_context():
         from models import Empleado, Cargo, Usuario, LogTransaccional, Asistencia, Permiso
     
-    # Registrar blueprints
+    # Registrar blueprints (incluye health_bp)
     from routes import all_blueprints
     for blueprint in all_blueprints:
         app.register_blueprint(blueprint)
@@ -80,11 +105,23 @@ def _setup_mirror_auto(app):
         import traceback
         traceback.print_exc()
 
+
 if __name__ == '__main__':
     app = create_app()
     
+    # Imprimir configuración de failover
+    print("\n=== CONFIGURACIÓN DE FAILOVER ===")
+    print(f"Primary DB: {app.config.get('SQLALCHEMY_DATABASE_URI')}")
+    print(f"Mirror DB:  {app.config.get('MIRROR_DATABASE_URL', 'No configurado')}")
+    if app.config.get('MIRROR_DATABASE_URL'):
+        print("✓ Failover automático habilitado")
+        print("  - Se ejecuta automáticamente cuando el primary falla")
+        print("  - No requiere health checker en background")
+        print("  - Failback automático cuando el primary se recupera")
+    print("================================\n")
+    
     # Imprimir rutas registradas para debug
-    print("\n=== RUTAS REGISTRADAS ===")
+    print("=== RUTAS REGISTRADAS ===")
     for rule in app.url_map.iter_rules():
         print(f"{rule.methods} {rule.rule}")
     print("========================\n")

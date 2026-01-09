@@ -43,10 +43,11 @@ services:
   replication_setup:
     image: postgres:16
     container_name: chrispar_replication_setup
-    profiles: ["replication"]
     depends_on:
-      - postgres_primary
-      - postgres_mirror
+      postgres_primary:
+        condition: service_healthy
+      postgres_mirror:
+        condition: service_started
     restart: "no"
     volumes:
       - ./docker/replication/setup_replication.sh:/setup_replication.sh:ro

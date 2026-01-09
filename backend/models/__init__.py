@@ -1,4 +1,4 @@
-#Carga todos los modelos para Flask-Migrate y SQLAlchemy
+# Carga todos los modelos para Flask-Migrate y SQLAlchemy
 from .empleado import Empleado
 from .cargo import Cargo
 from .usuario import Usuario
@@ -9,6 +9,4 @@ from .hoja_vida import Hoja_Vida
 from .nomina import Nomina
 from .rubro import Rubro
 from .log_transaccional import LogTransaccional
-
-# TODO: Descomentar las importaciones cuando los modelos estén implementados
 

@@ -256,20 +256,22 @@ def eliminar_usuario(current_user, id):
 # LOGIN - Autenticar usuario
 @usuario_bp.route('/login', methods=['POST'])
 def login():
+    from utils.error_handler import handle_database_error, handle_validation_error, handle_unauthorized
+    
     try:
         data = request.get_json()
         
         if not data.get('username') or not data.get('password'):
-            return jsonify({"error": "Username y password son requeridos"}), 400
+            return handle_validation_error("Username y password son requeridos")
         
         usuario = Usuario.query.filter_by(username=data['username']).first()
         
         if not usuario:
-            return jsonify({"error": "Credenciales inválidas"}), 401
+            return handle_unauthorized("Credenciales inválidas")
         
         # Verificar contraseña
         if not check_password_hash(usuario.password, data['password']):
-            return jsonify({"error": "Credenciales inválidas"}), 401
+            return handle_unauthorized("Credenciales inválidas")
         
         # GENERAR TOKEN JWT
         token = generate_token(usuario.id, usuario.username, usuario.rol)
@@ -302,7 +304,7 @@ def login():
         }), 200
         
     except Exception as e:
-        return jsonify({"error": f"Error al autenticar: {str(e)}"}), 500
+        return handle_database_error(e, "autenticación de usuario")
 
 
 # Buscar usuarios por rol

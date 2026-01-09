@@ -20,6 +20,18 @@ until pg_isready -h "${MIRROR_HOST}" -U postgres -d "${DB_NAME}" >/dev/null 2>&1
   sleep 1
 done
 
+# Check if mirror has tables, if not, copy schema from primary
+echo "Checking if mirror has schema..."
+TABLE_COUNT=$(PGPASSWORD=123 psql -h "${MIRROR_HOST}" -U postgres -d "${DB_NAME}" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';" | xargs)
+
+if [ "$TABLE_COUNT" -eq 0 ] || [ "$TABLE_COUNT" -eq 1 ]; then
+  echo "Mirror has no schema. Copying schema from primary..."
+  PGPASSWORD=123 pg_dump -h "${PRIMARY_HOST}" -U postgres -d "${DB_NAME}" --schema-only | PGPASSWORD=123 psql -h "${MIRROR_HOST}" -U postgres -d "${DB_NAME}"
+  echo "Schema copied successfully."
+else
+  echo "Mirror already has schema ($TABLE_COUNT tables found)."
+fi
+
 echo "Configuring publication + replication user on primary..."
 PGPASSWORD=123 psql -h "${PRIMARY_HOST}" -U postgres -d "${DB_NAME}" <<SQL
 DO \$\$

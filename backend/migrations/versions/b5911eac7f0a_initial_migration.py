@@ -1,8 +1,8 @@
-"""Versión inicial de la BD
+"""Initial migration
 
-Revision ID: 937c54b404e8
+Revision ID: b5911eac7f0a
 Revises: 
-Create Date: 2025-12-17 12:31:06.796098
+Create Date: 2026-01-08 02:13:32.190491
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '937c54b404e8'
+revision = 'b5911eac7f0a'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -160,7 +160,6 @@ def upgrade():
     sa.Column('autorizado_por', sa.String(length=200), nullable=True),
     sa.Column('motivo', sa.Text(), nullable=True),
     sa.Column('operacion', sa.String(length=10), nullable=False),
-    # removed codigo and descripcion — not part of current rubro entity
     sa.Column('fecha_creacion', sa.DateTime(), nullable=True),
     sa.Column('fecha_actualizacion', sa.DateTime(), nullable=True),
     sa.Column('creado_por', sa.Integer(), nullable=True),

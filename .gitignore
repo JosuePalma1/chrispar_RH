@@ -48,6 +48,23 @@ Thumbs.db
 *.sqlite3
 database_mirror.db
 
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Configuración local
+.env.local
+.env.*.local
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Archive
+docs/archive/
+
 # Scripts de prueba temporales
 backend/check_mirror.py
 backend/test_simple_mirror.py

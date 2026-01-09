@@ -100,7 +100,7 @@ function Sidebar() {
     const toggleCollapsed = () => {
         try {
             const next = !collapsed;
-            localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+            // localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
             setCollapsed(next);
         } catch {
             setCollapsed(c => !c);
@@ -125,7 +125,7 @@ function Sidebar() {
 
     useEffect(() => {
         try {
-            localStorage.setItem(SIDEBAR_MENU_STATE_KEY, JSON.stringify(menuAbiertoUser));
+            // localStorage.setItem(SIDEBAR_MENU_STATE_KEY, JSON.stringify(menuAbiertoUser));
         } catch {
             // Ignorar errores (p.ej. storage lleno o bloqueado)
         }
