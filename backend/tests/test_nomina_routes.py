@@ -33,7 +33,9 @@ class TestNominaCRUD:
             json={
                 'id_empleado': empleado_id,
                 'mes': '2024-01',
-                'total': 1500.00
+                'sueldo_base': 1400.00,
+                'horas_extra': 100.00,
+                'total_desembolsar': 1500.00
             },
             headers=auth_headers
         )
@@ -44,12 +46,14 @@ class TestNominaCRUD:
         assert 'id' in data
     
     def test_crear_nomina_sin_fechas_falla(self, client, auth_headers):
-        """POST sin fechas válidas debe fallar"""
+        """POST sin mes debe fallar"""
         response = client.post(
             '/api/nominas/',
             json={
                 'id_empleado': 1,
-                'total': 1000.00
+                'sueldo_base': 900.00,
+                'horas_extra': 100.00,
+                'total_desembolsar': 1000.00
             },
             headers=auth_headers
         )
@@ -76,6 +80,8 @@ class TestNominaCRUD:
             nomina = Nomina(
                 id_empleado=empleado.id,
                 mes='2024-01',
+                sueldo_base=1800.00,
+                horas_extra=200.00,
                 total_desembolsar=2000.00
             )
             db.session.add(nomina)
@@ -104,6 +110,8 @@ class TestNominaCRUD:
             db.session.commit()
             
             nomina = Nomina(
+                sueldo_base=1600.00,
+                horas_extra=200.00,
                 id_empleado=empleado.id,
                 mes='2024-02',
                 total_desembolsar=1800.00
@@ -136,6 +144,8 @@ class TestNominaCRUD:
             nomina = Nomina(
                 id_empleado=empleado.id,
                 mes='2024-03',
+                sueldo_base=1300.00,
+                horas_extra=200.00,
                 total_desembolsar=1500.00
             )
             db.session.add(nomina)
@@ -145,7 +155,9 @@ class TestNominaCRUD:
         response = client.put(
             f'/api/nominas/{nomina_id}',
             json={
-                'total': 1750.00
+                'sueldo_base': 1500.00,
+                'horas_extra': 250.00,
+                'total_desembolsar': 1750.00
             },
             headers=auth_headers
         )
@@ -176,6 +188,8 @@ class TestNominaCRUD:
             nomina = Nomina(
                 id_empleado=empleado.id,
                 mes='2024-04',
+                sueldo_base=1400.00,
+                horas_extra=200.00,
                 total_desembolsar=1600.00
             )
             db.session.add(nomina)

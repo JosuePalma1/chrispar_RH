@@ -419,11 +419,10 @@ class TestFullWorkflow:
             '/api/nominas/',
             json={
                 'id_empleado': empleado_id,
-                'mes': date.today().month,
-                'anio': date.today().year,
-                'total_devengado': 0,
-                'total_deducido': 0,
-                'neto_pagar': 0
+                'mes': f'{date.today().year}-{date.today().month:02d}',
+                'sueldo_base': 1500.00,
+                'horas_extra': 0.00,
+                'total_desembolsar': 1500.00
             },
             headers=headers
         )

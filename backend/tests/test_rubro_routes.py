@@ -30,7 +30,9 @@ class TestRubroRoutes:
         nomina_data = {
             "id_empleado": empleado_id,
             "mes": "2024-01",
-            "total": 4500.0
+            "sueldo_base": 3600.0,
+            "horas_extra": 900.0,
+            "total_desembolsar": 4500.0
         }
         nomina_response = client.post("/api/nominas/", json=nomina_data, headers=auth_headers)
         nomina_id = nomina_response.json["id"]
@@ -68,7 +70,9 @@ class TestRubroRoutes:
         nomina_data = {
             "id_empleado": empleado_id,
             "mes": "2024-01",
-            "total": 3200.0
+            "sueldo_base": 2560.0,
+            "horas_extra": 640.0,
+            "total_desembolsar": 3200.0
         }
         nomina_response = client.post("/api/nominas/", json=nomina_data, headers=auth_headers)
         nomina_id = nomina_response.json["id"]
@@ -116,7 +120,9 @@ class TestRubroRoutes:
         nomina_data = {
             "id_empleado": empleado_id,
             "mes": "2024-01",
-            "total": 5400.0
+            "sueldo_base": 4320.0,
+            "horas_extra": 1080.0,
+            "total_desembolsar": 5400.0
         }
         nomina_response = client.post("/api/nominas/", json=nomina_data, headers=auth_headers)
         nomina_id = nomina_response.json["id"]
@@ -224,7 +230,9 @@ class TestRubroRoutes:
         nomina_data = {
             "id_empleado": empleado_id,
             "mes": "2024-03",
-            "total": 4050.0
+            "sueldo_base": 3240.0,
+            "horas_extra": 810.0,
+            "total_desembolsar": 4050.0
         }
         nomina_response = client.post("/api/nominas/", json=nomina_data, headers=auth_headers)
         nomina_id = nomina_response.json["id"]
@@ -267,7 +275,9 @@ class TestRubroRoutes:
         nomina_data = {
             "id_empleado": empleado_id,
             "mes": "2024-04",
-            "total": 4950.0
+            "sueldo_base": 3960.0,
+            "horas_extra": 990.0,
+            "total_desembolsar": 4950.0
         }
         nomina_response = client.post("/api/nominas/", json=nomina_data, headers=auth_headers)
         nomina_id = nomina_response.json["id"]
@@ -317,7 +327,9 @@ class TestRubroRoutes:
         nomina_data = {
             "id_empleado": empleado_id,
             "mes": "2024-05",
-            "total": 4320.0
+            "sueldo_base": 3456.0,
+            "horas_extra": 864.0,
+            "total_desembolsar": 4320.0
         }
         nomina_response = client.post("/api/nominas/", json=nomina_data, headers=auth_headers)
         nomina_id = nomina_response.json["id"]
@@ -364,7 +376,9 @@ class TestRubroRoutes:
         nomina_data = {
             "id_empleado": empleado_id,
             "mes": "2024-06",
-            "total": 3420.0
+            "sueldo_base": 2736.0,
+            "horas_extra": 684.0,
+            "total_desembolsar": 3420.0
         }
         nomina_response = client.post("/api/nominas/", json=nomina_data, headers=auth_headers)
         nomina_id = nomina_response.json["id"]
@@ -410,7 +424,9 @@ class TestRubroRoutes:
         nomina_data = {
             "id_empleado": empleado_id,
             "mes": "2024-07",
-            "total": 3780.0
+            "sueldo_base": 3024.0,
+            "horas_extra": 756.0,
+            "total_desembolsar": 3780.0
         }
         nomina_response = client.post("/api/nominas/", json=nomina_data, headers=auth_headers)
         nomina_id = nomina_response.json["id"]
@@ -450,7 +466,9 @@ class TestRubroRoutes:
         nomina_data = {
             "id_empleado": empleado_id,
             "mes": "2024-08",
-            "total": 5600.0
+            "sueldo_base": 4480.0,
+            "horas_extra": 1120.0,
+            "total_desembolsar": 5600.0
         }
         nomina_response = client.post("/api/nominas/", json=nomina_data, headers=auth_headers)
         nomina_id = nomina_response.json["id"]
