@@ -93,6 +93,7 @@ function MirrorDB() {
 				setLoading(false);
 			}
 		})();
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [canAccess]);
 
 	useEffect(() => {
@@ -112,6 +113,7 @@ function MirrorDB() {
 				setLoading(false);
 			}
 		})();
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [canAccess, selectedTable, limit]);
 
 	const isPostgres = String(status?.dialect || '').toLowerCase().startsWith('postgres');
@@ -125,6 +127,17 @@ function MirrorDB() {
 		const db = c.database ? `/${c.database}` : '';
 		return `${host}${port}${db}`;
 	};
+
+	// Conexiones mostradas según la BD realmente activa
+	// Caso normal (ambas arriba):
+	//   Primary: postgres_primary:5432/chrispar
+	//   Mirror:  postgres_mirror:5432/chrispar
+	// Caso failover (solo mirror activo / usando mirror):
+	//   Primary: postgres_mirror:5432/chrispar
+	//   Mirror:  postgres_mirror:5432/chrispar
+	const primaryDisplayConnection =
+		status?.current_active_db === 'mirror' ? status?.mirror_connection : status?.primary_connection;
+	const mirrorDisplayConnection = status?.mirror_connection;
 
 	const handleSetup = async () => {
 		try {
@@ -207,11 +220,25 @@ function MirrorDB() {
 										<li>
 											<strong>Motor:</strong> {status.dialect || 'N/A'}
 										</li>
-										<li>
-											<strong>Primary:</strong> {formatConn(status.primary_connection)}
+										<li style={{ 
+											backgroundColor: status.current_active_db === 'primary' ? '#d4edda' : '#fff3cd',
+											padding: '10px',
+											borderRadius: '5px',
+											fontWeight: 'bold',
+											fontSize: '1.1em',
+											marginBottom: '10px'
+										}}>
+											<strong>🔵 USANDO AHORA:</strong>{' '}
+											<span style={{ color: status.current_active_db === 'primary' ? '#155724' : '#856404' }}>
+												{status.current_active_db === 'primary' ? 'PRIMARY' : 'MIRROR'}
+											</span>
+											{' '}({formatConn(status.current_connection)})
 										</li>
 										<li>
-											<strong>Mirror:</strong> {formatConn(status.mirror_connection)}
+											<strong>Primary:</strong> {formatConn(primaryDisplayConnection)}
+										</li>
+										<li>
+											<strong>Mirror (Respaldo):</strong> {formatConn(mirrorDisplayConnection)}
 										</li>
 										<li>
 											<strong>Modo:</strong> {status.mirror_mode || 'N/A'}

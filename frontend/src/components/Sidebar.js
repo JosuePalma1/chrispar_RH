@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import './Sidebar.css';
 import { 
     FaHome, FaUsers, FaUserTie, FaIdCard, FaCalendarAlt, 
@@ -12,9 +11,6 @@ const AVAILABLE_MODULES = ['dashboard', 'cargos', 'usuarios', 'empleados', 'hoja
 const SIDEBAR_MENU_STATE_KEY = 'sidebar.menuAbierto';
 
 function Sidebar() {
-    const location = useLocation();
-    const isDashboardRoute = location.pathname === '/dashboard';
-
     const [permisos, setPermisos] = useState(['dashboard']);
 
     useEffect(() => {

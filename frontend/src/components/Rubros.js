@@ -294,7 +294,7 @@ const openEditModal = (rubro) => {
       monto: parseFloat(editForm.monto) || 0
     };
     
-    const response = await axios.put(`${API_URL}/api/rubros/${editForm.id_rubro}`, payload, {
+    await axios.put(`${API_URL}/api/rubros/${editForm.id_rubro}`, payload, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     

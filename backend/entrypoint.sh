@@ -10,5 +10,5 @@ echo "PostgreSQL started"
 echo "Running database migrations..."
 flask db upgrade
 
-echo "Starting application..."
-exec python app.py
+echo "Starting application with Gunicorn..."
+exec gunicorn -w 4 -b 0.0.0.0:5000 "app:create_app()"

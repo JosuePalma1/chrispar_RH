@@ -3,8 +3,11 @@
 # ==========================================
 # Este script restaura la configuración original
 # volviendo a usar postgres_primary
+# ⚠️ IMPORTANTE: Con replicación bidireccional, los datos 
+#    del Mirror ya se sincronizaron automáticamente al Primary
 
 Write-Host "=== Iniciando Failback a Primary ===" -ForegroundColor Cyan
+Write-Host "Con replicación bidireccional activa" -ForegroundColor Gray
 
 # 1. Iniciar postgres_primary
 Write-Host "`n[1] Iniciando postgres_primary..." -ForegroundColor Yellow
@@ -18,7 +21,7 @@ if ($LASTEXITCODE -eq 0) {
 
 # Esperar a que el primary esté listo
 Write-Host "  Esperando a que primary esté listo..." -ForegroundColor Gray
-Start-Sleep -Seconds 10
+Start-Sleep -Seconds 15
 
 # 2. Verificar que primary esté saludable
 Write-Host "`n[2] Verificando salud del primary..." -ForegroundColor Yellow
@@ -28,6 +31,25 @@ if ($LASTEXITCODE -eq 0) {
 } else {
     Write-Host "✗ Primary no responde" -ForegroundColor Red
     exit 1
+}
+
+# 2.5. Verificar estado de sincronización
+Write-Host "`n[2.5] Verificando sincronización de datos..." -ForegroundColor Yellow
+Write-Host "  Esperando a que la replicación bidireccional se sincronice..." -ForegroundColor Gray
+Start-Sleep -Seconds 10
+
+Write-Host "  Verificando suscripciones activas..." -ForegroundColor Gray
+docker exec chrispar_postgres_primary psql -U postgres -d chrispar -c "SELECT subname, subenabled, subslotname FROM pg_subscription;" 2>$null
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "✓ Replicación bidireccional activa en Primary" -ForegroundColor Green
+} else {
+    Write-Host "⚠️  Advertencia: No se detectó replicación bidireccional" -ForegroundColor Yellow
+    Write-Host "   Los datos del Mirror NO se sincronizarán automáticamente" -ForegroundColor Yellow
+    $response = Read-Host "¿Deseas continuar de todos modos? (S/N)"
+    if ($response -ne 'S' -and $response -ne 's') {
+        Write-Host "Failback cancelado" -ForegroundColor Red
+        exit 1
+    }
 }
 
 # 3. Restaurar .env al primary

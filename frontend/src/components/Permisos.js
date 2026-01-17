@@ -20,7 +20,7 @@ function Permisos() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
-  const [updatingId, setUpdatingId] = useState(null);
+  const [, setUpdatingId] = useState(null);
 
   const decodeToken = () => {
     const token = localStorage.getItem('token');
@@ -63,7 +63,7 @@ function Permisos() {
       // Normalize space separator to 'T'
       if (s.indexOf('T') === -1 && s.indexOf(' ') !== -1) s = s.replace(' ', 'T');
       // If no timezone info (no 'Z' or +/-TZ), assume UTC and append 'Z'
-      if (!s.match(/Z$|[\+\-]\d{2}:?\d{2}$/)) s = s + 'Z';
+      if (!s.match(/Z$|[+-]\d{2}:?\d{2}$/)) s = s + 'Z';
       const d = new Date(s);
       if (isNaN(d.getTime())) {
         // fallback: try slicing

@@ -35,10 +35,23 @@ services:
       POSTGRES_DB: chrispar
     ports:
       - "5433:5432"
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "max_replication_slots=10"
     volumes:
       - pg_mirror_data:/var/lib/postgresql/data
     networks:
       - chrispar_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   replication_setup:
     image: postgres:16
@@ -50,7 +63,10 @@ services:
         condition: service_started
     restart: "no"
     volumes:
-      - ./docker/replication/setup_replication.sh:/setup_replication.sh:ro
+      # Replicación unidireccional
+      - ./docker/replication/setup_replication.sh:/setup_replication_unidirectional.sh:ro
+      # Replicación bidireccional 
+      - ./docker/replication/setup_bidirectional_replication.sh:/setup_replication.sh:ro
     entrypoint: ["bash", "/setup_replication.sh"]
     environment:
       PRIMARY_HOST: postgres_primary
@@ -58,6 +74,14 @@ services:
       DB_NAME: chrispar
       REPL_USER: replicator
       REPL_PASSWORD: replicatorpass
+      # Variables para replicación bidireccional
+      PRIMARY_PUB_NAME: chrispar_pub_primary
+      MIRROR_PUB_NAME: chrispar_pub_mirror
+      PRIMARY_SUB_NAME: chrispar_sub_from_mirror
+      MIRROR_SUB_NAME: chrispar_sub_from_primary
+      PRIMARY_SLOT_NAME: chrispar_slot_primary
+      MIRROR_SLOT_NAME: chrispar_slot_mirror
+      # Variables para replicación unidireccional (legacy)
       PUBLICATION_NAME: chrispar_pub
       SUBSCRIPTION_NAME: chrispar_sub
       SLOT_NAME: chrispar_slot
@@ -117,8 +141,8 @@ services:
       - chrispar_network
 
 volumes:
-  pg_primary_data:
-  pg_mirror_data:
+  pg_primary_data: {}
+  pg_mirror_data: {}
 
 networks:
   chrispar_network:

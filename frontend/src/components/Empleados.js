@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { FaEdit, FaTrash, FaFilePdf, FaFileExcel, FaPlus, FaTimes, FaSave } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaFilePdf, FaFileExcel, FaPlus, FaTimes } from 'react-icons/fa';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -83,6 +83,7 @@ function Empleados() {
         sessionStorage.removeItem('empleadoSeleccionado');
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Abrir modal cuando los cargos estén cargados y haya un usuario pendiente
@@ -91,6 +92,7 @@ function Empleados() {
       abrirModalConUsuario(usuarioPendiente);
       setUsuarioPendiente(null);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usuarioPendiente, cargos]);
 
   const cargarEmpleados = async () => {

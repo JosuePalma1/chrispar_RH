@@ -2,33 +2,56 @@ from flask import Flask, g
 from flask_cors import CORS
 from extensions import db, migrate, db_failover
 from sqlalchemy.exc import OperationalError
+from sqlalchemy import text
 import os
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object("config.Config")
     
-    # ANTES de inicializar SQLAlchemy, verificar si hay failover activo
-    failover_state_file = '/tmp/failover_state.txt'
-    if os.path.exists(failover_state_file):
-        try:
-            with open(failover_state_file, 'r') as f:
-                if f.read().strip() == 'mirror':
-                    # Cambiar a mirror ANTES de db.init_app()
-                    mirror_url = app.config.get('MIRROR_DATABASE_URL')
-                    if mirror_url:
-                        app.config['SQLALCHEMY_DATABASE_URI'] = mirror_url
-                        app.logger.info("🔄 Failover detectado - usando mirror desde inicio")
-        except Exception as e:
-            app.logger.error(f"Error leyendo estado failover: {e}")
+    # NO persistir el estado de failover entre reinicios
+    # El backend SIEMPRE inicia con el Primary configurado en .env
+    # El failover solo ocurre durante la ejecución si el Primary falla
+    
+    # Verificar conexión inmediatamente al iniciar ANTES de inicializar SQLAlchemy
+    try:
+        from sqlalchemy import create_engine
+        db_uri = app.config['SQLALCHEMY_DATABASE_URI']
+        c_args = {"connect_timeout": 5} if db_uri and "postgresql" in db_uri else {}
+        test_engine = create_engine(db_uri, connect_args=c_args)
+        with test_engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        test_engine.dispose()
+        app.logger.info("✅ Conexión inicial exitosa al Primary")
+    except OperationalError as e:
+        app.logger.warning(f"⚠️  Primary no disponible al iniciar: {str(e)[:100]}")
+        # Cambiar la URL ANTES de inicializar SQLAlchemy
+        mirror_url = app.config.get('MIRROR_DATABASE_URL')
+        if mirror_url:
+            app.logger.warning("🔄 Cambiando al Mirror automáticamente...")
+            app.config['SQLALCHEMY_DATABASE_URI'] = mirror_url
+            # Verificar que el Mirror funciona
+            try:
+                c_args_mirror = {"connect_timeout": 5} if mirror_url and "postgresql" in mirror_url else {}
+                test_engine = create_engine(mirror_url, connect_args=c_args_mirror)
+                with test_engine.connect() as conn:
+                    conn.execute(text("SELECT 1"))
+                test_engine.dispose()
+                app.logger.info("✅ Conexión exitosa al Mirror")
+            except Exception as mirror_error:
+                app.logger.error(f"❌ Mirror tampoco disponible: {mirror_error}")
+                raise
+        else:
+            app.logger.error("❌ No hay Mirror configurado - el sistema no funcionará")
+            raise
+    
+    # Inicializar failover automático PRIMERO (necesita saber si ya usamos mirror)
+    db_failover.init_app(app)
     
     # Inicializar extensiones
     db.init_app(app)
     migrate.init_app(app, db)
     CORS(app)
-    
-    # Inicializar failover automático
-    db_failover.init_app(app)
     
     # Hook para intentar reconectar al primary en cada request
     @app.before_request
@@ -130,21 +153,17 @@ def _setup_mirror_auto(app):
 if __name__ == '__main__':
     app = create_app()
     
-    # Imprimir configuración de failover
-    print("\n=== CONFIGURACIÓN DE FAILOVER ===")
-    print(f"Primary DB: {app.config.get('SQLALCHEMY_DATABASE_URI')}")
-    print(f"Mirror DB:  {app.config.get('MIRROR_DATABASE_URL', 'No configurado')}")
-    if app.config.get('MIRROR_DATABASE_URL'):
-        print("✓ Failover automático habilitado")
-        print("  - Se ejecuta automáticamente cuando el primary falla")
-        print("  - No requiere health checker en background")
-        print("  - Failback automático cuando el primary se recupera")
-    print("================================\n")
-    
-    # Imprimir rutas registradas para debug
-    print("=== RUTAS REGISTRADAS ===")
-    for rule in app.url_map.iter_rules():
-        print(f"{rule.methods} {rule.rule}")
-    print("========================\n")
+    # Solo mostrar info en el proceso del reloader (evita duplicados)
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        # Contar rutas registradas
+        total_rutas = len(list(app.url_map.iter_rules()))
+        
+        # Imprimir configuración resumida
+        print("\n✅ Backend iniciado correctamente")
+        print(f"   Primary DB: localhost:5432/chrispar")
+        mirror_status = "✓ Habilitado" if app.config.get('MIRROR_DATABASE_URL') else "○ Schema mirror (no failover externo)"
+        print(f"   Mirror:     {mirror_status}")
+        print(f"   Rutas:      {total_rutas} endpoints registrados")
+        print(f"   API:        http://127.0.0.1:5000\n")
     
     app.run(debug=True, host='0.0.0.0', port=5000)

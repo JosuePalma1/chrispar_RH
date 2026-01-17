@@ -83,6 +83,7 @@ function Dashboard() {
         }
 
         cargarDatos(token);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [navigate]);
 
     const mostrarToast = (mensaje, tipo = 'success') => {

@@ -1,7 +1,8 @@
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from flask import request, jsonify, current_app
+from extensions import db
 from models.usuario import Usuario
 from models.cargo import Cargo
 import json
@@ -22,8 +23,8 @@ def generate_token(user_id, username, rol):
         'user_id': user_id,
         'username': username,
         'rol': rol,
-        'exp': datetime.utcnow() + timedelta(hours=10),  # Expira en 10 segundos
-        'iat': datetime.utcnow()  # Fecha de emisión
+        'exp': datetime.now(timezone.utc) + timedelta(hours=10),  # Expira en 10 segundos
+        'iat': datetime.now(timezone.utc)  # Fecha de emisión
     }
     
     token = jwt.encode(
@@ -68,7 +69,7 @@ def token_required(f):
             )
             
             # Obtener usuario actual
-            current_user = Usuario.query.get(data['user_id'])
+            current_user = db.session.get(Usuario, data['user_id'])
             
             if not current_user:
                 return jsonify({'error': 'Usuario no encontrado'}), 401
@@ -114,7 +115,7 @@ def admin_required(f):
                 algorithms=['HS256']
             )
             
-            current_user = Usuario.query.get(data['user_id'])
+            current_user = db.session.get(Usuario, data['user_id'])
             
             if not current_user:
                 return jsonify({'error': 'Usuario no encontrado'}), 401

@@ -31,6 +31,7 @@ function Logs() {
 
   useEffect(() => {
     fetchLogs();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paginacion.page, paginacion.per_page]);
 
   const fetchLogs = async () => {

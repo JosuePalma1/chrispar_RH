@@ -79,7 +79,11 @@ def health_check():
         with db.engine.connect() as conn:
             conn.execute(text('SELECT 1'))
         current_status = "healthy"
-        current_db = "mirror" if mirror_url and mirror_url in primary_url else "primary"
+        # Detectar correctamente qué BD está activa
+        if 'postgres_mirror' in primary_url or (mirror_url and primary_url == mirror_url):
+            current_db = "mirror"
+        else:
+            current_db = "primary"
     except OperationalError:
         current_status = "unhealthy"
         current_db = "unknown"

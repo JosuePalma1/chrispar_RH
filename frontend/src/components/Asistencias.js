@@ -141,7 +141,7 @@ function Asistencias() {
       // If the backend returned a naive ISO string (no timezone), treat it as UTC
       let s = String(iso);
       if (s.indexOf('T') === -1 && s.indexOf(' ') !== -1) s = s.replace(' ', 'T');
-      if (!s.match(/Z$|[\+\-]\d{2}:?\d{2}$/)) s = s + 'Z';
+      if (!s.match(/Z$|[+-]\d{2}:?\d{2}$/)) s = s + 'Z';
       const d = new Date(s);
       if (isNaN(d.getTime())) {
         const s = String(iso);

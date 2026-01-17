@@ -17,49 +17,25 @@ class DatabaseFailover:
         self.primary_url = None
         self.mirror_url = None
         self.app = None
-        self.failover_state_file = '/tmp/failover_state.txt'
-        
-        # Verificar si hay un estado de failover activo
-        import os
-        if os.path.exists(self.failover_state_file):
-            try:
-                with open(self.failover_state_file, 'r') as f:
-                    state = f.read().strip()
-                    if state == 'mirror':
-                        self.using_mirror = True
-                        logger.info("🔄 Estado de failover detectado - usando mirror")
-            except Exception:
-                pass
+        # NO persistir estado - siempre iniciar con Primary
     
     def init_app(self, app):
         """Inicializa el sistema de failover con la aplicación Flask."""
         self.app = app
         
-        # Guardar URLs originales ANTES de cualquier cambio
-        original_db_url = app.config['SQLALCHEMY_DATABASE_URI']
+        # Guardar URLs originales
+        self.primary_url = app.config['SQLALCHEMY_DATABASE_URI']
         self.mirror_url = app.config.get('MIRROR_DATABASE_URL')
         
-        # Si hay estado de failover activo, usar mirror
-        if self.using_mirror and self.mirror_url:
-            # En modo failover, primary_url debe ser la configurada en .env (que es postgres_primary)
-            # y mirror_url es la que vamos a usar
-            self.primary_url = original_db_url  # postgres_primary
-            app.config['SQLALCHEMY_DATABASE_URI'] = self.mirror_url  # Cambiar a mirror
-            logger.warning("⚠️  Aplicación iniciada en modo FAILOVER (usando mirror)")
-            logger.info(f"Primary (CAÍDO): {self.primary_url[:50]}...")
-            logger.info(f"Mirror (ACTIVO): {self.mirror_url[:50]}...")
+        logger.info("Sistema de failover inicializado")
+        logger.info(f"Primary: {self.primary_url[:60]}...")
+        if self.mirror_url:
+            logger.info(f"Mirror: {self.mirror_url[:60]}...")
         else:
-            # Modo normal: usar primary
-            self.primary_url = original_db_url
-            logger.info("Sistema de failover inicializado")
-            if self.mirror_url:
-                logger.info(f"Primary: {self.primary_url[:50]}...")
-                logger.info(f"Mirror: {self.mirror_url[:50]}...")
-            else:
-                logger.warning("MIRROR_DATABASE_URL no configurado - failover automático deshabilitado")
+            logger.warning("MIRROR_DATABASE_URL no configurado - failover deshabilitado")
     
     def _switch_to_mirror(self):
-        """Cambia la conexión al mirror."""
+        """Cambia la conexión al mirror EN MEMORIA (no persiste)."""
         if self.using_mirror or not self.mirror_url:
             return
         
@@ -68,40 +44,30 @@ class DatabaseFailover:
             logger.warning("EJECUTANDO FAILOVER AUTOMÁTICO AL MIRROR")
             logger.warning("=" * 70)
             
-            # Ejecutar comandos de preparación del mirror
-            try:
-                self._prepare_mirror()
-            except Exception as prep_error:
-                logger.error(f"Error en _prepare_mirror: {prep_error}", exc_info=True)
+            # Cambiar la configuración de SQLAlchemy al mirror
+            self.app.config['SQLALCHEMY_DATABASE_URI'] = self.mirror_url
             
-            # Guardar estado de failover
-            import os
-            try:
-                with open(self.failover_state_file, 'w') as f:
-                    f.write('mirror')
-                logger.info(f"✓ Estado de failover guardado en {self.failover_state_file}")
-            except Exception as e:
-                logger.error(f"Error guardando estado: {e}")
+            # CRÍTICO: Recrear el engine para que use la nueva URL
+            with self.app.app_context():
+                # Cerrar todas las conexiones existentes
+                db.session.remove()
+                db.engine.dispose()
+                
+                # Forzar recreación del engine con la nueva URL
+                db.get_engine()
             
             # Marcar que usamos mirror
             self.using_mirror = True
             
             logger.warning("=" * 70)
-            logger.warning("✅ FAILOVER COMPLETADO - REINICIANDO PROCESO AUTOMÁTICAMENTE")
+            logger.warning("✅ FAILOVER COMPLETADO - AHORA USANDO MIRROR")
             logger.warning("=" * 70)
-            
-            # Reiniciar el proceso Python automáticamente
-            # El nuevo proceso leerá el estado y usará el mirror desde el inicio
-            import sys
-            import os as os_module
-            
-            logger.info("🔄 Reiniciando proceso Python para aplicar failover...")
-            os_module.execv(sys.executable, ['python'] + sys.argv)
+            logger.info(f"Nueva conexión: {self.mirror_url[:60]}...")
+            logger.info("NOTA: Al reiniciar el backend, volverá al Primary automáticamente")
             
         except Exception as e:
-            logger.error(f"Error durante failover: {e}", exc_info=True)
-            self.using_mirror = False
-            self.using_mirror = False
+            logger.error(f"❌ Error en failover: {e}", exc_info=True)
+            raise
     
     def _prepare_mirror(self):
         """Prepara el mirror para aceptar escrituras."""
@@ -201,9 +167,14 @@ class DatabaseFailover:
             logger.warning("=" * 70)
             
             self.app.config['SQLALCHEMY_DATABASE_URI'] = self.primary_url
-            self.using_mirror = False
             
-            db.engine.dispose()
+            # Recrear el engine para usar Primary
+            with self.app.app_context():
+                db.session.remove()
+                db.engine.dispose()
+                db.get_engine()
+            
+            self.using_mirror = False
             
             logger.info(f"✓ Failback completado - Usando primary: {self.primary_url}")
             

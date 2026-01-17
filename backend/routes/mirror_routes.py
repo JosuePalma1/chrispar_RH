@@ -143,6 +143,19 @@ def mirror_status(current_user):
 			}
 		), 500
 
+	# Get the current DATABASE_URI (which might have been changed during failover)
+	current_db_uri = current_app.config.get("SQLALCHEMY_DATABASE_URI")
+	
+	# Determine original primary URL (from environment or config)
+	# If DATABASE_URL was set originally, that's the primary
+	original_primary_url = os.getenv("DATABASE_URL") or current_db_uri
+	
+	# Detect which database is currently active
+	if 'postgres_mirror' in current_db_uri or (mirror_database_url and current_db_uri == mirror_database_url):
+		current_active_db = "mirror"
+	else:
+		current_active_db = "primary"
+	
 	return jsonify(
 		{
 			"dialect": dialect,
@@ -150,8 +163,10 @@ def mirror_status(current_user):
 			"mirror_schema": mirror_schema,
 			"mirror_path": mirror_path if dialect == "sqlite" else None,
 			"mirror_database_url": "configured" if mirror_database_url else None,
-			"primary_connection": _safe_url_info(current_app.config.get("SQLALCHEMY_DATABASE_URI")),
+			"primary_connection": _safe_url_info(original_primary_url),
 			"mirror_connection": _safe_url_info(mirror_database_url),
+			"current_active_db": current_active_db,
+			"current_connection": _safe_url_info(current_db_uri),
 			"exists": exists,
 			"attached": bool(attached) if attached is not None else None,
 			"tables": tables,
