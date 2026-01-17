@@ -73,7 +73,8 @@ def app():
         SECRET_KEY = 'test-secret-key-for-unit-tests'
         JWT_SECRET_KEY = 'test-jwt-secret-key'
     
-    app = create_app()
-    app.config.from_object(TestConfig)
+    # Pasar la configuración de prueba a create_app para que se use
+    # antes de que la app intente conectarse a la base de datos.
+    app = create_app(TestConfig)
     
     return app

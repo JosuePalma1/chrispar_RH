@@ -5,9 +5,17 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy import text
 import os
 
-def create_app():
+def create_app(config_object=None):
     app = Flask(__name__)
     app.config.from_object("config.Config")
+    # Si se pasa una configuración (útil para tests), aplicar encima
+    if config_object:
+        try:
+            app.config.from_object(config_object)
+        except Exception:
+            # permitir dicts u otros mappings
+            if isinstance(config_object, dict):
+                app.config.update(config_object)
     
     # NO persistir el estado de failover entre reinicios
     # El backend SIEMPRE inicia con el Primary configurado en .env
