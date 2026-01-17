@@ -1,5 +1,5 @@
 from extensions import db
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.types import Date
 
 class Hoja_Vida(db.Model):
@@ -17,8 +17,8 @@ class Hoja_Vida(db.Model):
     ruta_archivo_url = db.Column(db.String(500)) # Saneado de "ruta_archivo(urlpath)"
 
     # Campos de auditoría (según ERD)
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
-    fecha_actualizacion = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    fecha_creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    fecha_actualizacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     creado_por = db.Column(db.Integer)
     modificado_por = db.Column(db.Integer)
     

@@ -1,5 +1,5 @@
 from extensions import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 class Cargo(db.Model):
     __tablename__ = "cargos"
@@ -8,8 +8,8 @@ class Cargo(db.Model):
     sueldo_base = db.Column(db.Float, nullable=False, default=0.0)
     permisos = db.Column(db.Text, nullable=True)  # JSON string con módulos permitidos
 
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
-    fecha_actualizacion = db.Column(db.DateTime, onupdate=datetime.utcnow)
+    fecha_creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    fecha_actualizacion = db.Column(db.DateTime, onupdate=lambda: datetime.now(timezone.utc))
     creado_por = db.Column(db.Integer)
     modificado_por = db.Column(db.Integer)
     

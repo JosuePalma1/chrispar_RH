@@ -1,5 +1,5 @@
 from extensions import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 class Empleado(db.Model):
     __tablename__ = "empleados"
@@ -19,8 +19,8 @@ class Empleado(db.Model):
     modalidad_fondo_reserva = db.Column(db.String(20))  # Mensual / Acumulado
     modalidad_decimos = db.Column(db.String(20))  # Mensual / Acumulado
 
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
-    fecha_actualizacion = db.Column(db.DateTime, onupdate=datetime.utcnow)
+    fecha_creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    fecha_actualizacion = db.Column(db.DateTime, onupdate=lambda: datetime.now(timezone.utc))
     creado_por = db.Column(db.Integer)
     modificado_por = db.Column(db.Integer)
 

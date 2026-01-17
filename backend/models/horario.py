@@ -1,5 +1,5 @@
 from extensions import db
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.types import Time, Date
 
 class Horario(db.Model):
@@ -20,8 +20,8 @@ class Horario(db.Model):
     fin_vigencia = db.Column(Date, nullable=True) # (puede ser null)
 
     # Campos de auditoría (según ERD)
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
-    fecha_actualizacion = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    fecha_creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    fecha_actualizacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     creado_por = db.Column(db.Integer) # Debería ser FK a Usuario
     modificado_por = db.Column(db.Integer) # Debería ser FK a Usuario
 

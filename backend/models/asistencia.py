@@ -1,5 +1,5 @@
 from extensions import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 class Asistencia(db.Model):
     __tablename__ = "asistencias"
@@ -12,8 +12,8 @@ class Asistencia(db.Model):
     hora_salida = db.Column(db.Time, nullable=True)
     horas_extra = db.Column(db.Float, nullable=True, default=0.0)
     
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
-    fecha_actualizacion = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    fecha_creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    fecha_actualizacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     creado_por = db.Column(db.Integer, nullable=True)
     modificado_por = db.Column(db.Integer, nullable=True)
     

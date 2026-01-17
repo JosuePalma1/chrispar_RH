@@ -4,7 +4,7 @@ Cubre token_required, admin_required, manejo de tokens inválidos
 """
 import json
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import Flask
 
 
@@ -33,7 +33,7 @@ class TestAuthUtilsCompleto:
             expired_payload = {
                 'user_id': 1,
                 'rol': 'admin',
-                'exp': datetime.utcnow() - timedelta(hours=1)  # Expirado hace 1 hora
+                'exp': datetime.now(timezone.utc) - timedelta(hours=1)  # Expirado hace 1 hora
             }
             expired_token = jwt.encode(
                 expired_payload,

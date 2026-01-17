@@ -3,7 +3,7 @@ from extensions import db
 from models.usuario import Usuario
 from models.log_transaccional import LogTransaccional
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 from utils.auth import generate_token, admin_required, token_required
 
@@ -164,7 +164,7 @@ def actualizar_usuario(current_user, id):
             usuario.rol = data['rol']
         
         # Actualizar fecha de modificación
-        usuario.fecha_actualizacion = datetime.utcnow()
+        usuario.fecha_actualizacion = datetime.now(timezone.utc)
         
         db.session.commit()
         
@@ -285,7 +285,7 @@ def login():
                 usuario=usuario.username,
                 datos_nuevos=json.dumps({
                     'evento': 'login_exitoso',
-                    'timestamp': datetime.utcnow().isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat()
                 })
             )
             db.session.add(log)
@@ -363,7 +363,7 @@ def actualizar_mi_perfil(current_user):
                 return jsonify({"error": "El nombre de usuario ya existe"}), 400
             current_user.username = nuevo_username
 
-        current_user.fecha_actualizacion = datetime.utcnow()
+        current_user.fecha_actualizacion = datetime.now(timezone.utc)
         db.session.commit()
 
         # Emitir token actualizado (username en payload)
@@ -379,7 +379,7 @@ def actualizar_mi_perfil(current_user):
                 datos_nuevos=json.dumps({
                     'evento': 'perfil_actualizado',
                     'username': current_user.username,
-                    'timestamp': datetime.utcnow().isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat()
                 })
             )
             db.session.add(log)
@@ -425,7 +425,7 @@ def cambiar_mi_contrasena(current_user):
             return jsonify({"error": "La nueva contraseña debe tener al menos 4 caracteres"}), 400
 
         current_user.password = generate_password_hash(new_password)
-        current_user.fecha_actualizacion = datetime.utcnow()
+        current_user.fecha_actualizacion = datetime.now(timezone.utc)
         db.session.commit()
 
         # REGISTRAR LOG (sin incluir password)
@@ -437,7 +437,7 @@ def cambiar_mi_contrasena(current_user):
                 usuario=current_user.username,
                 datos_nuevos=json.dumps({
                     'evento': 'password_actualizado',
-                    'timestamp': datetime.utcnow().isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat()
                 })
             )
             db.session.add(log)

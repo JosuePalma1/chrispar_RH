@@ -7,7 +7,7 @@ from utils.auth import token_required, admin_required
 from utils.parsers import parse_date
 import json
 from sqlalchemy.exc import IntegrityError
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def _fecha_generacion_val(n):
@@ -26,6 +26,7 @@ nomina_bp = Blueprint('nomina', __name__, url_prefix='/api/nominas')
 def crear_nomina(current_user):
 	try:
 		data = request.get_json() or {}
+		print(f"DEBUG: Datos recibidos: {data}")
 
 		# Validaciones de campos requeridos y tipos
 		id_empleado = data.get('id_empleado')
@@ -74,6 +75,7 @@ def crear_nomina(current_user):
 		horas_extra = _parse_nonneg_float(data.get('horas_extra', 0.0), 'horas_extra')
 		total_desembolsar = _parse_nonneg_float(data.get('total_desembolsar', data.get('total', 0.0)), 'total_desembolsar')
 
+		print(f"DEBUG: Creando nómina con mes={mes_val}, fecha_generacion={fecha_generacion}")
 		nuevo = Nomina(
 			id_empleado=id_empleado,
 			mes=mes_val,
@@ -85,11 +87,14 @@ def crear_nomina(current_user):
 		)
 		db.session.add(nuevo)
 		try:
+			print(f"DEBUG: Commit inicial de nómina")
 			db.session.commit()
+			print(f"DEBUG: Nómina creada con ID={nuevo.id_nomina}")
 		except IntegrityError as ie:
 			db.session.rollback()
 			# proporcionar mensaje más preciso al frontend
 			msg = str(ie.orig) if getattr(ie, 'orig', None) else str(ie)
+			print(f"DEBUG ERROR IntegrityError: {msg}")
 			if 'foreign key' in msg.lower():
 				return jsonify({'error': 'El empleado especificado no existe', 'detail': msg}), 400
 			if 'not null' in msg.lower():
@@ -127,6 +132,9 @@ def crear_nomina(current_user):
 	except Exception as e:
 		db.session.rollback()
 		error_msg = str(e)
+		print(f"DEBUG ERROR Exception general: {error_msg}")
+		import traceback
+		traceback.print_exc()
 		if 'foreign key constraint' in error_msg.lower():
 			return jsonify({'error': 'El empleado especificado no existe'}), 400
 		elif 'not null constraint' in error_msg.lower():
@@ -134,7 +142,7 @@ def crear_nomina(current_user):
 		elif 'unique constraint' in error_msg.lower():
 			return jsonify({'error': 'Ya existe una nómina con estos datos'}), 400
 		else:
-			return jsonify({'error': 'Error al crear la nómina. Verifica los datos ingresados'}), 500
+			return jsonify({'error': f'Error al crear la nómina: {error_msg}'}), 500
 
 
 @nomina_bp.route('/', methods=['GET'])
@@ -160,6 +168,13 @@ def listar_nominas(current_user):
 			})
 		return jsonify(result), 200
 	except Exception as error:
+		import traceback
+		with open("error_log.txt", "a") as f:
+			f.write(f"\n--- ERROR {datetime.now()} ---\n")
+			traceback.print_exc(file=f)
+			f.write(str(error))
+		traceback.print_exc()
+		print(f"ERROR EN LISTAR NOMINAS: {error}")
 		return jsonify({'error': f'Error al listar nóminas: {str(error)}'}), 500
 
 

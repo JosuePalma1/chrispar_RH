@@ -4,7 +4,7 @@ Blueprint para endpoints de monitoreo y health check
 from flask import Blueprint, jsonify
 from flask_cors import cross_origin
 from extensions import db, db_failover
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 health_bp = Blueprint('health', __name__)
@@ -24,7 +24,7 @@ def health_check():
         status = {
             "status": "healthy",
             "database": db_failover.get_current_database(),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "connection": "active",
             "failover_enabled": db_failover.mirror_url is not None
         }
@@ -36,7 +36,7 @@ def health_check():
         status = {
             "status": "unhealthy",
             "database": db_failover.get_current_database(),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "error": str(e)
         }
         return jsonify(status), 503
@@ -56,7 +56,7 @@ def database_status():
             "primary_url": db_failover.primary_url,
             "mirror_url": db_failover.mirror_url,
             "using_mirror": db_failover.using_mirror,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
         return jsonify(status), 200

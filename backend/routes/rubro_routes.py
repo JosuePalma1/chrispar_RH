@@ -5,6 +5,7 @@ from models.log_transaccional import LogTransaccional
 from utils.auth import token_required, admin_required
 from utils.parsers import parse_date
 import json
+from datetime import datetime, timezone
 
 rubro_bp = Blueprint('rubro', __name__, url_prefix='/api/rubros')
 
@@ -118,6 +119,9 @@ def listar_rubros(current_user):
 			})
 		return jsonify(result), 200
 	except Exception as error:
+		import traceback
+		traceback.print_exc()
+		print(f"ERROR EN LISTAR RUBROS: {error}")
 		return jsonify({'error': f'Error al listar rubros: {str(error)}'}), 500
 
 

@@ -1,5 +1,5 @@
 from extensions import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 class LogTransaccional(db.Model):
     __tablename__ = 'log_transaccional'
@@ -9,7 +9,7 @@ class LogTransaccional(db.Model):
     operacion = db.Column(db.String(20), nullable=False)
     id_registro = db.Column(db.Integer, nullable=False)
     usuario = db.Column(db.String(100), nullable=False)
-    fecha_hora = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha_hora = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     datos_anteriores = db.Column(db.Text, nullable=True)
     datos_nuevos = db.Column(db.Text, nullable=True)
     
