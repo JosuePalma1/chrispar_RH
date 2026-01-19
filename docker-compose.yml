@@ -98,6 +98,9 @@ services:
       - "5000:5000"
     env_file:
       - ./backend/.env
+    environment:
+      - DB_HOST=postgres_primary
+      - DB_PORT=5432
     depends_on:
       postgres_primary:
         condition: service_healthy
