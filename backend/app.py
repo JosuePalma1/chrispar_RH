@@ -145,3 +145,5 @@ if __name__ == "__main__":
     app = create_app()
     print("\n🚀 PRODUCCIÓN INICIADA EN PUERTO 5000")
     app.run(host="0.0.0.0", port=5000, debug=False)
+
+BASE_URL = os.environ.get('PUBLIC_URL', 'http://127.0.0.1:8080')

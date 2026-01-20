@@ -52,9 +52,8 @@ def delete_file_from_vm(file_url):
             print("Error: FILE_SERVER_URL no configurado para borrar")
             return False
 
-        base_url = upload_url.replace('/upload', '') # Queda http://127.0.0.1:8080
-        
-        delete_endpoint = f"{base_url}/files/{filename}"
+        base_url = upload_url.replace('/upload', '')
+        delete_endpoint = f"{base_url}/api/delete/{filename}"
         
         # 3. Enviar petición DELETE
         response = requests.delete(delete_endpoint, timeout=5)
