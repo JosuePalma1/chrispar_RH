@@ -169,22 +169,27 @@ function HojaDeVida() {
     const procesarArchivo = (file) => {
         // Validar tipo de archivo
         const tiposPermitidos = [
+            'application/pdf'
+        ];
+
+        /*const tiposPermitidos = [
             'application/pdf', 
             'application/msword', 
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
             'image/jpeg', 
             'image/png', 
             'image/jpg'
-        ];
+        ];*/
         
         if (!tiposPermitidos.includes(file.type)) {
-            mostrarToast('Formato no permitido. Use PDF, Word o Imágenes.', 'error');
+            mostrarToast('Formato no permitido. Use PDF.', 'error');
+            //mostrarToast('Formato no permitido. Use PDF, Word o Imágenes.', 'error');
             return;
         }
 
         // Validar tamaño (ejemplo 5MB)
         if (file.size > 5 * 1024 * 1024) {
-            mostrarToast('El archivo es demasiado pesado (Máx 5MB).', 'error');
+            mostrarToast('El archivo es demasiado pesado (Máx 20MB).', 'error');
             return;
         }
 
@@ -596,7 +601,7 @@ function HojaDeVida() {
                             
                             {/* --- MODIFICADO: Input de Archivo con Drag & Drop --- */}
                             <div className="form-grupo">
-                                <label>Adjuntar Archivo (PDF, IMG, DOC)</label>
+                                <label>Adjuntar Archivo (PDF)</label>
                                 
                                 <div className="file-upload-wrapper">
                                     <input 
@@ -604,7 +609,7 @@ function HojaDeVida() {
                                         name="archivo" 
                                         id="archivo-input"
                                         onChange={handleFileChange} 
-                                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                        accept=".pdf" //".pdf,.doc,.docx,.jpg,.jpeg,.png"
                                         ref={fileInputRef}
                                         className="input-file-hidden" 
                                     />
