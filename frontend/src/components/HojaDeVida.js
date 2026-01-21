@@ -187,8 +187,7 @@ function HojaDeVida() {
             return;
         }
 
-        // Validar tamaño (ejemplo 5MB)
-        if (file.size > 5 * 1024 * 1024) {
+        if (file.size > 20 * 1024 * 1024) {
             mostrarToast('El archivo es demasiado pesado (Máx 20MB).', 'error');
             return;
         }
