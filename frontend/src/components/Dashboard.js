@@ -14,7 +14,7 @@ import {
     PointElement,
     LineElement
 } from 'chart.js';
-import { Bar, Doughnut } from 'react-chartjs-2';
+import { Bar } from 'react-chartjs-2';
 
 ChartJS.register(
     CategoryScale,
@@ -430,87 +430,6 @@ function Dashboard() {
                 ],
                 borderWidth: 2
             }]
-        };
-    };
-
-    // Datos para gráfico de estado de empleados
-    const estadoEmpleadosData = {
-        labels: ['Activos', 'Inactivos'],
-        datasets: [{
-            label: 'Empleados',
-            data: [estadisticas.empleadosActivos, estadisticas.empleadosInactivos],
-            backgroundColor: [
-                'rgba(46, 204, 113, 0.8)',
-                'rgba(231, 76, 60, 0.8)',
-            ],
-            borderColor: [
-                'rgba(46, 204, 113, 1)',
-                'rgba(231, 76, 60, 1)',
-            ],
-            borderWidth: 2
-        }]
-    };
-
-    // Datos para gráfico de asistencias del mes
-    const asistenciasMesData = () => {
-        const hoy = new Date();
-        const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-        const ultimoDia = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
-
-        const asistenciasMes = asistencias.filter(a => {
-            const fecha = new Date(a.fecha);
-            return fecha >= primerDia && fecha <= ultimoDia;
-        });
-
-        const diasLabels = [];
-        const puntualCount = [];
-        const tardeCount = [];
-        const ausenteCount = [];
-
-        // Agrupar por semana (últimas 4 semanas)
-        for (let i = 3; i >= 0; i--) {
-            const inicio = new Date(hoy);
-            inicio.setDate(inicio.getDate() - (i * 7 + 6));
-            const fin = new Date(hoy);
-            fin.setDate(fin.getDate() - (i * 7));
-
-            diasLabels.push(`Sem ${4 - i}`);
-
-            const asistenciasSemana = asistenciasMes.filter(a => {
-                const fecha = new Date(a.fecha);
-                return fecha >= inicio && fecha <= fin;
-            });
-
-            puntualCount.push(asistenciasSemana.filter(a => a.estado === 'Presente').length);
-            tardeCount.push(asistenciasSemana.filter(a => a.estado === 'Tarde').length);
-            ausenteCount.push(asistenciasSemana.filter(a => a.estado === 'Ausente').length);
-        }
-
-        return {
-            labels: diasLabels,
-            datasets: [
-                {
-                    label: 'Puntual',
-                    data: puntualCount,
-                    backgroundColor: 'rgba(46, 204, 113, 0.8)',
-                    borderColor: 'rgba(46, 204, 113, 1)',
-                    borderWidth: 2
-                },
-                {
-                    label: 'Tarde',
-                    data: tardeCount,
-                    backgroundColor: 'rgba(241, 196, 15, 0.8)',
-                    borderColor: 'rgba(241, 196, 15, 1)',
-                    borderWidth: 2
-                },
-                {
-                    label: 'Ausente',
-                    data: ausenteCount,
-                    backgroundColor: 'rgba(231, 76, 60, 0.8)',
-                    borderColor: 'rgba(231, 76, 60, 1)',
-                    borderWidth: 2
-                }
-            ]
         };
     };
 
