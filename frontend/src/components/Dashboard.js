@@ -737,19 +737,19 @@ function Dashboard() {
                                 </div>
                             </div>
 
-                            <div className="chart-card">
+                            {/* <div className="chart-card">
                                 <h3>Estado de Empleados</h3>
                                 <div className="chart-wrapper">
                                     <Doughnut data={estadoEmpleadosData} options={chartOptions} />
                                 </div>
-                            </div>
+                            </div> */}
 
-                            <div className="chart-card chart-wide">
+                            {/* <div className="chart-card chart-wide">
                                 <h3>Asistencias del Mes (por Semana)</h3>
                                 <div className="chart-wrapper">
                                     <Bar data={asistenciasMesData()} options={chartOptions} />
                                 </div>
-                            </div>
+                            </div> */}
                         </div>
 
                         {/* Tabla de empleados */}
