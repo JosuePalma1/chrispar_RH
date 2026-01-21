@@ -86,6 +86,12 @@ function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [navigate]);
 
+        useEffect(() => {
+        if (empleados.length > 0 && cargos.length > 0) {
+            calcularEstadisticas(empleados, cargos);
+        }
+    }, [empleados, cargos]);
+
     const mostrarToast = (mensaje, tipo = 'success') => {
         setToast(mensaje);
         setToastType(tipo);
@@ -277,7 +283,7 @@ function Dashboard() {
             empleadosActivos: activos,
             empleadosInactivos: inactivos,
             totalCargos: cargosData.length,
-            promedioSueldo: empleadosData.length > 0 ? (totalSueldo / empleadosData.length).toFixed(2) : 0
+            promedioSueldo: empleadosData.length > 0 ? parseFloat((totalSueldo / empleadosData.length).toFixed(2)) : 0
         });
     };
 
@@ -716,8 +722,8 @@ function Dashboard() {
                             <div className="stat-card stat-info">
                                 <div className="stat-icon">💰</div>
                                 <div className="stat-content">
-                                    <h3>Sueldo Promedio</h3>
-                                    <p className="stat-number">${estadisticas.promedioSueldo}</p>
+                                    <h3>Promedio Sueldo</h3>
+                                    <p className="stat-number">${parseFloat(estadisticas.promedioSueldo).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                 </div>
                             </div>
                         </div>
