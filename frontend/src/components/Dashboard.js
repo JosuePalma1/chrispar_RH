@@ -695,21 +695,7 @@ function Dashboard() {
                                 </div>
                             </div>
 
-                            {/* <div className="stat-card stat-success">
-                                <div className="stat-icon">✅</div>
-                                <div className="stat-content">
-                                    <h3>Empleados Activos</h3>
-                                    <p className="stat-number">{estadisticas.empleadosActivos}</p>
-                                </div>
-                            </div>
 
-                            <div className="stat-card stat-danger">
-                                <div className="stat-icon">⛔</div>
-                                <div className="stat-content">
-                                    <h3>Empleados Inactivos</h3>
-                                    <p className="stat-number">{estadisticas.empleadosInactivos}</p>
-                                </div>
-                            </div> */}
 
                             <div className="stat-card stat-warning">
                                 <div className="stat-icon">💼</div>
@@ -737,19 +723,7 @@ function Dashboard() {
                                 </div>
                             </div>
 
-                            {/* <div className="chart-card">
-                                <h3>Estado de Empleados</h3>
-                                <div className="chart-wrapper">
-                                    <Doughnut data={estadoEmpleadosData} options={chartOptions} />
-                                </div>
-                            </div> */}
 
-                            {/* <div className="chart-card chart-wide">
-                                <h3>Asistencias del Mes (por Semana)</h3>
-                                <div className="chart-wrapper">
-                                    <Bar data={asistenciasMesData()} options={chartOptions} />
-                                </div>
-                            </div> */}
                         </div>
 
                         {/* Tabla de empleados */}
