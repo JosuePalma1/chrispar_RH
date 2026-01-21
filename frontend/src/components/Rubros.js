@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Sidebar from './Sidebar';
@@ -13,7 +15,7 @@ function Rubros() {
   const [rubros, setRubros] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ id_nomina: '', tipo: 'devengo', monto: '' });
+  const [form, setForm] = useState({ id_nomina: '', motivo: '', tipo: 'devengo', monto: '' });
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [nominasList, setNominasList] = useState([]);
   const [empleadosList, setEmpleadosList] = useState([]);
@@ -200,11 +202,14 @@ const numericKeyDown = (e) => {
 
     try {
       const token = localStorage.getItem('token');
+      // Calcular automáticamente la operación basada en el tipo
+      const operacion = form.tipo === 'deduccion' ? 'resta' : 'suma';
       const payload = {
         id_nomina: parseInt(form.id_nomina, 10),
         motivo: String(form.motivo || '').trim(),
         tipo: form.tipo,
         monto: parseFloat(form.monto) || 0,
+        operacion: operacion,
         creado_por: 1
       };
       await axios.post(`${API_URL}/api/rubros/`, payload, {
@@ -284,14 +289,17 @@ const openEditModal = (rubro) => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleEditSave = async () => {
+const handleEditSave = async () => {
   if (!validateEdit()) return;
   try {
     const token = localStorage.getItem('token');
+    // Calcular automáticamente la operación basada en el tipo
+    const operacion = editForm.tipo === 'deduccion' ? 'resta' : 'suma';
     const payload = {
       motivo: String(editForm.motivo || '').trim(),
       tipo: editForm.tipo,
-      monto: parseFloat(editForm.monto) || 0
+      monto: parseFloat(editForm.monto) || 0,
+      operacion: operacion
     };
     
     await axios.put(`${API_URL}/api/rubros/${editForm.id_rubro}`, payload, {
@@ -400,8 +408,8 @@ const openEditModal = (rubro) => {
             <div className="form-grupo">
               <label>Tipo</label>
               <select name="tipo" value={editForm.tipo} onChange={handleEditChange}>
-                <option value="devengo">Devengo</option>
-                <option value="deduccion">Deducción</option>
+                <option value="devengo">Devengo (Suma)</option>
+                <option value="deduccion">Deducción (Resta)</option>
               </select>
               {formErrors.tipo && <div className="field-error">{formErrors.tipo}</div>}
             </div>
@@ -467,8 +475,8 @@ const openEditModal = (rubro) => {
             <div className="form-grupo">
               <label>Tipo</label>
               <select name="tipo" value={form.tipo} onChange={handleChange}>
-                <option value="devengo">Devengo</option>
-                <option value="deduccion">Deducción</option>
+                <option value="devengo">Devengo (Suma)</option>
+                <option value="deduccion">Deducción (Resta)</option>
               </select>
               {formErrors.tipo && <div className="field-error">{formErrors.tipo}</div>}
             </div>
