@@ -695,7 +695,7 @@ function Dashboard() {
                                 </div>
                             </div>
 
-                            <div className="stat-card stat-success">
+                            {/* <div className="stat-card stat-success">
                                 <div className="stat-icon">✅</div>
                                 <div className="stat-content">
                                     <h3>Empleados Activos</h3>
@@ -709,7 +709,7 @@ function Dashboard() {
                                     <h3>Empleados Inactivos</h3>
                                     <p className="stat-number">{estadisticas.empleadosInactivos}</p>
                                 </div>
-                            </div>
+                            </div> */}
 
                             <div className="stat-card stat-warning">
                                 <div className="stat-icon">💼</div>
