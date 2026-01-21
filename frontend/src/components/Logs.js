@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Sidebar from './Sidebar';
 import './Logs.css';
+import { FaEye } from 'react-icons/fa';
+
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
 
@@ -305,13 +307,16 @@ function Logs() {
                         </td>
                         <td className="td-center">{log.id_registro}</td>
                         <td className="td-center">
-                          <button 
-                            className="btn-ver" 
+                        <div className="acciones-grupo">
+                          <button
+                            className="btn-icono ver"
                             onClick={() => handleVerDetalles(log)}
+                            title="Ver detalle"
                           >
-                            👁️ Ver
+                            <FaEye />
                           </button>
-                        </td>
+                        </div>
+                      </td>
                       </tr>
                     ))
                   )}
