@@ -10,23 +10,20 @@ FAILOVER_STATE_FILE = "/tmp/failover_state.txt"
 def create_app(config_object=None):
     app = Flask(__name__)
     
-    # =========================================================
-    # 1️⃣ Configuración de CORS (Fundamental para Vercel)
-    # =========================================================
+    # CORS
     CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
     
+    # Configuración principal
     app.config.from_object("config.Config")
 
-    # Permitir override (tests / CI)
+    # Override opcional
     if config_object:
         if isinstance(config_object, dict):
             app.config.update(config_object)
         else:
             app.config.from_object(config_object)
 
-    # =========================================================
-    # 2️⃣ Restaurar estado de failover persistente
-    # =========================================================
+    # Restaurar failover si existe
     if os.path.exists(FAILOVER_STATE_FILE):
         try:
             with open(FAILOVER_STATE_FILE, "r") as f:
@@ -38,12 +35,9 @@ def create_app(config_object=None):
         except Exception:
             pass
 
-    # =========================================================
-    # 3️⃣ Verificar conexión ANTES de inicializar SQLAlchemy
-    # =========================================================
+    # Test conexión inicial
     def test_connection(db_url, label):
-        c_args = {"connect_timeout": 5} if "postgresql" in db_url else {}
-        engine = create_engine(db_url, connect_args=c_args)
+        engine = create_engine(db_url, connect_args={"connect_timeout": 5})
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         engine.dispose()
@@ -52,73 +46,44 @@ def create_app(config_object=None):
     try:
         test_connection(app.config["SQLALCHEMY_DATABASE_URI"], "PRIMARY")
     except OperationalError as e:
-        app.logger.warning(f"⚠️ Primary no disponible al iniciar: {str(e)[:120]}")
+        app.logger.warning(f"⚠️ Primary no disponible: {str(e)[:120]}")
         mirror_url = app.config.get("MIRROR_DATABASE_URL")
         if not mirror_url:
-            app.logger.critical("❌ No hay Mirror configurado")
-            raise
-
+            raise RuntimeError("❌ No hay Mirror configurado")
         app.logger.warning("🔄 Cambiando a MIRROR automáticamente")
         app.config["SQLALCHEMY_DATABASE_URI"] = mirror_url
         test_connection(mirror_url, "MIRROR")
+        with open(FAILOVER_STATE_FILE, "w") as f:
+            f.write("mirror")
 
-        # Persistir estado
-        try:
-            with open(FAILOVER_STATE_FILE, "w") as f:
-                f.write("mirror")
-        except Exception:
-            pass
-
-    # =========================================================
-    # 4️⃣ Inicialización de extensiones
-    # =========================================================
+    # Inicialización de extensiones
     db_failover.init_app(app)
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # =========================================================
-    # 5️⃣ Health check en cada request (failover en caliente)
-    # =========================================================
+    # Health check por request
     @app.before_request
     def check_database_connection():
         if db_failover.using_mirror:
             return
-
         try:
             with db.engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
         except OperationalError:
-            app.logger.error("💥 Primary caído durante ejecución")
             if db_failover.mirror_url:
-                app.logger.warning("🔄 Activando failover automático")
                 db_failover._switch_to_mirror()
-
-                # Persistir estado
-                try:
-                    with open(FAILOVER_STATE_FILE, "w") as f:
-                        f.write("mirror")
-                except Exception:
-                    pass
+                with open(FAILOVER_STATE_FILE, "w") as f:
+                    f.write("mirror")
             else:
                 db.session.rollback()
                 raise
 
-    # =========================================================
-    # 6️⃣ Registro de Blueprints
-    # =========================================================
-    with app.app_context():
-        from models import (
-            Empleado, Cargo, Usuario, LogTransaccional,
-            Asistencia, Permiso
-        )
-
+    # Blueprints
     from routes import all_blueprints
     for bp in all_blueprints:
         app.register_blueprint(bp)
 
-    # =========================================================
-    # 7️⃣ Auto setup de mirror por schema (Postgres)
-    # =========================================================
+    # Setup mirror
     with app.app_context():
         _setup_mirror_auto(app)
 
@@ -128,13 +93,10 @@ def _setup_mirror_auto(app):
     try:
         mirror_url = app.config.get("MIRROR_DATABASE_URL")
         mirror_schema = app.config.get("MIRROR_SCHEMA", "mirror")
-        dialect = db.engine.dialect.name
-
-        if dialect.startswith("postgres") and mirror_url:
-            print("[Mirror] Mirror externo detectado. Replicación gestionada externamente.")
+        if db.engine.dialect.name.startswith("postgres") and mirror_url:
+            print("[Mirror] Mirror externo detectado.")
             return
-
-        if dialect.startswith("postgres"):
+        if db.engine.dialect.name.startswith("postgres"):
             from utils.mirror_db import auto_setup_postgres_schema_mirror
             auto_setup_postgres_schema_mirror(db.engine, mirror_schema)
             print(f"[Mirror] PostgreSQL schema '{mirror_schema}' listo")
@@ -145,5 +107,3 @@ if __name__ == "__main__":
     app = create_app()
     print("\n🚀 PRODUCCIÓN INICIADA EN PUERTO 5000")
     app.run(host="0.0.0.0", port=5000, debug=False)
-
-BASE_URL = os.environ.get('PUBLIC_URL', 'http://127.0.0.1:8080')

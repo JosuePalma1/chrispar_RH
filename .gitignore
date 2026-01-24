@@ -73,3 +73,7 @@ backend/test_mirror_replication.py
 # Migraciones - Ahora versionadas en git
 # backend/migrations/versions/*.py
 backend/migrations/versions/__pycache__/
+
+# Variables de entorno (LOCAL)
+.env
+backend/.env

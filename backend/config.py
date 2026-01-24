@@ -9,16 +9,16 @@ BASE_DIR = Path(__file__).resolve().parent
 
 # Cargar variables de entorno desde backend/.env, sin depender del CWD.
 # override=True para que el .env del proyecto tenga prioridad en desarrollo.
-load_dotenv(dotenv_path=BASE_DIR / ".env", override=True)
+load_dotenv(dotenv_path=BASE_DIR / ".env", override=False)
 
 class Config:
     # Base de datos principal
     # - En desarrollo local (Postgres instalado o contenedor con puerto 5432 expuesto): localhost
     # - Si el backend corre dentro de Docker: usar el nombre del servicio (postgres_primary)
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL",
-        "postgresql://postgres:123@localhost:5432/chrispar",
-    )
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
+    if not SQLALCHEMY_DATABASE_URI:
+        raise RuntimeError("DATABASE_URL no está definida")
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv("SECRET_KEY", "devkey")
 
