@@ -5,6 +5,8 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy import text, create_engine
 import os
 import sys
+import sys
+from pathlib import Path
 
 FAILOVER_STATE_FILE = "/tmp/failover_state.txt"
 
@@ -138,6 +140,11 @@ def _setup_mirror_auto(app):
 # =========================================================
 if os.environ.get("RUN_DB_INIT", "0") == "1":
     print("🚀 Inicializando base de datos y seeders...")
+    # Agregar scripts/database al sys.path para importar los módulos
+    base_dir = Path(__file__).resolve().parent.parent
+    scripts_db_path = base_dir / "scripts" / "database"
+    sys.path.insert(0, str(scripts_db_path))
+
     from extensions import db
     from inicializar_db import crear_admin
     from database_seeder import seed_data
