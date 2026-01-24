@@ -151,6 +151,8 @@ if os.environ.get("RUN_DB_INIT", "0") == "1":
 
     app = create_app()
     with app.app_context():
+        # Importar todos los modelos antes de crear las tablas
+        import models  # Asegura que SQLAlchemy conozca todos los modelos
         db.create_all()
         print("✅ Tablas creadas")
         crear_admin()
