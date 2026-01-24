@@ -1,17 +1,13 @@
-from app import create_app
 from extensions import db
 from models.usuario import Usuario
 from models.cargo import Cargo
 from werkzeug.security import generate_password_hash
 import json
 
-app = create_app()
-
-with app.app_context():
+def crear_admin():
     print("=" * 50)
     print("INICIALIZANDO BASE DE DATOS")
     print("=" * 50)
-    
     # Verificar si ya existe el cargo de Administrador
     cargo_admin = Cargo.query.filter_by(nombre_cargo='Administrador').first()
     if not cargo_admin:
@@ -26,10 +22,8 @@ with app.app_context():
         print("✓ Cargo 'Administrador' creado exitosamente")
     else:
         print("✓ Cargo 'Administrador' ya existe")
-    
     # Verificar si ya existe el usuario admin y actualizar hash si es necesario
     admin_existente = Usuario.query.filter_by(username='admin').first()
-    
     if not admin_existente:
         admin = Usuario(
             username='admin',
@@ -44,7 +38,6 @@ with app.app_context():
         admin_existente.password = generate_password_hash('123')
         db.session.commit()
         print("✓ Usuario 'admin' actualizado con hash compatible")
-    
     print("\n" + "=" * 50)
     print("CREDENCIALES DE ACCESO AL SISTEMA")
     print("=" * 50)
